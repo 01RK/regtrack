@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments and local dependency bundles
+.venv/
+venv/
+env/
+regtrack/.deps/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Local databases and generated data
+*.db
+*.sqlite
+*.sqlite3
+regtrack/data/*
+!regtrack/data/.gitkeep
+
+# Logs, caches, and editor / OS files
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Windows packaged release output
+release/
+*.spec
+
+# Temporary source transfer artifacts
+.upload-manifest.json
+regtrack-source-upload.zip

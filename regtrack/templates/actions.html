@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}事项 · 法规跟踪系统{% endblock %}
+{% block eyebrow %}05 · Action Item{% endblock %}
+{% block heading %}事项{% endblock %}
+{% block actions %}
+<div class="dropdown">
+  <button class="btn btn-primary btn-sm dropdown-toggle" id="btn-new" data-bs-toggle="dropdown">新建事项</button>
+  <ul class="dropdown-menu dropdown-menu-end" id="new-type-menu"></ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="filters">
+    <div class="fl"><label for="f-q">搜索</label>
+      <input id="f-q" class="form-control search" placeholder="事项号 / 标题 / 描述 / 标准"></div>
+    <div class="fl"><label for="f-type">事项类型</label><select id="f-type" class="form-select"></select></div>
+    <div class="fl"><label for="f-status">状态</label><select id="f-status" class="form-select"></select></div>
+    <div class="fl"><label for="f-priority">优先级</label><select id="f-priority" class="form-select"></select></div>
+    <div class="fl"><label for="f-open">范围</label>
+      <select id="f-open" class="form-select">
+        <option value="">全部事项</option>
+        <option value="1">只看在办</option>
+      </select></div>
+    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
+    <div class="group-tools" aria-label="标准分组显示控制">
+      <button class="btn btn-outline-secondary btn-sm" id="groups-expand" type="button">全部展开</button>
+      <button class="btn btn-outline-secondary btn-sm" id="groups-collapse" type="button">全部收起</button>
+    </div>
+  </div>
+  <div class="panel-body tight table-wrap">
+    <table class="table grouped-table actions-grouped-table">
+      <colgroup>
+        <col style="width:13%"><col style="width:15%"><col style="width:22%">
+        <col style="width:12%"><col style="width:12%"><col style="width:8%">
+        <col style="width:11%"><col style="width:7%">
+      </colgroup>
+      <thead><tr>
+        <th>事项号</th><th>类型</th><th>标题</th><th>关联会议</th>
+        <th>状态</th><th>优先级</th><th>截止</th><th>反馈进度</th>
+      </tr></thead>
+      <tbody id="rows"><tr><td colspan="8"><div class="loading">载入中…</div></td></tr></tbody>
+    </table>
+  </div>
+  <div class="pager" id="pager"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/actions.js', v='20260923-v18') }}"></script>
+{% endblock %}

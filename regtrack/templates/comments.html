@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}意见矩阵 · 法规跟踪系统{% endblock %}
+{% block eyebrow %}04 · Comment Matrix{% endblock %}
+{% block heading %}意见矩阵{% endblock %}
+{% block actions %}
+<button class="btn btn-primary btn-sm" id="btn-new">登记正式意见</button>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="filters">
+    <div class="fl"><label for="f-q">搜索</label>
+      <input id="f-q" class="form-control search" placeholder="意见号 / 条款 / 主题 / 意见内容 / 标准"></div>
+    <div class="fl"><label for="f-status">意见状态</label><select id="f-status" class="form-select"></select></div>
+    <div class="fl"><label for="f-by">提交人</label><select id="f-by" class="form-select"></select></div>
+    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
+    <div class="group-tools" aria-label="标准分组显示控制">
+      <button class="btn btn-outline-secondary btn-sm" id="groups-expand" type="button">全部展开</button>
+      <button class="btn btn-outline-secondary btn-sm" id="groups-collapse" type="button">全部收起</button>
+    </div>
+  </div>
+  <div class="panel-body tight table-wrap">
+    <table class="table grouped-table comments-grouped-table">
+      <colgroup>
+        <col style="width:12%"><col style="width:13%"><col style="width:8%">
+        <col style="width:13%"><col style="width:24%"><col style="width:10%">
+        <col style="width:10%"><col style="width:10%">
+      </colgroup>
+      <thead><tr>
+        <th>意见号</th><th>草案版本</th><th>条款</th><th>主题</th>
+        <th>意见内容</th><th>状态</th><th>提交人</th><th>提交日期</th>
+      </tr></thead>
+      <tbody id="rows"><tr><td colspan="8"><div class="loading">载入中…</div></td></tr></tbody>
+    </table>
+  </div>
+  <div class="pager" id="pager"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/comments.js', v='20260923-v18') }}"></script>{% endblock %}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}法规跟踪系统{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.bootstrap5.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20260923-v18') }}">
+{% block styles %}{% endblock %}
+</head>
+<body>
+<div class="shell">
+  <nav class="rail">
+    <div class="rail-brand">
+      <b>法规跟踪系统</b>
+      <span>Regulation Tracking</span>
+    </div>
+    <div class="rail-nav">
+      {% for item in nav %}
+      <a href="{{ item.url }}" class="{{ 'active' if item.key == active }}">
+        <span class="no">{{ item.no or '·' }}</span>
+        <span>{{ item.label }}<span class="en">{{ item.en }}</span></span>
+      </a>
+      {% endfor %}
+    </div>
+    <div class="rail-foot">
+      <label for="current-user">当前操作人</label>
+      <div id="current-user" class="current-user-display">未署名</div>
+      <div style="margin-top:8px">如需切换，请进入「设置」→「切换操作人」。</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <span class="sub">{% block eyebrow %}{% endblock %}</span>
+        <h1>{% block heading %}{% endblock %}</h1>
+      </div>
+      {% block heading_nav %}{% endblock %}
+      <div class="ms-auto btn-row">{% block actions %}{% endblock %}</div>
+    </header>
+    <main class="content">{% block content %}{% endblock %}</main>
+  </div>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
+<div id="modal-host"></div>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/core.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/grouped-list.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/fields.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/forms.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/action-form.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/stage-manager.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/records.js', v='20260923-v18') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

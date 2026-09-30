@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}设置 · 法规跟踪系统{% endblock %}
+{% block eyebrow %}Settings{% endblock %}
+{% block heading %}设置{% endblock %}
+
+{% block content %}
+<div class="settings-layout">
+  <aside class="settings-menu" aria-label="设置板块">
+    <button class="settings-menu-item" data-setting-tab="operator"><span>◎</span><span><b>切换操作人</b><small>确认当前登记账户</small></span></button>
+    <button class="settings-menu-item active" data-setting-tab="transfer"><span>↔</span><span><b>操作人数据交换</b><small>导入与导出个人登记数据</small></span></button>
+    <button class="settings-menu-item" data-setting-tab="lookups"><span>☷</span><span><b>字典维护</b><small>管理系统下拉选项</small></span></button>
+  </aside>
+  <div class="settings-main">
+    <section class="settings-section" data-setting-section="operator">
+      <div class="settings-section-head"><div><h2>切换操作人</h2><p>切换后，新建和修改记录会使用新的登记人署名。</p></div></div>
+      <div class="settings-card operator-card">
+        <label class="form-label" for="operator-user">选择操作人</label>
+        <div class="row g-2 align-items-center"><div class="col-md-7"><select id="operator-user" class="form-select"></select></div><div class="col-md-auto"><button id="operator-confirm" class="btn btn-primary">确认切换</button></div></div>
+        <div class="settings-note">当前操作人：<b id="operator-current">未署名</b></div>
+      </div>
+    </section>
+    <section class="settings-section active" data-setting-section="transfer">
+      <div class="settings-section-head"><div><h2>操作人数据交换</h2><p>按登记人交换业务记录，适合在不同同事的单机版本之间传递数据。</p></div></div>
+      <div class="settings-card">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-5"><label class="form-label">登记人</label><select id="transfer-user" class="form-select"></select></div>
+          <div class="col-md-7 btn-row"><button id="export-user" class="btn btn-primary">导出该登记人数据</button><label class="btn btn-outline-secondary mb-0">导入数据包<input id="import-user" type="file" accept=".json,application/json" hidden></label></div>
+        </div>
+        <div class="settings-note">选好文件后会先弹出确认框：核对数据包里有多少记录、这批数据记到哪位操作人名下（可选现有操作人，也可当场新增），确认后才写入。导入时重新编号并按标准编号、草案版本、字典值等自动合并，不会覆盖本机记录。</div>
+      </div>
+    </section>
+    <section class="settings-section" data-setting-section="lookups">
+      <div class="settings-section-head"><div><h2>字典维护</h2><p>维护影响领域、人员、团队、机构、TC/WG 及标准制定阶段等下拉选项。</p></div></div>
+      <div class="lookup-workspace">
+        <nav id="lookup-categories" class="lookup-categories" aria-label="字典分类"></nav>
+        <div id="cats" class="lookup-content"><div class="loading">载入中…</div></div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/settings.js', v='20260923-v18') }}"></script>{% endblock %}

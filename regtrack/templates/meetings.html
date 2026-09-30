@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}工作组会议 · 法规跟踪系统{% endblock %}
+{% block eyebrow %}03 · WG Meeting{% endblock %}
+{% block heading %}工作组会议{% endblock %}
+{% block actions %}
+<button class="btn btn-primary btn-sm" id="btn-new">登记会议</button>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="filters">
+    <div class="fl"><label for="f-q">搜索</label>
+      <input id="f-q" class="form-control search" placeholder="会议标题 / 会议号 / 组织方 / 讨论议题"></div>
+    <div class="fl"><label for="f-type">会议类型</label><select id="f-type" class="form-select"></select></div>
+    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
+  </div>
+</div>
+
+<div id="list"><div class="loading">载入中…</div></div>
+<div class="pager" id="pager" style="background:#fff;border:1px solid var(--rule);border-top:0"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/meetings.js', v='20260923-v18') }}"></script>
+{% endblock %}

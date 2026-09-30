@@ -93,4 +93,3 @@ Bootstrap 和 Tom Select 的静态文件存放在 `regtrack/static/vendor/`，�
 ## 许可证
 
 本项目采用 [MIT License](LICENSE)。第三方组件各自遵循其对应许可证。
-
