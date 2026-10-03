@@ -57,10 +57,6 @@ RISK_LEVELS = ["High", "Medium", "Low", "TBD"]
 
 OVERALL_IMPACTS = ["High", "Medium", "Low", "No Impact", "TBD"]
 
-CHANGE_TYPES = [
-    "新增 Add", "删除 Delete", "修改 Modify", "澄清 Clarification", "编辑性 Editorial",
-]
-
 YES_NO_TBD = ["Yes", "No", "TBD"]
 
 MEETING_TYPES = ["WG 全体会", "专题组会", "电话会", "宣贯会", "内部例会", "函审", "其他"]
@@ -167,7 +163,6 @@ def meta_payload() -> dict:
         "risk_levels": RISK_LEVELS,
         "overall_impacts": OVERALL_IMPACTS,
         "version_names": VERSION_NAMES,
-        "change_types": CHANGE_TYPES,
         "yes_no_tbd": YES_NO_TBD,
         "meeting_types": MEETING_TYPES,
         "comment_statuses": COMMENT_STATUSES,

@@ -21,7 +21,8 @@ ROOT_TABLES = ("standard", "draft", "meeting", "action_item", "comment")
 CHILD_RULES = {
     "standard": (("standard_impact_area", "standard_id"), ("standard_stage_history", "standard_id"),
                  ("meeting_standard", "standard_id")),
-    "draft": (("clause_evolution", "draft_id"),),
+    "draft": (("draft_import", "draft_id"), ("draft_chapter", "draft_id"),
+              ("draft_chapter_image", "draft_id"), ("draft_annotation", "draft_id")),
     "meeting": (("meeting_standard", "meeting_id"),),
     "action_item": (("action_status_history", "action_item_id"), ("feedback_recipient", "action_item_id")),
     "comment": (("comment_status_history", "comment_id"),),
@@ -39,12 +40,15 @@ REF_COLUMNS = {
     "standard_impact_area": {"standard_id": "standard"},
     "standard_stage_history": {"standard_id": "standard"},
     "meeting_standard": {"meeting_id": "meeting", "standard_id": "standard"},
-    "clause_evolution": {"draft_id": "draft", "last_draft_id": "draft"},
+    "draft_import": {"draft_id": "draft"},
+    "draft_chapter": {"draft_id": "draft", "import_batch_id": "draft_import"},
+    "draft_chapter_image": {"draft_id": "draft", "chapter_id": "draft_chapter"},
+    "draft_annotation": {"draft_id": "draft", "chapter_id": "draft_chapter"},
     "action_status_history": {"action_item_id": "action_item"},
     "recipient_status_history": {"feedback_recipient_id": "feedback_recipient"},
     "comment_status_history": {"comment_id": "comment"},
 }
-PARENT_TABLES = ("standard", "meeting", "draft", "action_item", "feedback_recipient", "comment")
+PARENT_TABLES = ("draft_import", "draft_chapter", "standard", "meeting", "draft", "action_item", "feedback_recipient", "comment")
 
 
 def _table_rows(table, where="", params=()):
@@ -155,7 +159,8 @@ TABLE_LABELS = {
     "draft": "草案版本", "action_item": "事项", "feedback_recipient": "反馈对象",
     "comment": "正式意见", "standard_impact_area": "影响领域",
     "standard_stage_history": "阶段历史", "meeting_standard": "会议涉及标准",
-    "clause_evolution": "条款变化", "action_status_history": "事项状态历史",
+    "draft_import": "章节导入批次", "draft_chapter": "草案章节", "draft_chapter_image": "章节附图",
+    "draft_annotation": "草案批注", "action_status_history": "事项状态历史",
     "recipient_status_history": "反馈状态历史", "comment_status_history": "意见状态历史",
 }
 
@@ -202,8 +207,11 @@ IMPORT_PLAN = (
          required=("standard_id",), natural=("standard_id", "stage_code")),
     Spec("meeting_standard", fks={"meeting_id": "meeting", "standard_id": "standard"},
          required=("meeting_id", "standard_id"), keyless=True),
-    Spec("clause_evolution", fks={"draft_id": "draft", "last_draft_id": "draft"},
-         required=("draft_id",)),
+    Spec("draft_import", fks={"draft_id": "draft"}, required=("draft_id",)),
+    Spec("draft_chapter", fks={"draft_id": "draft", "import_batch_id": "draft_import"}, required=("draft_id", "import_batch_id")),
+    Spec("draft_chapter_image", fks={"draft_id": "draft", "chapter_id": "draft_chapter"},
+         required=("draft_id", "chapter_id")),
+    Spec("draft_annotation", fks={"draft_id": "draft", "chapter_id": "draft_chapter"}, required=("draft_id",)),
     Spec("action_status_history", fks={"action_item_id": "action_item"},
          required=("action_item_id",)),
     Spec("recipient_status_history", fks={"feedback_recipient_id": "feedback_recipient"},
@@ -320,6 +328,16 @@ def import_data():
     conn = db.get_db()
     idmap = {spec.table: {} for spec in IMPORT_PLAN}
     stats = {}
+    tables = bundle["tables"]
+    latest_source_batches = {}
+    for row in tables.get("draft_import", []):
+        if isinstance(row, dict) and row.get("id") is not None:
+            draft_id = row.get("draft_id")
+            latest_source_batches[draft_id] = max(row["id"], latest_source_batches.get(draft_id, row["id"]))
+    current_source_chapters = {row["id"] for row in tables.get("draft_chapter", [])
+                               if isinstance(row, dict) and row.get("id") is not None
+                               and row.get("import_batch_id") == latest_source_batches.get(row.get("draft_id"))}
+    protected_source_drafts = set()
     try:
         conn.execute("BEGIN")
         lookups_service.ensure_values("person", [as_user])
@@ -334,6 +352,17 @@ def import_data():
             for row in rows:
                 if not isinstance(row, dict):
                     raise ApiError(f"{TABLE_LABELS[spec.table]}的数据格式不对")
+                if spec.table in ("draft_import", "draft_chapter", "draft_chapter_image", "draft_annotation"):
+                    if row.get("draft_id") in protected_source_drafts:
+                        _note(stat, "本机草案已有章节，保留本机章节与批注")
+                        continue
+                    if ((spec.table == "draft_import" and row.get("id") != latest_source_batches.get(row.get("draft_id")))
+                            or (spec.table == "draft_chapter" and row.get("import_batch_id") != latest_source_batches.get(row.get("draft_id")))
+                            or (spec.table == "draft_chapter_image" and row.get("chapter_id") not in current_source_chapters)
+                            or (spec.table == "draft_annotation" and row.get("chapter_id") is not None
+                                and row.get("chapter_id") not in current_source_chapters)):
+                        _note(stat, "只导入来源草案当前章节及对应批注")
+                        continue
                 data = _row_for(spec, row, idmap, as_user, columns)
                 if data is None:
                     _note(stat, "引用的父记录不在数据包里")
@@ -349,6 +378,9 @@ def import_data():
                 if existing is not None:
                     idmap[spec.table][row.get("id")] = existing
                     stat["merged"] += 1
+                    if spec.table == "draft" and conn.execute(
+                            "SELECT 1 FROM draft_chapter WHERE draft_id = ? LIMIT 1", (existing,)).fetchone():
+                        protected_source_drafts.add(row.get("id"))
                     continue
                 if spec.serial:
                     data[spec.serial[0]] = _unique_serial(conn, spec, data)

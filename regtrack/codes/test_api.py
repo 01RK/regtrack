@@ -271,7 +271,6 @@ class ApiTestCase(unittest.TestCase):
     def test_06_grouped_lists_filter_sort_and_page_by_standard(self):
         cases = (
             ("/api/drafts?page_size=50", None),
-            ("/api/drafts/clauses/search?page_size=50", None),
             ("/api/comments?status=Rejected&page_size=50", ("status", "Rejected")),
             ("/api/actions?open_only=1&page_size=50", ("open", True)),
         )
@@ -347,7 +346,7 @@ class ApiTestCase(unittest.TestCase):
     def test_09_grouped_list_indexes_are_present(self):
         expected = {
             "ix_draft_group_created",
-            "ix_clause_group_created",
+            "ix_draft_chapter",
             "ix_comment_group_created",
             "ix_action_group_created",
         }
@@ -360,7 +359,7 @@ class ApiTestCase(unittest.TestCase):
             conn.close()
 
     def test_09_grouped_table_layout_is_stable(self):
-        expected_columns = {"actions.html": 8, "comments.html": 8, "drafts.html": 16}
+        expected_columns = {"actions.html": 8, "comments.html": 8, "drafts.html": 7}
         template_dir = Path(__file__).resolve().parent.parent / "templates"
         for filename, count in expected_columns.items():
             html = (template_dir / filename).read_text(encoding="utf-8")
@@ -643,71 +642,30 @@ class ApiTestCase(unittest.TestCase):
         self.assertIn("sub_version_no", opts[0])
         self.assertEqual(self.get("/api/drafts/options"), [])
 
-    def test_21_draft_detail_and_clauses(self):
+    def test_21_draft_detail_and_chapters(self):
         d = self.get("/api/drafts/3")
-        self.assertEqual(d["std_no"], "GB 38031—2025")
-        self.assertEqual(len(d["clauses"]), 3)
-        self.assertEqual(len(d["sibling_versions"]), 3)
-        self.assertTrue(d["clauses"][0]["last_version_name"])
+        self.assertEqual(d["std_no"], "GB/T 4R001—2026")
+        self.assertEqual(d["chapters"], [])
+        self.assertEqual(d["imports"], [])
+        self.assertIn("annotations", d)
 
-    def test_22_draft_crud_and_clause_flow(self):
-        # 自建一个空标准：首版草案没有可对比版本，便于验证 Draft Ver Last 的必填规则
-        std = self.post("/api/standards", {
-            "std_no": "GB/T 66666—2026", "name_cn": "条款流程测试",
-            "stage_code": "DRAFTING", "stage_effective_date": "2026-01-01"})
-        sid = std["id"]
-        draft = self.post("/api/drafts", {
-            "standard_id": sid, "version_name": "讨论稿", "sub_version_no": "1.0",
-            "draft_date": "2026-03-01", "overall_impact": "Medium"})
+
+    def test_22_draft_crud_and_detail(self):
+        draft = self.post("/api/drafts", {"standard_id": 1, "version_name": "报批稿",
+            "sub_version_no": "9.9", "draft_date": "2026-03-01", "overall_impact": "Medium"})
         did = draft["id"]
-
-        # 首版：没有其它版本，Draft Ver Last 允许留空
-        c1 = self.post(f"/api/drafts/{did}/clauses", {
-            "current_clause_no": "4.1", "topic": "术语和定义",
-            "change_type": "新增 Add", "change_desc": "首版给出全部术语定义。"})
-        self.assertIsNone(c1["last_draft_id"])
-
-        second = self.post("/api/drafts", {
-            "standard_id": sid, "version_name": "征求意见稿", "sub_version_no": "1.0",
-            "draft_date": "2026-06-01"})
-
-        # 已有其它版本时，Draft Ver Last 变成必填
-        r = self.c.post(f"/api/drafts/{second['id']}/clauses", json={
-            "current_clause_no": "4.1", "topic": "术语和定义",
-            "change_type": "修改 Modify", "change_desc": "调整定义。"}, headers=HEADERS)
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.get_json()["field"], "last_draft_id")
-
-        c2 = self.post(f"/api/drafts/{second['id']}/clauses", {
-            "current_clause_no": "4.1", "last_draft_id": did, "last_clause_no": "4.1",
-            "topic": "术语和定义", "change_type": "修改 Modify",
-            "change_desc": "补充功能安全相关术语。", "compliance_risk": "Low",
-            "test_impact": "No"})
-        self.assertEqual(c2["last_draft_id"], did)
-
-        # 对比版本必须属于同一标准
-        r = self.c.post(f"/api/drafts/{second['id']}/clauses", json={
-            "current_clause_no": "5.1", "last_draft_id": 1, "topic": "跨标准",
-            "change_type": "修改 Modify", "change_desc": "非法对比。"}, headers=HEADERS)
-        self.assertEqual(r.status_code, 400)
-
-        self.put(f"/api/drafts/clauses/{c2['id']}", {"topic": "术语和定义（修订）"})
-        self.assertEqual(self.get(f"/api/drafts/{second['id']}/clauses")[0]["topic"],
-                         "术语和定义（修订）")
-
-        self.delete(f"/api/drafts/clauses/{c2['id']}")
-        self.delete(f"/api/drafts/{second['id']}")
+        self.assertEqual(self.get(f"/api/drafts/{did}")["chapters"], [])
+        self.put(f"/api/drafts/{did}", {"main_summary": "更新后的摘要"})
+        self.assertEqual(self.get(f"/api/drafts/{did}")["main_summary"], "更新后的摘要")
         self.delete(f"/api/drafts/{did}")
-        self.delete(f"/api/standards/{sid}")
 
-    def test_23_clause_search(self):
-        all_rows = self.get("/api/drafts/clauses/search")
-        self.assertEqual(all_rows["total"], 22)
-        hit = self.get("/api/drafts/clauses/search?q=热扩散")
-        self.assertTrue(hit["total"] >= 2)
-        adds = self.get("/api/drafts/clauses/search?change_type=%E6%96%B0%E5%A2%9E%20Add")
-        self.assertTrue(adds["total"] >= 4)
-        self.assertIn("std_no", all_rows["items"][0])
+
+    def test_23_standard_compare_is_reserved(self):
+        html = self.c.get("/drafts").get_data(as_text=True)
+        self.assertIn("标准比对", html)
+        self.assertNotIn("条款变化检索", html)
+        self.assertEqual(self.c.get("/api/drafts/clauses/search").status_code, 404)
+
 
     def test_24_draft_requires_existing_standard(self):
         r = self.c.post("/api/drafts", json={

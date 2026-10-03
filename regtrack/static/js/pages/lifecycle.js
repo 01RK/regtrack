@@ -22,7 +22,7 @@
   const GROUP_LABEL = Object.fromEntries(COMMENT_GROUPS.map((g) => [g.key, g.label]));
   const RISK_TEXT = { High: "高风险", Medium: "中风险", Low: "低风险", TBD: "风险待定" };
 
-  const PREVIEW = 8;        // 每列默认显示的意见条数
+  const PREVIEW = 12;       // 紧凑泳道默认展示更多意见，仍可展开全部
   // 终止阶段（废止）以红色标示，取值由 /api/meta 下发的阶段编码决定
   const isTerminal = (st) => window.App.isTerminalStage(st.code);
   const STATE_TEXT = { done: "已完成", current: "当前阶段", future: "未进入" };
@@ -206,6 +206,9 @@
     const cls = ["lc-node", `is-${st.state}`, i === 0 ? "first" : "", i === total - 1 ? "last" : "",
       isTerminal(st) ? "is-terminal" : ""].filter(Boolean).join(" ");
     const at = `style="grid-column:${i + 1}"`;
+    if (st.state === "unrecorded") {
+      return `<div class="${cls}" ${at} title="${esc(st.name)} · 尚未登记阶段记录"><span class="dot"></span><span class="name">${esc(st.name)}</span><span class="date">未登记</span></div>`;
+    }
     if (st.state === "future") {
       return `
         <div class="${cls}" ${at} title="${esc(st.name)} · 尚未进入">
@@ -222,10 +225,10 @@
       <div class="${cls}" ${at} title="${esc(st.name)} · ${STATE_TEXT[st.state]}${st.note ? "\n" + esc(st.note) : ""}">
         <span class="dot"></span>
         <span class="name">${esc(st.name)}${st.state === "current" ? `<em class="now">${isTerminal(st) ? "已废止" : "当前"}</em>` : ""}</span>
-        <span class="date">${range}</span>
-        ${st.record_type === "BACKFILL" ? '<span class="lc-backfill">历史补录</span>' : ""}
+        <span class="lc-node-meta"><span class="date">${range}</span>
         ${isEmpty(st) ? "" : `<span class="dur">${days(st.start, st.end || today())} 天</span>`}
-        ${pills ? `<span class="pills">${pills}</span>` : ""}
+        ${pills ? `<span class="pills">${pills}</span>` : ""}</span>
+        ${st.record_type === "BACKFILL" ? '<span class="lc-backfill">历史补录</span>' : ""}
       </div>`;
   }
 
@@ -233,6 +236,7 @@
   function lane(st, i) {
     const cls = `lc-lane is-${st.state}`;
     const at = `style="grid-column:${i + 1}"`;
+    if (st.state === "unrecorded") return `<div class="${cls} is-empty" ${at}><span class="lc-void">未登记</span></div>`;
     if (st.state === "future") return `<div class="${cls}" ${at}></div>`;
     if (isEmpty(st)) return `<div class="${cls} is-empty" ${at}><span class="lc-void">无记录</span></div>`;
     // 阶段说明作为泳道的第一块「标签」挂在吊线顶端。
@@ -248,9 +252,8 @@
   function meetingCard(m) {
     return `
       <button type="button" class="lc-card kind-meeting" data-open="meeting:${m.id}">
-        <span class="lc-card-top"><span class="lc-kind">会议</span><span class="lc-when">${esc(m.meeting_date)}</span></span>
-        <span class="lc-card-title">${esc(m.title)}</span>
-        <span class="lc-card-meta">${esc(m.meeting_no)}${m.meeting_type ? " · " + esc(m.meeting_type) : ""}</span>
+        <span class="lc-card-heading"><span class="lc-kind">会议</span><span class="lc-card-title" title="${esc(m.title)}">${esc(m.title)}</span></span>
+        <span class="lc-card-details"><span class="lc-card-meta">${esc(m.meeting_no)}${m.meeting_type ? " · " + esc(m.meeting_type) : ""}</span><span class="lc-when">${esc(m.meeting_date)}</span></span>
         ${m.overall_conclusion ? `<span class="lc-card-text"><b>结论</b>${esc(m.overall_conclusion)}</span>` : ""}
       </button>`;
   }
@@ -258,9 +261,8 @@
   function draftCard(d) {
     return `
       <button type="button" class="lc-card kind-draft" data-open="draft:${d.id}">
-        <span class="lc-card-top"><span class="lc-kind">草案</span><span class="lc-when">${esc(d.draft_date)}</span></span>
-        <span class="lc-card-title">${esc(d.version_name)}<span class="lc-ver">v${esc(d.sub_version_no)}</span></span>
-        <span class="lc-card-meta">条款变化 ${d.clause_count} 条${d.overall_impact ? ` · 影响 ${esc(d.overall_impact)}` : ""}</span>
+        <span class="lc-card-heading"><span class="lc-kind">草案</span><span class="lc-card-title">${esc(d.version_name)}<span class="lc-ver">v${esc(d.sub_version_no)}</span></span></span>
+        <span class="lc-card-details"><span class="lc-card-meta">草案章节 ${d.clause_count} 项${d.overall_impact ? ` · 影响 ${esc(d.overall_impact)}` : ""}</span><span class="lc-when">${esc(d.draft_date)}</span></span>
         ${d.main_summary ? `<span class="lc-card-text">${esc(d.main_summary)}</span>` : ""}
       </button>`;
   }

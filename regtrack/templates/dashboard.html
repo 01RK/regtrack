@@ -2,7 +2,7 @@
 {% block title %}总览 · 法规跟踪系统{% endblock %}
 {% block eyebrow %}Dashboard{% endblock %}
 {% block heading %}总览{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v='20260923-v18') }}">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v='20261002-lifecycle-inline') }}">{% endblock %}
 {% block heading_nav %}
 <ul class="nav dash-tabs" role="tablist">
   <li class="nav-item" role="presentation">
@@ -90,7 +90,7 @@
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5H2.5V6 M10 2.5h3.5V6 M6 13.5H2.5V10 M10 13.5h3.5V10"/></svg><span>沉浸查看</span>
           </button>
           <a class="lc-btn primary disabled" id="lc-export" href="#" download
-             title="导出该标准全部历史信息（含条款变化与事项）">
+             title="导出该标准全部历史信息（含草案章节与事项）">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8 M4.5 6.5 8 10l3.5-3.5 M2.5 12.5v1.5h11v-1.5"/></svg>导出 Markdown
           </a>
         </div>
@@ -103,6 +103,6 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/charts.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/lifecycle.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/lifecycle.js', v='20261002-lifecycle-inline') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/dashboard.js', v='20260923-v18') }}"></script>
 {% endblock %}

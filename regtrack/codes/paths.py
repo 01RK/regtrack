@@ -11,4 +11,4 @@ RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.par
 APP_DIR = (Path(sys.executable).resolve().parent
            if getattr(sys, "frozen", False) else RESOURCE_DIR)
 DATA_DIR = APP_DIR / "data"
-DEFAULT_DB = DATA_DIR / "regtrack.db"
+DEFAULT_DB = DATA_DIR / "regtrack-v0.19.db"

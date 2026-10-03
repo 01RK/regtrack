@@ -122,11 +122,12 @@
       ts.dropdown.appendChild(footer);
       footer.querySelector("button").onclick = () => {
         const prefill = (ts.control_input && ts.control_input.value || "").trim();
-        quickCreateStandard(prefill, (created) => {
+        const quickPrefill = opts.quickCreatePrefill || {};
+        quickCreateStandard(quickPrefill.std_no || prefill, (created) => {
           ts.addOption(created);
           ts.addItem(String(created.id));
           if (opts.onQuickCreate) opts.onQuickCreate(created);
-        });
+        }, quickPrefill.name_cn || "");
       };
     }
     const preselect = opts.value === undefined || opts.value === null || opts.value === ""
@@ -295,7 +296,7 @@
   }
 
   /* -------------------------------- 搜不到标准 → 就地新建，建完自动选中 */
-  function quickCreateStandard(prefill, onCreated) {
+  function quickCreateStandard(prefill, onCreated, namePrefill = "") {
     const stages = window.App.stageList();
     const m = openModal({
       title: "新建标准主档",
@@ -313,7 +314,7 @@
           </div>
           <div class="f-12">
             <label class="form-label">Standard Name CN<span class="req">*</span><span class="en">中文名称</span></label>
-            <input class="form-control" id="qc-name">
+            <input class="form-control" id="qc-name" value="${esc(namePrefill)}">
           </div>
           <div class="f-12">
             <label class="form-label">Current Stage<span class="req">*</span><span class="en">当前阶段</span></label>

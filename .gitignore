@@ -46,3 +46,9 @@ release/
 # Temporary source transfer artifacts
 .upload-manifest.json
 regtrack-source-upload.zip
+
+# Local requirements and reference documents
+/extra-req/
+
+# Local Codex workspace state
+/.codex/

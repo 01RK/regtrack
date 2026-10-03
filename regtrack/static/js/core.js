@@ -15,7 +15,7 @@
     const opt = Object.assign({ headers: {} }, options);
     // HTTP 头只允许 ISO-8859-1，中文姓名必须先 URL 编码，由后端解码。
     opt.headers["X-User"] = encodeURIComponent(App.user || "未署名");
-    if (opt.body !== undefined && typeof opt.body !== "string") {
+    if (opt.body !== undefined && typeof opt.body !== "string" && !(opt.body instanceof FormData)) {
       opt.headers["Content-Type"] = "application/json";
       opt.body = JSON.stringify(opt.body);
     }

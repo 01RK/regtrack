@@ -1,160 +1,395 @@
--- =====================================================================
--- RegTrack 具身智能行业模拟数据 v7
---
--- 本文件中的人物、组织、标准编号、时间线、试验结果及业务描述均为虚构，
--- 仅用于演示法规/标准跟踪功能。引用均使用 example.invalid 保留域名。
--- 覆盖机器人安全、具身智能系统、操作臂性能、网络安全与数据治理等主题。
--- =====================================================================
+-- RegTrack 机器人标准与业务跟踪初始化数据
+-- 7 项标准；阶段及工作进度为产品演示场景，公开元数据来源见 seed-sources.md。
 
-INSERT INTO lookup_value (category,value,note,sort_order) VALUES
-('impact_area','Robot Safety','机器人整机与功能安全',10),
-('impact_area','Embodied AI','感知、决策与自主作业',20),
-('impact_area','Manipulation','操作臂与末端执行器',30),
-('impact_area','Robot Cybersecurity','本体、边缘端与云端安全',40),
-('impact_area','Data Governance','数据采集、标注与留存',50),
-('impact_area','Motion Control','移动底盘与全身控制',60),
-('impact_area','Testing','实验室与现场验证',70),
-('impact_area','Human-Robot Interaction','人机协作与接触安全',80),
-('person','陈一鸣','机器人标准与测试负责人',10),
-('person','林知远','具身智能系统工程师',20),
-('person','许清禾','安全评测与认证工程师',30),
-('person','顾星野','操作规划与控制工程师',40),
-('person','沈可欣','机器人测试工程师',50),
-('person','唐予安','网络安全工程师',60),
-('person','叶知秋','标准跟踪协调员',70),
-('person','苏念','数据治理工程师',80),
-('person','周启明','机器人系统集成工程师',90),
-('team','机器人标准与测试部','法规跟踪、试验设计与标准化',10),
-('team','具身智能系统部','感知、规划、决策与端侧模型',20),
-('team','机器人本体研发部','结构、执行器、传感器与整机集成',30),
-('team','安全评测与认证部','风险评估、认证资料与安全验证',40),
-('team','机器人测试与验证中心','实验室、仿真与现场测试',50),
-('team','网络安全与数据治理部','网络安全、数据质量与隐私治理',60),
-('team','操作与运动控制部','操作臂、末端执行器与移动控制',70),
-('team','供应链与质量部','关键部件、供应商与质量管理',80),
-('organization','全国机器人标准化技术委员会（虚构）','机器人安全与测试标准归口',10),
-('organization','具身智能标准工作组（虚构）','具身智能系统标准起草组',20),
-('organization','机器人安全评测中心（虚构）','第三方检测与认证机构',30),
-('organization','机器人数据治理联盟（虚构）','机器人数据规范工作组',40),
-('tc_wg','TC/RB 01 机器人安全分委会','整机与功能安全',10),
-('tc_wg','TC/RB 02 具身智能系统分委会','感知、决策与模型部署',20),
-('tc_wg','TC/RB 03 操作与运动控制分委会','操作臂与移动平台',30),
-('tc_wg','TC/RB 04 数据与网络安全分委会','数据治理与网络安全',40);
+BEGIN TRANSACTION;
 
-INSERT INTO standard
-(id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,
- leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,
- effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES
-(1,'GB/T 4R001—2026','具身智能机器人整机安全要求','Safety requirements for embodied AI robots','REVIEW_DRAFT','GB/T','TC/RB 01 机器人安全分委会','全国机器人标准化技术委员会（虚构）','机器人安全评测中心（虚构）','High','许清禾','2027-06-30',NULL,NULL,'规定移动操作机器人在实验室与预期工作区域内的稳定性、急停、速度限制、碰撞防护和故障响应要求。示例场景包括货架取放、工具递送与人机协作。','2025-02-03 09:00:00','叶知秋','2026-06-12 14:00:00','许清禾'),
-(2,'2026R017-Q-XYZ','具身智能系统感知与任务执行能力评价方法','Evaluation methods for perception and task execution of embodied AI systems','COMMENT_DRAFT','GB','TC/RB 02 具身智能系统分委会','具身智能产业主管部门（虚构）','具身智能标准工作组（虚构）','High','林知远','2027-12-31',NULL,NULL,'建立开放词汇物体识别、空间定位、指令理解、抓取成功率、任务完成率和失败恢复能力的评价流程，要求记录环境配置、模型版本与随机种子。','2026-01-12 10:00:00','叶知秋','2026-08-18 16:30:00','林知远'),
-(3,'2025R009-T-XYZ','机器人操作臂重复定位与负载性能测试规程','Test code for repeatability and payload performance of robot manipulators','PROJECT_APPROVAL','团体标准','TC/RB 03 操作与运动控制分委会','具身智能标准工作组（虚构）','机器人测试与验证中心（虚构）','Medium','顾星野','2027-09-30',NULL,NULL,'规定不同负载、速度和工作空间位置下的重复定位精度、末端抖动、温升与连续作业能力测试方法，适用于单臂及双臂操作机器人。','2025-11-03 09:30:00','叶知秋','2026-03-02 11:00:00','顾星野'),
-(4,'GB/T 4R004—2025','服务机器人网络安全与软件更新要求','Cybersecurity and software update requirements for service robots','IMPLEMENTED','GB/T','TC/RB 04 数据与网络安全分委会','全国机器人标准化技术委员会（虚构）','机器人安全评测中心（虚构）','High','唐予安','2025-03-31','2025-04-18','2026-01-01','规定身份认证、通信保护、漏洞处置、软件更新签名校验、失败恢复和版本追溯要求，覆盖机器人本体、边缘计算单元与云端管理服务。','2024-05-06 09:00:00','叶知秋','2026-01-09 10:00:00','唐予安'),
-(5,'2026R022-T-XYZ','机器人训练与测试数据质量及治理指南','Guidelines for quality and governance of robot training and test data','DRAFTING','团体标准','TC/RB 04 数据与网络安全分委会','机器人数据治理联盟（虚构）','具身智能标准工作组（虚构）','Medium','苏念','2028-03-31',NULL,NULL,'面向视觉、深度、力觉、语音与遥操作数据，给出采集授权、场景覆盖、标注一致性、脱敏、数据集版本和测试集隔离建议。','2026-04-07 09:00:00','叶知秋','2026-08-05 15:00:00','苏念');
+-- lookup_value
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Robot Safety','整机风险评估与保护措施',1);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Embodied AI','感知、规划与任务执行',2);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Manipulation','操作臂与末端执行器',3);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Robot Cybersecurity','通信、访问控制与软件更新',4);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Data Governance','数据版本与测试证据管理',5);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Motion Control','移动、轨迹与运动控制',6);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Testing','试验条件与性能评价',7);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Human-Robot Interaction','人员接近与协作操作',8);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Electrical Safety','电气防护、接地与充电',9);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Terminology','术语、分类与产品定义',10);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','System Integration','工作站设计与接口集成',11);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('impact_area','Battery Safety','动力电池安全试验',12);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','陈一鸣','机器人标准与测试部',1);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','林知远','具身智能系统部',2);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','许清禾','机器人本体研发部',3);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','顾星野','安全评测与认证部',4);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','沈可欣','机器人测试与验证中心',5);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','唐予安','网络安全与数据治理部',6);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','叶知秋','操作与运动控制部',7);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','苏念','供应链与质量部',8);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','周启明','移动平台研发部',9);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','陆嘉宁','产品与应用工程部',10);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','程望舒','机器人标准与测试部',11);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('person','韩景行','具身智能系统部',12);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','机器人标准与测试部','标准跟踪及跨部门协同接口',1);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','具身智能系统部','标准跟踪及跨部门协同接口',2);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','机器人本体研发部','标准跟踪及跨部门协同接口',3);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','安全评测与认证部','标准跟踪及跨部门协同接口',4);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','机器人测试与验证中心','标准跟踪及跨部门协同接口',5);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','网络安全与数据治理部','标准跟踪及跨部门协同接口',6);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','操作与运动控制部','标准跟踪及跨部门协同接口',7);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','供应链与质量部','标准跟踪及跨部门协同接口',8);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','移动平台研发部','标准跟踪及跨部门协同接口',9);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('team','产品与应用工程部','标准跟踪及跨部门协同接口',10);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','上海电器科学研究所（集团）有限公司','公开标准归口或起草单位',1);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','上海电器科学研究院','公开标准归口或起草单位',2);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','中国农业大学','公开标准归口或起草单位',3);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','中国家用电器研究院','公开标准归口或起草单位',4);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','中国机械工业联合会','公开标准归口或起草单位',5);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','中国科学院自动化研究所','公开标准归口或起草单位',6);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','中机生产力促进中心','公开标准归口或起草单位',7);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','全国家用电器标准化技术委员会','公开标准归口或起草单位',8);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','全国机器人标准化技术委员会','公开标准归口或起草单位',9);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','北京机械工业自动化所','公开标准归口或起草单位',10);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','北京机械工业自动化研究所','公开标准归口或起草单位',11);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','北京机械工业自动化研究所有限公司','公开标准归口或起草单位',12);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','国家市场监督管理总局','公开标准归口或起草单位',13);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','国网智能科技股份有限公司','公开标准归口或起草单位',14);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','工业和信息化部','公开标准归口或起草单位',15);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','杭州海康机器人股份有限公司','公开标准归口或起草单位',16);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','杭州申昊科技股份有限公司','公开标准归口或起草单位',17);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','沈阳新松机器人自动化股份有限公司','公开标准归口或起草单位',18);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('organization','浦江国家实验室','公开标准归口或起草单位',19);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('tc_wg','全国家用电器标准化技术委员会','标准归口技术委员会',1);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('tc_wg','全国机器人标准化技术委员会','标准归口技术委员会',2);
+INSERT INTO lookup_value (category,value,note,sort_order) VALUES ('tc_wg','全国汽车标准化技术委员会电动车辆分会','标准归口技术委员会',3);
 
-INSERT INTO standard_impact_area (standard_id,impact_area) VALUES
-(1,'Robot Safety'),(1,'Motion Control'),(1,'Human-Robot Interaction'),(1,'Testing'),
-(2,'Embodied AI'),(2,'Testing'),(2,'Manipulation'),
-(3,'Manipulation'),(3,'Motion Control'),(3,'Testing'),
-(4,'Robot Cybersecurity'),(4,'Robot Safety'),
-(5,'Data Governance'),(5,'Embodied AI'),(5,'Robot Cybersecurity');
+-- standard
+INSERT INTO standard (id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES (1,'GB/T 36008-2018','机器人与机器人装备 协作机器人','Robots and robotic devices—Collaborative robots','IMPLEMENTED','GB/T','全国机器人标准化技术委员会','全国机器人标准化技术委员会','北京机械工业自动化研究所','High','陈一鸣',NULL,'2018-03-15','2018-10-01','跟踪重点：协作速度与停止距离；接触风险与末端工具。记录空载、额定负载和工具偏置三个配置的停止过程，保存速度曲线与触发时刻。','2017-03-20 09:00:00','叶知秋','2026-10-02 16:30:00','叶知秋');
+INSERT INTO standard (id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES (7,'GB/T 38834.1-2020','机器人 服务机器人性能规范及其试验方法 第1部分：轮式机器人运动','Robotics—Performance criteria and related test methods for service robots—Part 1: Locomotion for wheeled robots','IMPLEMENTED','GB/T','全国机器人标准化技术委员会','全国机器人标准化技术委员会','北京机械工业自动化研究所有限公司','Medium','叶知秋',NULL,'2020-06-02','2020-12-01','跟踪重点：轮式移动性能试验条件；负载与地面条件记录。试验记录统一填写负载、地面材质、电量、轮胎状态及路线，分别报告直行与转弯表现。','2019-06-08 09:00:00','叶知秋','2026-10-02 16:30:00','叶知秋');
+INSERT INTO standard (id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES (14,'GB/T 38244-2019','机器人安全总则','General principles of robot safety','COMMENT_DRAFT','GB/T','全国机器人标准化技术委员会','全国机器人标准化技术委员会','沈阳新松机器人自动化股份有限公司','High','林知远','2027-04-30',NULL,NULL,'跟踪重点：整机安全基线检查；使用信息与维护风险。将机械、电气、控制和信息安全的检查结果归入同一风险台账，标明责任人与证据编号。','2025-12-17 09:00:00','叶知秋','2026-09-25 16:30:00','叶知秋');
+INSERT INTO standard (id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES (15,'GB/T 47494-2026','物流机器人 电气安全要求','Logistics robots—Requirements for electrical safety','RELEASED','GB/T','全国机器人标准化技术委员会','全国机器人标准化技术委员会','杭州海康机器人股份有限公司','High','许清禾',NULL,'2026-04-30','2026-11-01','跟踪重点：物流机器人实施准备；充电与电气保护配置。逐机型复核电气图纸、接地连接、充电接口和保护装置，形成实施前差距与整改清单。','2025-05-05 09:00:00','叶知秋','2026-10-02 16:30:00','叶知秋');
+INSERT INTO standard (id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES (17,'GB/T 47495-2026','物流机器人 电气安全测试方法','Logistics robots—Test methods for electrical safety','APPROVAL_DRAFT','GB/T','全国机器人标准化技术委员会','全国机器人标准化技术委员会','北京机械工业自动化研究所有限公司','High','沈可欣','2027-04-30',NULL,NULL,'跟踪重点：物流电气试验能力建设；试验设备与记录模板。梳理试验设备、夹具、测量范围与记录模板，确认新旧设备的适用性和校准有效期。','2025-08-19 09:00:00','叶知秋','2026-10-02 16:30:00','叶知秋');
+INSERT INTO standard (id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES (20,'GB/T 48316-2026','人形机器人 仿真测试平台技术规范','Humanoid robots—Technical specification of simulation testing platform','REVIEW_DRAFT','GB/T','全国机器人标准化技术委员会','全国机器人标准化技术委员会','浦江国家实验室','Medium','苏念','2027-04-30',NULL,NULL,'跟踪重点：人形机器人仿真平台实施准备；模型版本与结果复现。整理模型、场景、控制策略与运行配置版本，明确结果导出格式和平台间对照流程。','2025-10-18 09:00:00','叶知秋','2026-09-28 16:30:00','叶知秋');
+INSERT INTO standard (id,std_no,name_cn,name_en,stage_code,std_type,tc_wg,responsible_authority,leading_org,risk_level,mb_owner,planned_release_date,actual_release_date,effective_date,scope,created_at,created_by,updated_at,updated_by) VALUES (32,'GB 38031-2025','电动汽车用动力蓄电池安全要求','Electric vehicles traction battery safety requirements','DRAFTING','GB','全国汽车标准化技术委员会电动车辆分会','工业和信息化部',NULL,'High','苏念','2027-04-30',NULL,NULL,'跟踪重点：动力电池安全标准切换；电池配置与报告适用性。核对电芯、电池包和系统的配置及报告引用版本，确认新标准实施后的验证与交付资料。','2026-02-15 09:00:00','叶知秋','2026-09-25 16:30:00','叶知秋');
 
-INSERT INTO standard_stage_history
-(standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by) VALUES
-(1,'PROJECT_APPROVAL','ADVANCE','2025-02-03','虚构立项：明确整机安全范围与典型协作场景。','https://example.invalid/robot-standards/R001/plan','2025-02-03 09:10:00','叶知秋'),
-(1,'DRAFTING','ADVANCE','2025-04-15','起草组完成风险分类，纳入移动、抓取和人机接触场景。','https://example.invalid/robot-standards/R001/outline','2025-04-16 10:00:00','许清禾'),
-(1,'COMMENT_DRAFT','ADVANCE','2025-11-20','公开征求意见，重点征求协作速度与接触力限值建议。','https://example.invalid/robot-standards/R001/comment-draft','2025-11-21 09:30:00','许清禾'),
-(1,'REVIEW_DRAFT','ADVANCE','2026-06-10','形成送审稿，补充急停距离和单点故障测试。','https://example.invalid/robot-standards/R001/review-draft','2026-06-12 13:50:00','许清禾'),
-(2,'PROJECT_APPROVAL','ADVANCE','2026-01-12','立项通过，评价对象覆盖感知、指令理解与任务执行。',NULL,'2026-01-12 10:10:00','叶知秋'),
-(2,'DRAFTING','ADVANCE','2026-03-18','起草组确定基准任务集、场景标签和失败分类。',NULL,'2026-03-19 09:00:00','林知远'),
-(2,'COMMENT_DRAFT','ADVANCE','2026-08-15','发布征求意见稿，征求不同本体与仿真平台的复现意见。','https://example.invalid/robot-standards/R017/comment-draft','2026-08-18 16:20:00','林知远'),
-(3,'PROJECT_APPROVAL','ADVANCE','2025-11-03','团体标准立项，优先统一重复定位和额定负载测试条件。',NULL,'2025-11-03 09:40:00','叶知秋'),
-(4,'PROJECT_APPROVAL','ADVANCE','2023-10-10','立项：建立机器人全生命周期网络安全基线。',NULL,'2024-05-06 09:10:00','叶知秋'),
-(4,'DRAFTING','ADVANCE','2024-02-01','形成身份认证、更新签名和漏洞处置章节。',NULL,'2024-05-06 09:20:00','唐予安'),
-(4,'COMMENT_DRAFT','ADVANCE','2024-07-15','公开征求意见。','https://example.invalid/robot-standards/R004/comment-draft','2024-07-16 10:00:00','唐予安'),
-(4,'REVIEW_DRAFT','ADVANCE','2024-10-21','送审稿补入更新失败恢复与边缘端证书轮换要求。',NULL,'2024-10-22 09:00:00','唐予安'),
-(4,'APPROVAL_DRAFT','ADVANCE','2025-01-20','报批稿完成，实施日期设置 12 个月准备期。',NULL,'2025-01-21 11:00:00','唐予安'),
-(4,'RELEASED','ADVANCE','2025-04-18','标准发布，编号 GB/T 4R004—2025。',NULL,'2025-04-21 09:00:00','唐予安'),
-(4,'IMPLEMENTED','ADVANCE','2026-01-01','正式实施，纳入新版本发布与漏洞响应流程。',NULL,'2026-01-09 09:30:00','唐予安'),
-(5,'PROJECT_APPROVAL','ADVANCE','2026-04-07','立项：明确训练数据与独立测试数据的治理边界。',NULL,'2026-04-07 09:10:00','叶知秋'),
-(5,'DRAFTING','ADVANCE','2026-06-02','起草组形成数据质量维度和标注抽检框架。',NULL,'2026-06-03 10:00:00','苏念');
-UPDATE standard_stage_history SET updated_at = created_at, updated_by = NULL;
+-- standard_impact_area
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (1,'Robot Safety');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (1,'Testing');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (7,'Motion Control');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (7,'Testing');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (14,'Robot Safety');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (14,'Testing');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (15,'Electrical Safety');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (15,'Testing');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (17,'Electrical Safety');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (17,'Testing');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (20,'Embodied AI');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (20,'Testing');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (20,'System Integration');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (32,'Battery Safety');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (32,'Testing');
+INSERT INTO standard_impact_area (standard_id,impact_area) VALUES (32,'System Integration');
 
-INSERT INTO draft
-(id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES
-(1,1,'讨论稿','1.0','2025-06-20','https://example.invalid/robot-standards/R001/discussion-v1','具身智能标准工作组（虚构）','初稿提出稳定性、急停和速度限制要求，接触力评价方法尚未统一。','High','虚构讨论稿。','2025-06-23 09:00:00','许清禾','2025-06-23 09:00:00','许清禾'),
-(2,1,'征求意见稿','1.0','2025-11-20','https://example.invalid/robot-standards/R001/comment-v1','全国机器人标准化技术委员会（虚构）','新增人机协作区速度分级与碰撞后恢复要求，征求意见截止 2026-01-19。','High','虚构征求意见稿。','2025-11-21 09:20:00','许清禾','2025-11-21 09:20:00','许清禾'),
-(3,1,'送审稿','1.0','2026-06-10','https://example.invalid/robot-standards/R001/review-v1','全国机器人标准化技术委员会（虚构）','吸收急停距离与单点故障测试意见，明确速度测量和停止状态判定。','High','虚构送审稿。','2026-06-12 13:40:00','许清禾','2026-06-12 13:40:00','许清禾'),
-(4,2,'讨论稿','1.0','2026-05-30','https://example.invalid/robot-standards/R017/discussion-v1','具身智能标准工作组（虚构）','定义任务成功、部分成功、失败恢复与人工接管指标。','High','虚构讨论稿。','2026-06-02 10:00:00','林知远','2026-06-02 10:00:00','林知远'),
-(5,2,'征求意见稿','1.0','2026-08-15','https://example.invalid/robot-standards/R017/comment-v1','具身智能标准工作组（虚构）','增加跨房间导航、杂乱场景抓取和长时序任务基准。','High','虚构征求意见稿。','2026-08-18 16:10:00','林知远','2026-08-18 16:10:00','林知远'),
-(6,4,'征求意见稿','1.0','2024-07-15','https://example.invalid/robot-standards/R004/comment-v1','全国机器人标准化技术委员会（虚构）','提出设备身份、更新签名、漏洞通告与支持周期要求。','High','虚构征求意见稿。','2024-07-16 09:30:00','唐予安','2024-07-16 09:30:00','唐予安'),
-(7,4,'发布稿','1.0','2025-04-18','https://example.invalid/robot-standards/R004/release-v1','全国机器人标准化技术委员会（虚构）','发布稿明确更新失败恢复和漏洞响应流程。','Medium','虚构发布稿。','2025-04-21 09:10:00','唐予安','2025-04-21 09:10:00','唐予安');
+-- standard_stage_history
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'PRE_RESEARCH','ADVANCE','2017-03-20','协作工位调研发现，限速设置没有覆盖工具偏置后的接触风险，拟将停止距离纳入评估。',NULL,'2017-03-20 09:00:00','陈一鸣','2017-03-20 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'PROJECT_APPROVAL','ADVANCE','2017-05-19','项目范围确定为协作操作与人员接近保护，测试部负责提供速度曲线样例。',NULL,'2017-05-19 09:00:00','陈一鸣','2017-05-19 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'DRAFTING','ADVANCE','2017-07-18','首轮讨论将空载与额定负载分开记录，工具更换后的验证边界仍待明确。',NULL,'2017-07-18 09:00:00','陈一鸣','2017-07-18 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'COMMENT_DRAFT','ADVANCE','2017-09-16','收集到对夹持区域和接近路径的反馈，拟补充典型工位布局说明。',NULL,'2017-09-16 09:00:00','陈一鸣','2017-09-16 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'REVIEW_DRAFT','ADVANCE','2017-11-15','评审集中讨论复位位置与意外启动，要求说明人员退出危险区域的确认方式。',NULL,'2017-11-15 09:00:00','陈一鸣','2017-11-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'APPROVAL_DRAFT','ADVANCE','2018-01-14','停止距离记录方式已达成一致，报批材料补充了工具配置说明。',NULL,'2018-01-14 09:00:00','陈一鸣','2018-01-14 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'RELEASED','ADVANCE','2018-03-15','登记公开发布版本，安全评测组安排对照现有协作工位检查表。','https://www.ndls.org.cn/standard/detail/ee501a2a0f861d49ec92c58bf19a66df','2018-03-15 09:00:00','陈一鸣','2018-03-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (1,'IMPLEMENTED','ADVANCE','2018-10-01','协作工位按当前工具配置执行验证，换装夹爪后需重新确认停止距离。','https://www.ndls.org.cn/standard/detail/ee501a2a0f861d49ec92c58bf19a66df','2018-10-01 09:00:00','陈一鸣','2018-10-01 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'PRE_RESEARCH','ADVANCE','2019-06-08','移动平台试验结果受地面材质影响较大，计划统一路线与负载条件。',NULL,'2019-06-08 09:00:00','叶知秋','2019-06-08 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'PROJECT_APPROVAL','ADVANCE','2019-08-07','轮式移动性能列入测试计划，明确直行、转弯及额定负载三类工况。',NULL,'2019-08-07 09:00:00','叶知秋','2019-08-07 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'DRAFTING','ADVANCE','2019-10-06','讨论稿增加电量和轮胎状态记录，测试路线长度尚待联合验证。',NULL,'2019-10-06 09:00:00','叶知秋','2019-10-06 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'COMMENT_DRAFT','ADVANCE','2019-12-05','应用组建议区分光滑地面与接缝地面，反馈已纳入条件记录表。',NULL,'2019-12-05 09:00:00','叶知秋','2019-12-05 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'REVIEW_DRAFT','ADVANCE','2020-02-03','送审重点为转弯工况的可复现性，要求附测量设备与路线布置说明。',NULL,'2020-02-03 09:00:00','叶知秋','2020-02-03 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'APPROVAL_DRAFT','ADVANCE','2020-04-03','负载配置与试验记录字段完成核对，整理版本差异后报批。',NULL,'2020-04-03 09:00:00','叶知秋','2020-04-03 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'RELEASED','ADVANCE','2020-06-02','发布版本已登记，测试中心开始调整轮式平台试验模板。','https://www.ndls.org.cn/standard/detail/996d298d8b578c3401442c2c53be0fd8','2020-06-02 09:00:00','叶知秋','2020-06-02 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (7,'IMPLEMENTED','ADVANCE','2020-12-01','现行机型采用统一条件记录表；不同地面结果分别报告，不合并平均值。','https://www.ndls.org.cn/standard/detail/996d298d8b578c3401442c2c53be0fd8','2020-12-01 09:00:00','叶知秋','2020-12-01 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (14,'PRE_RESEARCH','ADVANCE','2025-12-17','整机安全问题分散在机械、电气和软件台账中，需明确统一评估边界。',NULL,'2025-12-17 09:00:00','林知远','2025-12-17 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (14,'PROJECT_APPROVAL','ADVANCE','2026-02-15','项目拟覆盖整机主要风险，由安全评测组牵头梳理专业接口。',NULL,'2026-02-15 09:00:00','林知远','2026-02-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (14,'DRAFTING','ADVANCE','2026-04-16','讨论稿按风险来源组织检查项，暂未统一整改关闭所需的证据格式。',NULL,'2026-04-16 09:00:00','林知远','2026-04-16 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (14,'COMMENT_DRAFT','ADVANCE','2026-06-15','征求各专业对维护模式、充电状态及恢复操作的意见，优先收集遗漏场景。',NULL,'2026-06-15 09:00:00','林知远','2026-06-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (15,'PRE_RESEARCH','ADVANCE','2025-05-05','物流机型充电接口和接地方案差异较大，需整理电气安全配置基线。',NULL,'2025-05-05 09:00:00','许清禾','2025-05-05 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (15,'PROJECT_APPROVAL','ADVANCE','2025-07-04','建立机型配置清单，研发提供电气图纸，测试中心负责验证条件。',NULL,'2025-07-04 09:00:00','许清禾','2025-07-04 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (15,'DRAFTING','ADVANCE','2025-09-02','起草阶段补充充电与异常状态检查，保护装置动作记录需进一步细化。',NULL,'2025-09-02 09:00:00','许清禾','2025-09-02 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (15,'COMMENT_DRAFT','ADVANCE','2025-11-01','反馈建议将量产配置与试验样机分别登记，避免报告适用范围不清。',NULL,'2025-11-01 09:00:00','许清禾','2025-11-01 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (15,'REVIEW_DRAFT','ADVANCE','2025-12-31','送审前复核保护装置、接地连接及充电参数，待补齐一组异常状态记录。',NULL,'2025-12-31 09:00:00','许清禾','2025-12-31 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (15,'APPROVAL_DRAFT','ADVANCE','2026-03-01','配置与验证资料核对完成，报批资料按机型归档。',NULL,'2026-03-01 09:00:00','许清禾','2026-03-01 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (15,'RELEASED','ADVANCE','2026-04-30','已登记公开发布信息，实施前先完成物流机型差距清单和整改安排。','https://www.ndls.org.cn/standard/detail/7ffca9bc56da834d795edfeeb130aba1','2026-04-30 09:00:00','许清禾','2026-04-30 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (17,'PRE_RESEARCH','ADVANCE','2025-08-19','物流电气试验设备量程与现有记录模板不一致，先梳理实验室能力。',NULL,'2025-08-19 09:00:00','沈可欣','2025-08-19 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (17,'PROJECT_APPROVAL','ADVANCE','2025-10-18','确定设备、夹具与测量记录为本轮工作范围，测试中心提交资源清单。',NULL,'2025-10-18 09:00:00','沈可欣','2025-10-18 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (17,'DRAFTING','ADVANCE','2025-12-17','讨论稿列出试验条件和仪器要求，夹具布置需通过实际样机确认。',NULL,'2025-12-17 09:00:00','沈可欣','2025-12-17 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (17,'COMMENT_DRAFT','ADVANCE','2026-02-15','实验室反馈校准信息不能仅记录证书号，建议同时注明有效期与测量范围。',NULL,'2026-02-15 09:00:00','沈可欣','2026-02-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (17,'REVIEW_DRAFT','ADVANCE','2026-04-16','送审材料补充夹具布置和原始读数样例，统一不同实验室的记录口径。',NULL,'2026-04-16 09:00:00','沈可欣','2026-04-16 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (17,'APPROVAL_DRAFT','ADVANCE','2026-06-15','主要技术问题已关闭，报批前最后核对试验设备清单与附件编号。',NULL,'2026-06-15 09:00:00','沈可欣','2026-06-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (20,'PRE_RESEARCH','ADVANCE','2025-10-18','仿真结果难以复现，问题主要来自模型版本、场景配置和随机参数缺失。',NULL,'2025-10-18 09:00:00','苏念','2025-10-18 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (20,'PROJECT_APPROVAL','ADVANCE','2025-12-17','确定平台模型与运行记录为跟踪重点，系统组和测试组共同维护输入清单。',NULL,'2025-12-17 09:00:00','苏念','2025-12-17 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (20,'DRAFTING','ADVANCE','2026-02-15','讨论稿先明确运行配置及结果导出字段，跨平台对照流程仍待验证。',NULL,'2026-02-15 09:00:00','苏念','2026-02-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (20,'COMMENT_DRAFT','ADVANCE','2026-04-16','征求意见中提出场景版本与控制策略必须一并记录，拟增加配置示例。',NULL,'2026-04-16 09:00:00','苏念','2026-04-16 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (20,'REVIEW_DRAFT','ADVANCE','2026-06-15','送审重点为平台间结果可比性，需说明模型简化条件和无法对齐的输出项。',NULL,'2026-06-15 09:00:00','苏念','2026-06-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (32,'PRE_RESEARCH','ADVANCE','2026-02-15','电池项目先核对标准适用对象，区分汽车动力电池与机器人电池应用。',NULL,'2026-02-15 09:00:00','苏念','2026-02-15 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (32,'PROJECT_APPROVAL','ADVANCE','2026-04-16','纳入电池包配置、试验条件与报告适用性评估，供应链提供现有报告目录。',NULL,'2026-04-16 09:00:00','苏念','2026-04-16 09:00:00',NULL);
+INSERT INTO standard_stage_history (standard_id,stage_code,record_type,effective_date,note,reference,created_at,created_by,updated_at,updated_by) VALUES (32,'DRAFTING','ADVANCE','2026-06-15','讨论稿按电芯、电池包和系统分层整理要求，配置变化后的报告覆盖范围尚待核对。',NULL,'2026-06-15 09:00:00','苏念','2026-06-15 09:00:00',NULL);
 
-INSERT INTO clause_evolution
-(id,draft_id,last_draft_id,current_clause_no,last_clause_no,topic,last_clause_text,current_clause_text,change_type,change_desc,interpretation,test_impact,homologation_impact,compliance_risk,responsible_person,created_at,created_by,updated_at,updated_by) VALUES
-(1,2,1,'6.2','6.2','人机协作速度','协作区域内速度应保持较低水平。','协作区域速度应按风险等级设定，并记录测量位置、负载和控制模式。','修改 Modify','将笼统的低速要求改为可复现的分级测试条件。','需在空载与额定负载下分别验证速度监测误差。','Yes','High','High','沈可欣','2025-11-21 10:00:00','许清禾','2025-11-21 10:00:00','许清禾'),
-(2,3,2,'7.4','7.4','急停距离','急停后机器人应停止运动。','急停距离应在规定速度、负载和地面条件下测量，并报告最大值。','澄清 Clarification','补充急停距离的测量条件和报告要求。','急停距离数据将进入安全验证报告。','Yes','High','Medium','沈可欣','2026-06-12 14:10:00','许清禾','2026-06-12 14:10:00','许清禾'),
-(3,5,4,'附录B','附录A','测试集隔离','未规定训练数据与测试数据的隔离方式。','基准测试集应按场景与任务分层留存，训练阶段不得访问测试标签。','新增 Add','增加独立测试集管理要求，降低数据泄漏导致的评测偏差。','需要完善数据权限和版本记录。','Yes','Medium','High','苏念','2026-08-18 16:25:00','林知远','2026-08-18 16:25:00','林知远'),
-(4,7,6,'8.3','8.3','更新失败恢复','软件更新失败后应恢复到可用版本。','更新失败后应自动恢复已验证版本，并记录恢复结果与设备状态。','修改 Modify','明确自动恢复和审计记录要求。','需加入断电与网络中断场景测试。','Yes','High','High','唐予安','2025-04-21 09:20:00','唐予安','2025-04-21 09:20:00','唐予安');
+-- draft
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (101,1,'立项草案','1.0','2017-05-19',NULL,'机器人标准与测试部','明确工作范围与责任接口：协作速度与停止距离。本轮先确认适用对象，收集现有资料与待解决问题。','High',NULL,'2017-05-19 09:00:00','陈一鸣','2017-05-19 16:30:00','陈一鸣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (102,1,'讨论稿','1.0','2017-07-18',NULL,'机器人标准与测试部','形成首轮检查与记录方案：协作速度与停止距离。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','High',NULL,'2017-07-18 09:00:00','陈一鸣','2017-07-18 16:30:00','陈一鸣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (103,1,'征求意见稿','1.0','2017-09-16',NULL,'机器人标准与测试部','汇总跨部门评审意见：协作速度与停止距离。逐项说明建议、依据及涉及机型，重复意见合并处理。','High',NULL,'2017-09-16 09:00:00','陈一鸣','2017-09-16 16:30:00','陈一鸣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (104,1,'送审稿','1.0','2017-11-15',NULL,'机器人标准与测试部','核对技术分歧与验证依据：协作速度与停止距离。本轮只跟进未关闭的技术问题及附件缺项。','High',NULL,'2017-11-15 09:00:00','陈一鸣','2017-11-15 16:30:00','陈一鸣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (105,1,'报批稿','1.0','2018-01-14',NULL,'机器人标准与测试部','完成条目与附件最终核对：协作速度与停止距离。检查版本引用、配置说明和记录编号是否一致。','High',NULL,'2018-01-14 09:00:00','陈一鸣','2018-01-14 16:30:00','陈一鸣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (1,1,'发布稿','1.0','2018-03-15','https://www.ndls.org.cn/standard/detail/ee501a2a0f861d49ec92c58bf19a66df','国家质量监督检验检疫总局、国家标准化管理委员会','安排产品与试验资料对照：协作速度与停止距离。按实际机型确认差距及整改责任，验证结果单独归档。','High','工具配置有变更时，复核工位风险评估的适用范围。','2018-03-15 09:00:00','陈一鸣','2018-03-15 16:30:00','陈一鸣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (106,7,'立项草案','1.0','2019-08-07',NULL,'机器人标准与测试部','明确工作范围与责任接口：轮式移动性能试验条件。本轮先确认适用对象，收集现有资料与待解决问题。','Medium',NULL,'2019-08-07 09:00:00','叶知秋','2019-08-07 16:30:00','叶知秋');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (107,7,'讨论稿','1.0','2019-10-06',NULL,'机器人标准与测试部','形成首轮检查与记录方案：轮式移动性能试验条件。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','Medium',NULL,'2019-10-06 09:00:00','叶知秋','2019-10-06 16:30:00','叶知秋');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (108,7,'征求意见稿','1.0','2019-12-05',NULL,'机器人标准与测试部','汇总跨部门评审意见：轮式移动性能试验条件。逐项说明建议、依据及涉及机型，重复意见合并处理。','Medium',NULL,'2019-12-05 09:00:00','叶知秋','2019-12-05 16:30:00','叶知秋');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (109,7,'送审稿','1.0','2020-02-03',NULL,'机器人标准与测试部','核对技术分歧与验证依据：轮式移动性能试验条件。本轮只跟进未关闭的技术问题及附件缺项。','Medium',NULL,'2020-02-03 09:00:00','叶知秋','2020-02-03 16:30:00','叶知秋');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (110,7,'报批稿','1.0','2020-04-03',NULL,'机器人标准与测试部','完成条目与附件最终核对：轮式移动性能试验条件。检查版本引用、配置说明和记录编号是否一致。','Medium',NULL,'2020-04-03 09:00:00','叶知秋','2020-04-03 16:30:00','叶知秋');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (7,7,'发布稿','1.0','2020-06-02','https://www.ndls.org.cn/standard/detail/996d298d8b578c3401442c2c53be0fd8','国家市场监督管理总局、国家标准化管理委员会','安排产品与试验资料对照：轮式移动性能试验条件。按实际机型确认差距及整改责任，验证结果单独归档。','Medium','测试路线照片与原始数据由测试中心统一归档。','2020-06-02 09:00:00','叶知秋','2020-06-02 16:30:00','叶知秋');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (111,14,'立项草案','1.0','2026-02-15',NULL,'机器人标准与测试部','明确工作范围与责任接口：整机安全基线检查。本轮先确认适用对象，收集现有资料与待解决问题。','High',NULL,'2026-02-15 09:00:00','林知远','2026-02-15 16:30:00','林知远');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (112,14,'讨论稿','1.0','2026-04-16',NULL,'机器人标准与测试部','形成首轮检查与记录方案：整机安全基线检查。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','High',NULL,'2026-04-16 09:00:00','林知远','2026-04-16 16:30:00','林知远');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (14,14,'征求意见稿','1.0','2026-06-15',NULL,'机器人标准与测试部','汇总跨部门评审意见：整机安全基线检查。逐项说明建议、依据及涉及机型，重复意见合并处理。','High','维护与恢复操作的意见优先安排联合评审。','2026-06-15 09:00:00','林知远','2026-06-15 16:30:00','林知远');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (113,15,'立项草案','1.0','2025-07-04',NULL,'机器人标准与测试部','明确工作范围与责任接口：物流机器人实施准备。本轮先确认适用对象，收集现有资料与待解决问题。','High',NULL,'2025-07-04 09:00:00','许清禾','2025-07-04 16:30:00','许清禾');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (114,15,'讨论稿','1.0','2025-09-02',NULL,'机器人标准与测试部','形成首轮检查与记录方案：物流机器人实施准备。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','High',NULL,'2025-09-02 09:00:00','许清禾','2025-09-02 16:30:00','许清禾');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (115,15,'征求意见稿','1.0','2025-11-01',NULL,'机器人标准与测试部','汇总跨部门评审意见：物流机器人实施准备。逐项说明建议、依据及涉及机型，重复意见合并处理。','High',NULL,'2025-11-01 09:00:00','许清禾','2025-11-01 16:30:00','许清禾');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (116,15,'送审稿','1.0','2025-12-31',NULL,'机器人标准与测试部','核对技术分歧与验证依据：物流机器人实施准备。本轮只跟进未关闭的技术问题及附件缺项。','High',NULL,'2025-12-31 09:00:00','许清禾','2025-12-31 16:30:00','许清禾');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (117,15,'报批稿','1.0','2026-03-01',NULL,'机器人标准与测试部','完成条目与附件最终核对：物流机器人实施准备。检查版本引用、配置说明和记录编号是否一致。','High',NULL,'2026-03-01 09:00:00','许清禾','2026-03-01 16:30:00','许清禾');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (15,15,'发布稿','1.0','2026-04-30','https://www.ndls.org.cn/standard/detail/7ffca9bc56da834d795edfeeb130aba1','国家市场监督管理总局、国家标准化管理委员会','安排产品与试验资料对照：物流机器人实施准备。按实际机型确认差距及整改责任，验证结果单独归档。','High','实施前评审安排在10月，机型差距表由研发接口人更新。','2026-04-30 09:00:00','许清禾','2026-04-30 16:30:00','许清禾');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (118,17,'立项草案','1.0','2025-10-18',NULL,'机器人标准与测试部','明确工作范围与责任接口：物流电气试验能力建设。本轮先确认适用对象，收集现有资料与待解决问题。','High',NULL,'2025-10-18 09:00:00','沈可欣','2025-10-18 16:30:00','沈可欣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (119,17,'讨论稿','1.0','2025-12-17',NULL,'机器人标准与测试部','形成首轮检查与记录方案：物流电气试验能力建设。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','High',NULL,'2025-12-17 09:00:00','沈可欣','2025-12-17 16:30:00','沈可欣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (120,17,'征求意见稿','1.0','2026-02-15',NULL,'机器人标准与测试部','汇总跨部门评审意见：物流电气试验能力建设。逐项说明建议、依据及涉及机型，重复意见合并处理。','High',NULL,'2026-02-15 09:00:00','沈可欣','2026-02-15 16:30:00','沈可欣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (121,17,'送审稿','1.0','2026-04-16',NULL,'机器人标准与测试部','核对技术分歧与验证依据：物流电气试验能力建设。本轮只跟进未关闭的技术问题及附件缺项。','High',NULL,'2026-04-16 09:00:00','沈可欣','2026-04-16 16:30:00','沈可欣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (17,17,'报批稿','1.0','2026-06-15',NULL,'机器人标准与测试部','完成条目与附件最终核对：物流电气试验能力建设。检查版本引用、配置说明和记录编号是否一致。','High','附件编号调整后，同步检查正文中的引用。','2026-06-15 09:00:00','沈可欣','2026-06-15 16:30:00','沈可欣');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (122,20,'立项草案','1.0','2025-12-17',NULL,'机器人标准与测试部','明确工作范围与责任接口：人形机器人仿真平台实施准备。本轮先确认适用对象，收集现有资料与待解决问题。','Medium',NULL,'2025-12-17 09:00:00','苏念','2025-12-17 16:30:00','苏念');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (123,20,'讨论稿','1.0','2026-02-15',NULL,'机器人标准与测试部','形成首轮检查与记录方案：人形机器人仿真平台实施准备。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','Medium',NULL,'2026-02-15 09:00:00','苏念','2026-02-15 16:30:00','苏念');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (124,20,'征求意见稿','1.0','2026-04-16',NULL,'机器人标准与测试部','汇总跨部门评审意见：人形机器人仿真平台实施准备。逐项说明建议、依据及涉及机型，重复意见合并处理。','Medium',NULL,'2026-04-16 09:00:00','苏念','2026-04-16 16:30:00','苏念');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (20,20,'送审稿','1.0','2026-06-15',NULL,'机器人标准与测试部','核对技术分歧与验证依据：人形机器人仿真平台实施准备。本轮只跟进未关闭的技术问题及附件缺项。','Medium','模型精度无法对齐的项目应在对照记录中单独说明。','2026-06-15 09:00:00','苏念','2026-06-15 16:30:00','苏念');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (125,32,'立项草案','1.0','2026-04-16',NULL,'机器人标准与测试部','明确工作范围与责任接口：动力电池安全标准切换。本轮先确认适用对象，收集现有资料与待解决问题。','High',NULL,'2026-04-16 09:00:00','苏念','2026-04-16 16:30:00','苏念');
+INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (32,32,'讨论稿','1.0','2026-06-15',NULL,'机器人标准与测试部','形成首轮检查与记录方案：动力电池安全标准切换。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','High','先完成机器人电池应用的适用性判断，再确认后续验证范围。','2026-06-15 09:00:00','苏念','2026-06-15 16:30:00','苏念');
 
-INSERT INTO meeting
-(id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES
-(1,'MTG-2026-001','具身智能机器人整机安全送审稿审查会','2026-06-10','WG 全体会','全国机器人标准化技术委员会（虚构）','安全评测、整机研发与测试机构代表（均为虚构）','讨论急停距离测量、协作速度分级及夹持场景风险。','同意补充速度测量负载条件与单点故障测试。','https://example.invalid/meetings/MTG-2026-001','2026-10-08','2026-06-12 13:00:00','许清禾','2026-06-12 13:00:00','许清禾'),
-(2,'MTG-2026-002','具身智能任务基准与测试集隔离专题会','2026-08-12','专题组会','具身智能标准工作组（虚构）','算法、数据治理和评测人员（均为虚构）','讨论场景分层、任务成功判定、人工接管和测试集污染风险。','先发布基准任务清单，测试集由独立管理角色维护。','https://example.invalid/meetings/MTG-2026-002',NULL,'2026-08-13 09:00:00','林知远','2026-08-13 09:00:00','林知远'),
-(3,'MTG-2026-003','机器人标准月度跟踪会（8 月）','2026-08-18','内部例会','机器人标准与测试部','标准、系统研发、网络安全和测试接口人（均为虚构）','逐项确认整机安全送审、任务基准征求意见和数据治理起草进展。','两项意见征集任务在截止日前完成跨团队反馈。','https://example.invalid/meetings/MTG-2026-003',NULL,'2026-08-18 10:00:00','叶知秋','2026-08-18 10:00:00','叶知秋');
+-- draft_annotation
+INSERT INTO draft_annotation (draft_id,chapter_id,content,created_at,created_by,updated_at,updated_by) VALUES (15,NULL,'逐机型复核电气图纸、接地连接、充电接口和保护装置，形成实施前差距与整改清单。
+下次评审确认充电与电气保护配置的证据编号及责任人。','2026-10-02 09:00:00','许清禾','2026-10-02 16:30:00','许清禾');
+INSERT INTO draft_annotation (draft_id,chapter_id,content,created_at,created_by,updated_at,updated_by) VALUES (17,NULL,'梳理试验设备、夹具、测量范围与记录模板，确认新旧设备的适用性和校准有效期。
+下次评审确认试验设备与记录模板的证据编号及责任人。','2026-10-02 09:00:00','沈可欣','2026-10-02 16:30:00','沈可欣');
+INSERT INTO draft_annotation (draft_id,chapter_id,content,created_at,created_by,updated_at,updated_by) VALUES (20,NULL,'整理模型、场景、控制策略与运行配置版本，明确结果导出格式和平台间对照流程。
+下次评审确认模型版本与结果复现的证据编号及责任人。','2026-09-28 09:00:00','苏念','2026-09-28 16:30:00','苏念');
 
-INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES
-(1,1,'审查急停和协作速度条款'),(2,2,'讨论任务成功率与测试集隔离'),
-(2,5,'同步讨论数据集版本和标注抽检'),(3,1,'确认送审稿后续意见跟踪'),
-(3,2,'确认跨团队征求意见分工'),(3,5,'确认数据治理草案试点范围');
+-- meeting
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (1,'MTG-2026-001','机器人标准年度适用清单评审','2026-01-16','内部例会','机器人标准与测试部','陈一鸣、叶知秋、林知远、沈可欣','确认在研机型的标准适用清单。','安全评测部核对风险分级，产品部补充应用边界。',NULL,NULL,'2026-01-16 09:00:00','陈一鸣','2026-01-16 16:30:00','陈一鸣');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (4,'MTG-2026-004','移动平台性能测试准备会','2026-03-12','专题组会','操作与运动控制部','顾星野、叶知秋、沈可欣、苏念','统一负载、地面、速度和测量配置，测试中心确认设备校准状态。','测试中心确认设备校准状态。',NULL,NULL,'2026-03-12 09:00:00','顾星野','2026-03-12 16:30:00','顾星野');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (5,'MTG-2026-005','服务机器人电气安全验证评审','2026-03-26','专题组会','供应链与质量部','沈可欣、叶知秋、唐予安、周启明','复核样机配置与量产配置对应关系，补充充电和异常状态验证清单。','补充充电和异常状态验证清单。',NULL,NULL,'2026-03-26 09:00:00','沈可欣','2026-03-26 16:30:00','沈可欣');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (6,'MTG-2026-006','机器人安全评估证据链检查','2026-04-10','内部例会','机器人标准与测试部','唐予安、叶知秋、陆嘉宁','设计依据、风险减小措施和验证记录逐项关联，缺少证据的条目列入整改。','缺少证据的条目列入整改。',NULL,NULL,'2026-04-10 09:00:00','唐予安','2026-04-10 16:30:00','唐予安');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (7,'MTG-2026-007','物流机器人新标准发布跟踪会','2026-04-30','内部例会','机器人标准与测试部','叶知秋、苏念、程望舒','登记两项物流机器人电气标准公开版本，安排实施前差距检查及试验能力建设。','安排实施前差距检查及试验能力建设。',NULL,NULL,'2026-04-30 09:00:00','叶知秋','2026-04-30 16:30:00','叶知秋');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (11,'MTG-2026-011','机器人标准半年度工作回顾','2026-06-26','内部例会','机器人标准与测试部','程望舒、叶知秋、韩景行、许清禾','完成安全、性能与术语标准台账复核。','高风险未关闭项按责任人与截止日期逐项跟进。',NULL,NULL,'2026-06-26 09:00:00','程望舒','2026-06-26 16:30:00','程望舒');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (12,'MTG-2026-012','动力电池标准实施后资料检查','2026-07-03','专题组会','机器人测试与验证中心','韩景行、叶知秋、陈一鸣、顾星野','明确动力电池标准适用对象。','机器人项目电池验证先完成适用性评估。',NULL,NULL,'2026-07-03 09:00:00','韩景行','2026-07-03 16:30:00','韩景行');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (14,'MTG-2026-014','机器人标准月度跟踪会（7月）','2026-07-31','内部例会','机器人标准与测试部','林知远、叶知秋、许清禾、唐予安','确认物流电气实施准备任务和轮式移动性能测量记录，跨部门反馈统一在任务内汇总。','跨部门反馈统一在任务内汇总。',NULL,NULL,'2026-07-31 09:00:00','林知远','2026-07-31 16:30:00','林知远');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (15,'MTG-2026-015','机器人试验记录模板评审','2026-08-14','内部例会','机器人标准与测试部','许清禾、叶知秋、顾星野','试验模板补充样机配置、测量条件及原始数据路径，质量部检查报告版本一致性。','质量部检查报告版本一致性。',NULL,NULL,'2026-08-14 09:00:00','许清禾','2026-08-14 16:30:00','许清禾');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (17,'MTG-2026-017','物流机器人电气标准实施准备评审','2026-09-11','专题组会','产品与应用工程部','沈可欣、叶知秋、唐予安、周启明','逐机型确认差距清单、整改计划和设备能力，10月底完成实施前关闭检查。','10月底完成实施前关闭检查。',NULL,'2026-09-25','2026-09-11 09:00:00','沈可欣','2026-09-11 16:30:00','沈可欣');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (18,'MTG-2026-018','机器人标准季度复核会','2026-09-25','内部例会','机器人标准与测试部','唐予安、叶知秋、陆嘉宁','审查现行版本、适用机型及开放事项。','旧版词汇保留追溯，新项目切换新版。',NULL,NULL,'2026-09-25 09:00:00','唐予安','2026-09-25 16:30:00','唐予安');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (19,'MTG-2026-019','人形机器人仿真测试平台标准研读会','2026-09-29','专题组会','具身智能系统部','叶知秋、苏念、程望舒','登记新发布标准，先整理模型版本、场景配置和结果复现流程，按实施日期安排平台准备。','先整理模型版本、场景配置和结果复现流程，按实施日期安排平台准备。',NULL,'2026-10-13','2026-09-29 09:00:00','叶知秋','2026-09-29 16:30:00','叶知秋');
+INSERT INTO meeting (id,meeting_no,title,meeting_date,meeting_type,organizer,participants,key_discussions,overall_conclusion,material_link,next_meeting_date,created_at,created_by,updated_at,updated_by) VALUES (20,'MTG-2026-020','机器人标准月度跟踪会（10月）','2026-10-02','内部例会','机器人标准与测试部','苏念、叶知秋、周启明、韩景行','物流电气标准实施准备进入关闭阶段，人形机器人平台验证资料分配至系统与测试接口人。','人形机器人平台验证资料分配至系统与测试接口人。',NULL,'2026-10-16','2026-10-02 09:00:00','苏念','2026-10-02 16:30:00','苏念');
 
-INSERT INTO action_item
-(id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,requesting_body,submission_due_date,submission_channel,drafter_counterpart,target_position,actual_lobby_time,lobby_method,outcome,check_owner,check_due_date,actual_check_time,check_result,gap_description,coordinator,target_date,created_at,created_by,updated_at,updated_by) VALUES
-(1,'AI-2026-001','Collect Comments',1,1,3,'征集整机安全送审稿内部意见','请安全评测、整机研发与机器人测试团队评估急停距离、速度测量条件和夹持风险，提交书面意见。','6.2、7.4','High','In Progress',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-13 09:00:00','许清禾','2026-08-18 10:30:00','叶知秋'),
-(2,'AI-2026-002','Survey Feedback',2,2,5,'提交具身智能基准任务试测反馈','使用虚构任务集完成导航、物体识别、抓取与失败恢复试测，记录模型版本、场景配置和人工接管次数。','附录A、附录B','High','Waiting for Response',NULL,NULL,'具身智能标准工作组（虚构）','2026-09-15','系统平台',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-08-13 09:30:00','林知远','2026-08-18 16:00:00','林知远'),
-(3,'AI-2026-003','Compliance Check',4,NULL,7,'复核机器人软件更新流程','抽查本季度机器人软件发布记录，确认签名校验、更新失败恢复和漏洞响应留痕。','8.3、9.1','Medium','Ready for Review',NULL,'https://example.invalid/evidence/update-review-2026-Q3',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'唐予安','2026-09-30','2026-08-20','Partial','断电恢复场景记录尚未完整，需补充两种本体配置的验证证据。',NULL,NULL,'2026-07-15 09:00:00','唐予安','2026-08-20 16:00:00','唐予安'),
-(4,'AI-2026-004','Others',5,3,NULL,'建立数据集版本登记流程','为训练集、开发集和独立测试集建立版本登记、访问角色与变更记录，先选取两个虚构任务集试运行。',NULL,'Medium','In Progress',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'苏念','2026-10-15','2026-08-18 11:00:00','苏念','2026-08-20 10:00:00','苏念');
+-- meeting_standard
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (1,1,'协作速度与停止距离由陈一鸣跟进。先梳理在研机型与适用范围，缺少的资料纳入后续计划。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (1,14,'整机安全基线检查由林知远跟进。先梳理在研机型与适用范围，缺少的资料纳入后续计划。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (4,7,'轮式移动性能试验条件由叶知秋跟进。下轮试验记录应附负载配置、地面照片及测量设备信息。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (5,14,'整机安全基线检查由林知远跟进。补充样机与量产配置的差异说明，确定报告覆盖范围。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (6,1,'协作速度与停止距离由陈一鸣跟进。按风险项检查证据缺口，明确补测责任与预计完成时间。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (6,14,'整机安全基线检查由林知远跟进。按风险项检查证据缺口，明确补测责任与预计完成时间。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (7,15,'物流机器人实施准备由许清禾跟进。开始整理实施前差距清单，先核对在售物流机型。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (7,17,'物流电气试验能力建设由沈可欣跟进。开始整理实施前差距清单，先核对在售物流机型。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (11,1,'协作速度与停止距离由陈一鸣跟进。季度回顾后继续跟进开放事项，优先补齐高风险项目的证据。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (11,7,'轮式移动性能试验条件由叶知秋跟进。季度回顾后继续跟进开放事项，优先补齐高风险项目的证据。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (11,14,'整机安全基线检查由林知远跟进。季度回顾后继续跟进开放事项，优先补齐高风险项目的证据。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (11,15,'物流机器人实施准备由许清禾跟进。季度回顾后继续跟进开放事项，优先补齐高风险项目的证据。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (11,17,'物流电气试验能力建设由沈可欣跟进。季度回顾后继续跟进开放事项，优先补齐高风险项目的证据。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (12,32,'动力电池安全标准切换由苏念跟进。电池应用先完成适用性判断，配置差异逐项登记。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (14,1,'协作速度与停止距离由陈一鸣跟进。月度汇总转为机型清单，下一次会议检查补交记录。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (14,7,'轮式移动性能试验条件由叶知秋跟进。月度汇总转为机型清单，下一次会议检查补交记录。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (14,14,'整机安全基线检查由林知远跟进。月度汇总转为机型清单，下一次会议检查补交记录。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (14,15,'物流机器人实施准备由许清禾跟进。月度汇总转为机型清单，下一次会议检查补交记录。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (14,17,'物流电气试验能力建设由沈可欣跟进。月度汇总转为机型清单，下一次会议检查补交记录。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (15,7,'轮式移动性能试验条件由叶知秋跟进。记录模板调整后安排一次实际试填，确认字段可用。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (15,17,'物流电气试验能力建设由沈可欣跟进。记录模板调整后安排一次实际试填，确认字段可用。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (17,15,'物流机器人实施准备由许清禾跟进。实施前检查集中确认设备与整改准备情况，未关闭项单独跟进。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (17,17,'物流电气试验能力建设由沈可欣跟进。实施前检查集中确认设备与整改准备情况，未关闭项单独跟进。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (18,1,'协作速度与停止距离由陈一鸣跟进。季度复核后更新版本引用，整理仍待部门确认的事项。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (18,7,'轮式移动性能试验条件由叶知秋跟进。季度复核后更新版本引用，整理仍待部门确认的事项。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (18,14,'整机安全基线检查由林知远跟进。季度复核后更新版本引用，整理仍待部门确认的事项。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (18,15,'物流机器人实施准备由许清禾跟进。季度复核后更新版本引用，整理仍待部门确认的事项。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (18,17,'物流电气试验能力建设由沈可欣跟进。季度复核后更新版本引用，整理仍待部门确认的事项。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (18,32,'动力电池安全标准切换由苏念跟进。季度复核后更新版本引用，整理仍待部门确认的事项。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (19,20,'人形机器人仿真平台实施准备由苏念跟进。系统组整理模型与运行配置，测试组准备结果对照样例。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (20,15,'物流机器人实施准备由许清禾跟进。本月以资料关闭为主，尚未齐备的记录说明原因及预计补交时间。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (20,17,'物流电气试验能力建设由沈可欣跟进。本月以资料关闭为主，尚未齐备的记录说明原因及预计补交时间。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (20,20,'人形机器人仿真平台实施准备由苏念跟进。本月以资料关闭为主，尚未齐备的记录说明原因及预计补交时间。');
+INSERT INTO meeting_standard (meeting_id,standard_id,note) VALUES (20,32,'动力电池安全标准切换由苏念跟进。本月以资料关闭为主，尚未齐备的记录说明原因及预计补交时间。');
 
-INSERT INTO feedback_recipient
-(id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES
-(1,1,'机器人本体研发部','陈一鸣','Responded','2026-08-20','2026-08-17','建议在移动底盘最大负载和末端工具偏置两种条件下分别记录急停距离。','2026-06-13 09:10:00','许清禾'),
-(2,1,'机器人测试与验证中心','沈可欣','Open','2026-08-20',NULL,NULL,'2026-06-13 09:12:00','许清禾'),
-(3,1,'安全评测与认证部','许清禾','Open','2026-08-20',NULL,NULL,'2026-06-13 09:14:00','许清禾'),
-(4,2,'具身智能系统部','林知远','Responded','2026-09-15','2026-08-18','试测发现遮挡条件下抓取失败恢复指标差异较大，建议将遮挡比例作为场景标签。','2026-08-13 09:40:00','林知远'),
-(5,2,'机器人测试与验证中心','沈可欣','Open','2026-09-15',NULL,NULL,'2026-08-13 09:42:00','林知远');
+-- action_item
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by) VALUES (1,'AI-2026-001','Collect Comments',1,14,1,'协作速度与停止距离内部意见汇总','请安全评测与工位集成接口人核对接近路径、夹持范围及停止距离，分别列出需要补测的配置。',NULL,'High','Completed','协作速度与停止距离的反馈已完成汇总，待纳入下轮模板更新。',NULL,'2026-08-03 09:00:00','陈一鸣','2026-08-21 16:30:00','陈一鸣');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by,check_owner,check_due_date,actual_check_time,check_result,gap_description) VALUES (2,'AI-2026-002','Compliance Check',1,14,1,'协作速度与停止距离符合性检查','记录空载、额定负载和工具偏置三个配置的停止过程，保存速度曲线与触发时刻。',NULL,'High','In Progress',NULL,NULL,'2026-08-03 09:00:00','陈一鸣','2026-08-05 16:30:00','陈一鸣','陈一鸣','2026-08-31',NULL,'TBD','更换工具后的停止距离记录尚未补齐。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by) VALUES (13,'AI-2026-013','Collect Comments',7,15,7,'轮式移动性能试验条件内部意见汇总','请测试中心提供光滑地面与接缝地面的测量记录；应用组说明客户现场最常见的负载配置。',NULL,'Medium','Ready for Review',NULL,NULL,'2026-09-07 09:00:00','叶知秋','2026-09-25 16:30:00','叶知秋');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by,check_owner,check_due_date,actual_check_time,check_result,gap_description) VALUES (14,'AI-2026-014','Compliance Check',7,15,7,'轮式移动性能试验条件符合性检查','试验记录统一填写负载、地面材质、电量、轮胎状态及路线，分别报告直行与转弯表现。',NULL,'Medium','Ready for Review',NULL,NULL,'2026-09-07 09:00:00','叶知秋','2026-09-25 16:30:00','叶知秋','叶知秋','2026-10-05','2026-09-25','Partial','接缝地面的转弯工况缺少原始数据。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by) VALUES (27,'AI-2026-027','Collect Comments',14,14,14,'整机安全基线检查内部意见汇总','请各专业提交当前台账中未覆盖的维护与恢复场景，注明风险来源及建议的验证方式。',NULL,'High','Waiting for Response',NULL,NULL,'2026-08-24 09:00:00','林知远','2026-09-11 16:30:00','林知远');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by,check_owner,check_due_date,actual_check_time,check_result,gap_description) VALUES (28,'AI-2026-028','Compliance Check',14,14,14,'整机安全基线检查符合性检查','将机械、电气、控制和信息安全的检查结果归入同一风险台账，标明责任人与证据编号。',NULL,'High','On Hold',NULL,NULL,'2026-08-24 09:00:00','林知远','2026-09-11 16:30:00','林知远','林知远','2026-09-21',NULL,'TBD','维护模式的风险项尚未明确关闭依据。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by) VALUES (29,'AI-2026-029','Collect Comments',15,14,15,'物流机器人实施准备内部意见汇总','请研发逐机型确认接地、充电接口和保护装置配置，质量组标明试验报告的覆盖范围。',NULL,'High','Ready for Review',NULL,NULL,'2026-09-07 09:00:00','许清禾','2026-09-25 16:30:00','许清禾');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by,check_owner,check_due_date,actual_check_time,check_result,gap_description) VALUES (30,'AI-2026-030','Compliance Check',15,14,15,'物流机器人实施准备符合性检查','逐机型复核电气图纸、接地连接、充电接口和保护装置，形成实施前差距与整改清单。',NULL,'High','Open',NULL,NULL,'2026-09-07 09:00:00','许清禾','2026-09-09 16:30:00','许清禾','许清禾','2026-10-05',NULL,'TBD','一款物流机型的充电异常试验报告待补交。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by) VALUES (33,'AI-2026-033','Collect Comments',17,14,17,'物流电气试验能力建设内部意见汇总','请实验室核对设备量程和校准有效期，列出需增加的夹具及预计准备时间。',NULL,'High','Completed','物流电气试验能力建设的反馈已完成汇总，待纳入下轮模板更新。',NULL,'2026-08-03 09:00:00','沈可欣','2026-08-21 16:30:00','沈可欣');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by,check_owner,check_due_date,actual_check_time,check_result,gap_description) VALUES (34,'AI-2026-034','Compliance Check',17,14,17,'物流电气试验能力建设符合性检查','梳理试验设备、夹具、测量范围与记录模板，确认新旧设备的适用性和校准有效期。',NULL,'High','Ready for Review',NULL,NULL,'2026-08-03 09:00:00','沈可欣','2026-08-21 16:30:00','沈可欣','沈可欣','2026-08-31','2026-08-21','Partial','新夹具的布置图与设备校准信息尚未归档。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by) VALUES (39,'AI-2026-039','Collect Comments',20,NULL,20,'人形机器人仿真平台实施准备内部意见汇总','请系统组提交模型与场景版本清单，测试组标明跨平台不能直接比较的输出项。',NULL,'Medium','In Progress',NULL,NULL,'2026-09-28 09:00:00','苏念','2026-09-30 16:30:00','苏念');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by,check_owner,check_due_date,actual_check_time,check_result,gap_description) VALUES (40,'AI-2026-040','Compliance Check',20,NULL,20,'人形机器人仿真平台实施准备符合性检查','整理模型、场景、控制策略与运行配置版本，明确结果导出格式和平台间对照流程。',NULL,'Medium','Open',NULL,NULL,'2026-09-28 09:00:00','苏念','2026-09-30 16:30:00','苏念','苏念','2026-10-26',NULL,'TBD','跨平台模型简化条件未形成统一说明。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by) VALUES (63,'AI-2026-063','Collect Comments',32,12,32,'动力电池安全标准切换内部意见汇总','请供应链提供电池报告目录，研发确认样机与采购配置差异，并说明报告适用对象。',NULL,'High','In Progress',NULL,NULL,'2026-07-06 09:00:00','苏念','2026-07-08 16:30:00','苏念');
+INSERT INTO action_item (id,item_no,item_type,standard_id,meeting_id,draft_id,title,description,related_clause,priority,current_status,final_summary,supporting_ref,created_at,created_by,updated_at,updated_by,check_owner,check_due_date,actual_check_time,check_result,gap_description) VALUES (64,'AI-2026-064','Compliance Check',32,12,32,'动力电池安全标准切换符合性检查','核对电芯、电池包和系统的配置及报告引用版本，确认新标准实施后的验证与交付资料。',NULL,'High','Ready for Review',NULL,NULL,'2026-07-06 09:00:00','苏念','2026-07-24 16:30:00','苏念','苏念','2026-08-03','2026-07-24','Partial','采购电池包与现有报告样机的配置差异待确认。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,draft_id,title,description,priority,current_status,final_summary,created_at,created_by,updated_at,updated_by,drafter_counterpart,target_position,actual_lobby_time,lobby_method,outcome) VALUES (65,'AI-2026-065','Lobby with Drafter',1,1,'协作速度与停止距离：对口技术问题沟通','围绕协作速度与停止距离准备问题清单，沟通前附当前配置与验证记录，会后记录待补充材料。','Medium','Completed','协作速度与停止距离的核对记录已归档，后续配置变更由责任接口人重新评估。','2026-09-14 09:00:00','陈一鸣','2026-09-24 16:30:00','陈一鸣','标准技术接口人','明确适用边界、验证条件及证据记录格式。','2026-09-16','会议','已整理技术问题清单，对方建议补充机型配置后再确认。');
+INSERT INTO action_item (id,item_no,item_type,standard_id,draft_id,title,description,priority,current_status,final_summary,created_at,created_by,updated_at,updated_by,requesting_body,submission_due_date,submission_channel) VALUES (66,'AI-2026-066','Survey Feedback',7,7,'轮式移动性能试验条件：应用情况反馈整理','汇总轮式移动性能试验条件在不同机型中的应用差异，区分共性问题与单一项目问题后提交。','Medium','Waiting for Response',NULL,'2026-09-14 09:00:00','叶知秋','2026-09-24 16:30:00','叶知秋','机器人标准与测试部','2026-10-14','邮件');
+INSERT INTO action_item (id,item_no,item_type,standard_id,draft_id,title,description,priority,current_status,final_summary,created_at,created_by,updated_at,updated_by,requesting_body,submission_due_date,submission_channel) VALUES (68,'AI-2026-068','Survey Feedback',15,15,'物流机器人实施准备：应用情况反馈整理','汇总物流机器人实施准备在不同机型中的应用差异，区分共性问题与单一项目问题后提交。','Medium','Ready for Review',NULL,'2026-09-14 09:00:00','许清禾','2026-09-24 16:30:00','许清禾','机器人标准与测试部','2026-10-14','邮件');
+INSERT INTO action_item (id,item_no,item_type,standard_id,draft_id,title,description,priority,current_status,final_summary,created_at,created_by,updated_at,updated_by,drafter_counterpart,target_position,actual_lobby_time,lobby_method,outcome) VALUES (69,'AI-2026-069','Lobby with Drafter',17,17,'物流电气试验能力建设：对口技术问题沟通','围绕物流电气试验能力建设准备问题清单，沟通前附当前配置与验证记录，会后记录待补充材料。','Medium','Open',NULL,'2026-09-14 09:00:00','沈可欣','2026-09-24 16:30:00','沈可欣','标准技术接口人','明确适用边界、验证条件及证据记录格式。',NULL,NULL,NULL);
+INSERT INTO action_item (id,item_no,item_type,standard_id,draft_id,title,description,priority,current_status,final_summary,created_at,created_by,updated_at,updated_by,coordinator,target_date) VALUES (71,'AI-2026-071','Others',20,20,'人形机器人仿真平台实施准备：版本资料与检查模板维护','核对人形机器人仿真平台实施准备的版本引用和附件目录，更新检查模板并通知使用部门。','Medium','Open',NULL,'2026-09-28 09:00:00','苏念','2026-10-02 16:30:00','苏念','苏念','2026-10-28');
+INSERT INTO action_item (id,item_no,item_type,standard_id,draft_id,title,description,priority,current_status,final_summary,created_at,created_by,updated_at,updated_by,drafter_counterpart,target_position,actual_lobby_time,lobby_method,outcome) VALUES (76,'AI-2026-076','Lobby with Drafter',32,32,'动力电池安全标准切换：对口技术问题沟通','围绕动力电池安全标准切换准备问题清单，沟通前附当前配置与验证记录，会后记录待补充材料。','Medium','In Progress',NULL,'2026-09-14 09:00:00','苏念','2026-09-24 16:30:00','苏念','标准技术接口人','明确适用边界、验证条件及证据记录格式。','2026-09-16','会议','已整理技术问题清单，对方建议补充机型配置后再确认。');
 
-INSERT INTO comment
-(id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES
-(1,'CM-2026-001',1,2,'6.2','协作速度测量条件','建议明确速度测量应覆盖额定负载、末端工具偏置和接触前减速过程。','不同负载下控制器限速表现不同，仅报告空载速度无法代表实际协作风险。','Accepted','沈可欣','系统平台','2026-01-15','采纳。送审稿新增负载和测量位置记录要求。','在送审稿 6.2 条核对落实情况。',1,'2026-01-14 09:00:00','沈可欣','2026-06-12 14:20:00','许清禾'),
-(2,'CM-2026-002',2,5,'附录B','测试集场景分层','建议按光照、遮挡、物体材质和背景复杂度分层报告任务完成率。','单一汇总值会掩盖模型在长尾场景中的性能差异。','Submitted','林知远','会议','2026-08-18',NULL,'等待工作组汇总，补充跨本体复现结果。',4,'2026-08-18 15:00:00','林知远','2026-08-18 16:10:00','林知远'),
-(3,'CM-2026-003',5, NULL,'4.3','测试数据版本追踪','建议每个测试结果记录数据集版本、标注版本和排除样本原因。','数据迭代会改变任务难度，缺少版本信息时无法复现比较。','Draft','苏念',NULL,NULL,NULL,'与数据治理工作组确认字段模板后提交。',NULL,'2026-08-19 09:00:00','苏念','2026-08-19 09:00:00','苏念');
+-- action_status_history
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (1,NULL,'Open','2026-08-03','已登记：协作速度与停止距离内部意见汇总。',NULL,'2026-08-03 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (1,'Open','In Progress','2026-08-05','开始整理资料：请安全评测与工位集成接口人核对接近路径、夹持范围及停止距离，分别列出需要补测的配置。',NULL,'2026-08-05 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (1,'In Progress','Completed','2026-08-21','协作速度与停止距离的反馈已完成汇总，待纳入下轮模板更新。',NULL,'2026-08-21 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (2,NULL,'Open','2026-08-03','已登记：协作速度与停止距离符合性检查。',NULL,'2026-08-03 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (2,'Open','In Progress','2026-08-05','开始整理资料：记录空载、额定负载和工具偏置三个配置的停止过程，保存速度曲线与触发时刻。',NULL,'2026-08-05 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (13,NULL,'Open','2026-09-07','已登记：轮式移动性能试验条件内部意见汇总。',NULL,'2026-09-07 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (13,'Open','In Progress','2026-09-09','开始整理资料：请测试中心提供光滑地面与接缝地面的测量记录；应用组说明客户现场最常见的负载配置。',NULL,'2026-09-09 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (13,'In Progress','Ready for Review','2026-09-25','相关记录已整理，请接口人复核配置与附件。',NULL,'2026-09-25 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (14,NULL,'Open','2026-09-07','已登记：轮式移动性能试验条件符合性检查。',NULL,'2026-09-07 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (14,'Open','In Progress','2026-09-09','开始整理资料：试验记录统一填写负载、地面材质、电量、轮胎状态及路线，分别报告直行与转弯表现。',NULL,'2026-09-09 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (14,'In Progress','Ready for Review','2026-09-25','相关记录已整理，请接口人复核配置与附件。',NULL,'2026-09-25 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (27,NULL,'Open','2026-08-24','已登记：整机安全基线检查内部意见汇总。',NULL,'2026-08-24 17:00:00','林知远');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (27,'Open','In Progress','2026-08-26','开始整理资料：请各专业提交当前台账中未覆盖的维护与恢复场景，注明风险来源及建议的验证方式。',NULL,'2026-08-26 17:00:00','林知远');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (27,'In Progress','Waiting for Response','2026-09-11','仍有部门反馈未返回，待反馈齐全后汇总。',NULL,'2026-09-11 17:00:00','林知远');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (28,NULL,'Open','2026-08-24','已登记：整机安全基线检查符合性检查。',NULL,'2026-08-24 17:00:00','林知远');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (28,'Open','In Progress','2026-08-26','开始整理资料：将机械、电气、控制和信息安全的检查结果归入同一风险台账，标明责任人与证据编号。',NULL,'2026-08-26 17:00:00','林知远');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (28,'In Progress','On Hold','2026-09-11','维护模式的风险项尚未明确关闭依据。',NULL,'2026-09-11 17:00:00','林知远');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (29,NULL,'Open','2026-09-07','已登记：物流机器人实施准备内部意见汇总。',NULL,'2026-09-07 17:00:00','许清禾');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (29,'Open','In Progress','2026-09-09','开始整理资料：请研发逐机型确认接地、充电接口和保护装置配置，质量组标明试验报告的覆盖范围。',NULL,'2026-09-09 17:00:00','许清禾');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (29,'In Progress','Ready for Review','2026-09-25','相关记录已整理，请接口人复核配置与附件。',NULL,'2026-09-25 17:00:00','许清禾');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (30,NULL,'Open','2026-09-07','已登记：物流机器人实施准备符合性检查。',NULL,'2026-09-07 17:00:00','许清禾');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (33,NULL,'Open','2026-08-03','已登记：物流电气试验能力建设内部意见汇总。',NULL,'2026-08-03 17:00:00','沈可欣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (33,'Open','In Progress','2026-08-05','开始整理资料：请实验室核对设备量程和校准有效期，列出需增加的夹具及预计准备时间。',NULL,'2026-08-05 17:00:00','沈可欣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (33,'In Progress','Completed','2026-08-21','物流电气试验能力建设的反馈已完成汇总，待纳入下轮模板更新。',NULL,'2026-08-21 17:00:00','沈可欣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (34,NULL,'Open','2026-08-03','已登记：物流电气试验能力建设符合性检查。',NULL,'2026-08-03 17:00:00','沈可欣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (34,'Open','In Progress','2026-08-05','开始整理资料：梳理试验设备、夹具、测量范围与记录模板，确认新旧设备的适用性和校准有效期。',NULL,'2026-08-05 17:00:00','沈可欣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (34,'In Progress','Ready for Review','2026-08-21','相关记录已整理，请接口人复核配置与附件。',NULL,'2026-08-21 17:00:00','沈可欣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (39,NULL,'Open','2026-09-28','已登记：人形机器人仿真平台实施准备内部意见汇总。',NULL,'2026-09-28 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (39,'Open','In Progress','2026-09-30','开始整理资料：请系统组提交模型与场景版本清单，测试组标明跨平台不能直接比较的输出项。',NULL,'2026-09-30 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (40,NULL,'Open','2026-09-28','已登记：人形机器人仿真平台实施准备符合性检查。',NULL,'2026-09-28 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (63,NULL,'Open','2026-07-06','已登记：动力电池安全标准切换内部意见汇总。',NULL,'2026-07-06 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (63,'Open','In Progress','2026-07-08','开始整理资料：请供应链提供电池报告目录，研发确认样机与采购配置差异，并说明报告适用对象。',NULL,'2026-07-08 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (64,NULL,'Open','2026-07-06','已登记：动力电池安全标准切换符合性检查。',NULL,'2026-07-06 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (64,'Open','In Progress','2026-07-08','开始整理资料：核对电芯、电池包和系统的配置及报告引用版本，确认新标准实施后的验证与交付资料。',NULL,'2026-07-08 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (64,'In Progress','Ready for Review','2026-07-24','相关记录已整理，请接口人复核配置与附件。',NULL,'2026-07-24 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (65,NULL,'Open','2026-09-14','已登记：协作速度与停止距离：对口技术问题沟通。',NULL,'2026-09-14 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (65,'Open','In Progress','2026-09-16','开始整理资料：围绕协作速度与停止距离准备问题清单，沟通前附当前配置与验证记录，会后记录待补充材料。',NULL,'2026-09-16 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (65,'In Progress','Completed','2026-09-24','协作速度与停止距离的核对记录已归档，后续配置变更由责任接口人重新评估。',NULL,'2026-09-24 17:00:00','陈一鸣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (66,NULL,'Open','2026-09-14','已登记：轮式移动性能试验条件：应用情况反馈整理。',NULL,'2026-09-14 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (66,'Open','In Progress','2026-09-16','开始整理资料：汇总轮式移动性能试验条件在不同机型中的应用差异，区分共性问题与单一项目问题后提交。',NULL,'2026-09-16 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (66,'In Progress','Waiting for Response','2026-09-24','仍有部门反馈未返回，待反馈齐全后汇总。',NULL,'2026-09-24 17:00:00','叶知秋');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (68,NULL,'Open','2026-09-14','已登记：物流机器人实施准备：应用情况反馈整理。',NULL,'2026-09-14 17:00:00','许清禾');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (68,'Open','In Progress','2026-09-16','开始整理资料：汇总物流机器人实施准备在不同机型中的应用差异，区分共性问题与单一项目问题后提交。',NULL,'2026-09-16 17:00:00','许清禾');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (68,'In Progress','Ready for Review','2026-09-24','相关记录已整理，请接口人复核配置与附件。',NULL,'2026-09-24 17:00:00','许清禾');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (69,NULL,'Open','2026-09-14','已登记：物流电气试验能力建设：对口技术问题沟通。',NULL,'2026-09-14 17:00:00','沈可欣');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (71,NULL,'Open','2026-09-28','已登记：人形机器人仿真平台实施准备：版本资料与检查模板维护。',NULL,'2026-09-28 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (76,NULL,'Open','2026-09-14','已登记：动力电池安全标准切换：对口技术问题沟通。',NULL,'2026-09-14 17:00:00','苏念');
+INSERT INTO action_status_history (action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (76,'Open','In Progress','2026-09-16','开始整理资料：围绕动力电池安全标准切换准备问题清单，沟通前附当前配置与验证记录，会后记录待补充材料。',NULL,'2026-09-16 17:00:00','苏念');
 
-INSERT INTO comment_status_history
-(comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES
-(1,NULL,'Draft','2026-01-14','汇总本体研发和测试团队意见。',NULL,'2026-01-14 09:05:00','沈可欣'),
-(1,'Draft','Submitted','2026-01-15','通过系统平台提交。',NULL,'2026-01-15 10:00:00','沈可欣'),
-(1,'Submitted','Accepted','2026-06-10','送审稿补充负载与测量位置要求。','https://example.invalid/robot-standards/R001/review-v1','2026-06-12 14:25:00','许清禾'),
-(2,NULL,'Draft','2026-08-18','根据首次基准试测整理意见。',NULL,'2026-08-18 15:05:00','林知远'),
-(2,'Draft','Submitted','2026-08-18','专题会上形成书面意见并提交。',NULL,'2026-08-18 16:00:00','林知远'),
-(3,NULL,'Draft','2026-08-19','先整理版本追踪建议，待确认数据字段。',NULL,'2026-08-19 09:05:00','苏念');
+-- feedback_recipient
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (1,1,'具身智能系统部','林知远','Responded','2026-08-31','2026-08-05','建议把工具质量和偏置距离加入记录表，否则停止距离结果无法复现。','2026-08-03 10:00:00','陈一鸣');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (2,1,'机器人本体研发部','许清禾','Responded','2026-08-31','2026-08-05','人员接近路线应覆盖侧面进入，不能只验证正面路径。','2026-08-03 10:00:00','陈一鸣');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (3,1,'安全评测与认证部','顾星野','Responded','2026-08-31','2026-08-05','夹爪更换后需明确复测触发条件，建议在工位检查表中单列。','2026-08-03 10:00:00','陈一鸣');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (19,13,'供应链与质量部','苏念','Responded','2026-10-05','2026-09-09','两次转弯试验的地面条件不同，建议保留地面照片并分别报告。','2026-09-07 10:00:00','叶知秋');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (20,13,'移动平台研发部','周启明','Open','2026-10-05',NULL,NULL,'2026-09-07 10:00:00','叶知秋');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (21,13,'产品与应用工程部','陆嘉宁','Open','2026-10-05',NULL,NULL,'2026-09-07 10:00:00','叶知秋');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (40,27,'机器人测试与验证中心','许清禾','Responded','2026-09-21','2026-08-26','维护时解除防护后的操作边界没有写清，建议补充模式切换与恢复确认。','2026-08-24 10:00:00','林知远');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (41,27,'网络安全与数据治理部','顾星野','Open','2026-09-21',NULL,NULL,'2026-08-24 10:00:00','林知远');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (42,27,'操作与运动控制部','沈可欣','Open','2026-09-21',NULL,NULL,'2026-08-24 10:00:00','林知远');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (43,29,'网络安全与数据治理部','顾星野','Responded','2026-10-05','2026-09-09','试验报告未注明充电器版本，建议补齐型号及保护参数。','2026-09-07 10:00:00','许清禾');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (44,29,'操作与运动控制部','沈可欣','No Comment','2026-10-05','2026-09-09','已核对本部门涉及的配置与资料，本轮无补充建议。','2026-09-07 10:00:00','许清禾');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (45,29,'供应链与质量部','唐予安','Open','2026-10-05',NULL,NULL,'2026-09-07 10:00:00','许清禾');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (49,33,'供应链与质量部','唐予安','Responded','2026-08-31','2026-08-05','设备清单缺少测量范围，建议在校准信息旁新增量程字段。','2026-08-03 10:00:00','沈可欣');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (50,33,'移动平台研发部','叶知秋','Responded','2026-08-31','2026-08-05','夹具布置应附照片或示意图，便于其他实验室复现。','2026-08-03 10:00:00','沈可欣');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (51,33,'产品与应用工程部','苏念','Responded','2026-08-31','2026-08-05','需明确原始读数的保存位置，避免只有汇总结果。','2026-08-03 10:00:00','沈可欣');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (58,39,'机器人标准与测试部','周启明','Responded','2026-10-26','2026-09-30','模型版本与控制策略版本应成对保存，单独保留模型无法复现本次结果。','2026-09-28 10:00:00','苏念');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (59,39,'具身智能系统部','陆嘉宁','Open','2026-10-26',NULL,NULL,'2026-09-28 10:00:00','苏念');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (60,39,'机器人本体研发部','程望舒','Open','2026-10-26',NULL,NULL,'2026-09-28 10:00:00','苏念');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (94,63,'机器人本体研发部','周启明','Responded','2026-08-03','2026-07-08','现有报告的电池包配置与采购清单不一致，建议先列出差异再判断覆盖范围。','2026-07-06 10:00:00','苏念');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (95,63,'安全评测与认证部','陆嘉宁','Open','2026-08-03',NULL,NULL,'2026-07-06 10:00:00','苏念');
+INSERT INTO feedback_recipient (id,action_item_id,respondent_team,respondent_person,response_status,response_due_date,response_actual_date,response_summary,created_at,created_by) VALUES (96,63,'机器人测试与验证中心','程望舒','Open','2026-08-03',NULL,NULL,'2026-07-06 10:00:00','苏念');
 
-INSERT INTO action_status_history
-(action_item_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES
-(1,NULL,'Open','2026-06-13','征集送审稿内部意见。',NULL,'2026-06-13 09:05:00','许清禾'),
-(1,'Open','In Progress','2026-08-17','已收到本体研发部反馈，测试中心与评测团队待回复。',NULL,'2026-08-18 10:35:00','叶知秋'),
-(2,NULL,'Open','2026-08-13','工作组邀请成员单位开展基准试测。',NULL,'2026-08-13 09:35:00','林知远'),
-(2,'Open','Waiting for Response','2026-08-18','已收到系统组初步结果，等待测试中心复测。',NULL,'2026-08-18 16:05:00','林知远'),
-(3,NULL,'Open','2026-07-15','启动更新流程符合性抽查。',NULL,'2026-07-15 09:05:00','唐予安'),
-(3,'Open','In Progress','2026-07-20','开始检查签名校验、失败恢复和漏洞响应记录。',NULL,'2026-07-20 09:00:00','唐予安'),
-(3,'In Progress','Ready for Review','2026-08-20','完成首轮核查，断电恢复证据待补。',NULL,'2026-08-20 16:05:00','唐予安'),
-(4,NULL,'Open','2026-08-18','例会上确定先试运行数据集版本登记。',NULL,'2026-08-18 11:05:00','苏念'),
-(4,'Open','In Progress','2026-08-20','已起草登记字段和角色权限表。',NULL,'2026-08-20 10:05:00','苏念');
+-- recipient_status_history
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (1,NULL,'Open','2026-08-03','已向林知远发送本轮评审资料。',NULL,'2026-08-03 17:00:00','陈一鸣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (1,'Open','Responded','2026-08-05','建议把工具质量和偏置距离加入记录表，否则停止距离结果无法复现。',NULL,'2026-08-05 17:00:00','陈一鸣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (2,NULL,'Open','2026-08-03','已向许清禾发送本轮评审资料。',NULL,'2026-08-03 17:00:00','陈一鸣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (2,'Open','Responded','2026-08-05','人员接近路线应覆盖侧面进入，不能只验证正面路径。',NULL,'2026-08-05 17:00:00','陈一鸣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (3,NULL,'Open','2026-08-03','已向顾星野发送本轮评审资料。',NULL,'2026-08-03 17:00:00','陈一鸣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (3,'Open','Responded','2026-08-05','夹爪更换后需明确复测触发条件，建议在工位检查表中单列。',NULL,'2026-08-05 17:00:00','陈一鸣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (19,NULL,'Open','2026-09-07','已向苏念发送本轮评审资料。',NULL,'2026-09-07 17:00:00','叶知秋');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (19,'Open','Responded','2026-09-09','两次转弯试验的地面条件不同，建议保留地面照片并分别报告。',NULL,'2026-09-09 17:00:00','叶知秋');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (20,NULL,'Open','2026-09-07','已向周启明发送本轮评审资料。',NULL,'2026-09-07 17:00:00','叶知秋');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (21,NULL,'Open','2026-09-07','已向陆嘉宁发送本轮评审资料。',NULL,'2026-09-07 17:00:00','叶知秋');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (40,NULL,'Open','2026-08-24','已向许清禾发送本轮评审资料。',NULL,'2026-08-24 17:00:00','林知远');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (40,'Open','Responded','2026-08-26','维护时解除防护后的操作边界没有写清，建议补充模式切换与恢复确认。',NULL,'2026-08-26 17:00:00','林知远');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (41,NULL,'Open','2026-08-24','已向顾星野发送本轮评审资料。',NULL,'2026-08-24 17:00:00','林知远');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (42,NULL,'Open','2026-08-24','已向沈可欣发送本轮评审资料。',NULL,'2026-08-24 17:00:00','林知远');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (43,NULL,'Open','2026-09-07','已向顾星野发送本轮评审资料。',NULL,'2026-09-07 17:00:00','许清禾');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (43,'Open','Responded','2026-09-09','试验报告未注明充电器版本，建议补齐型号及保护参数。',NULL,'2026-09-09 17:00:00','许清禾');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (44,NULL,'Open','2026-09-07','已向沈可欣发送本轮评审资料。',NULL,'2026-09-07 17:00:00','许清禾');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (44,'Open','No Comment','2026-09-09','已核对本部门涉及的配置与资料，本轮无补充建议。',NULL,'2026-09-09 17:00:00','许清禾');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (45,NULL,'Open','2026-09-07','已向唐予安发送本轮评审资料。',NULL,'2026-09-07 17:00:00','许清禾');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (49,NULL,'Open','2026-08-03','已向唐予安发送本轮评审资料。',NULL,'2026-08-03 17:00:00','沈可欣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (49,'Open','Responded','2026-08-05','设备清单缺少测量范围，建议在校准信息旁新增量程字段。',NULL,'2026-08-05 17:00:00','沈可欣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (50,NULL,'Open','2026-08-03','已向叶知秋发送本轮评审资料。',NULL,'2026-08-03 17:00:00','沈可欣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (50,'Open','Responded','2026-08-05','夹具布置应附照片或示意图，便于其他实验室复现。',NULL,'2026-08-05 17:00:00','沈可欣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (51,NULL,'Open','2026-08-03','已向苏念发送本轮评审资料。',NULL,'2026-08-03 17:00:00','沈可欣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (51,'Open','Responded','2026-08-05','需明确原始读数的保存位置，避免只有汇总结果。',NULL,'2026-08-05 17:00:00','沈可欣');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (58,NULL,'Open','2026-09-28','已向周启明发送本轮评审资料。',NULL,'2026-09-28 17:00:00','苏念');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (58,'Open','Responded','2026-09-30','模型版本与控制策略版本应成对保存，单独保留模型无法复现本次结果。',NULL,'2026-09-30 17:00:00','苏念');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (59,NULL,'Open','2026-09-28','已向陆嘉宁发送本轮评审资料。',NULL,'2026-09-28 17:00:00','苏念');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (60,NULL,'Open','2026-09-28','已向程望舒发送本轮评审资料。',NULL,'2026-09-28 17:00:00','苏念');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (94,NULL,'Open','2026-07-06','已向周启明发送本轮评审资料。',NULL,'2026-07-06 17:00:00','苏念');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (94,'Open','Responded','2026-07-08','现有报告的电池包配置与采购清单不一致，建议先列出差异再判断覆盖范围。',NULL,'2026-07-08 17:00:00','苏念');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (95,NULL,'Open','2026-07-06','已向陆嘉宁发送本轮评审资料。',NULL,'2026-07-06 17:00:00','苏念');
+INSERT INTO recipient_status_history (feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (96,NULL,'Open','2026-07-06','已向程望舒发送本轮评审资料。',NULL,'2026-07-06 17:00:00','苏念');
 
-INSERT INTO recipient_status_history
-(feedback_recipient_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES
-(1,NULL,'Open','2026-06-13','已发送内部征求意见。',NULL,'2026-06-13 09:15:00','许清禾'),
-(1,'Open','Responded','2026-08-17','本体研发团队提交负载与工具偏置建议。',NULL,'2026-08-17 16:00:00','陈一鸣'),
-(2,NULL,'Open','2026-06-13','已发送内部征求意见。',NULL,'2026-06-13 09:16:00','许清禾'),
-(3,NULL,'Open','2026-06-13','已发送内部征求意见。',NULL,'2026-06-13 09:17:00','许清禾'),
-(4,NULL,'Open','2026-08-13','已邀请参加基准试测。',NULL,'2026-08-13 09:45:00','林知远'),
-(4,'Open','Responded','2026-08-18','反馈遮挡场景应单独标注。',NULL,'2026-08-18 15:50:00','林知远'),
-(5,NULL,'Open','2026-08-13','已邀请参加基准复测。',NULL,'2026-08-13 09:46:00','林知远');
+-- comment
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (1,'CM-2026-001',1,1,NULL,'协作速度与停止距离','建议把工具质量和偏置距离加入记录表，否则停止距离结果无法复现。','协作工位人员接近路径与工具夹持范围需要同时评估，不能仅用机器人本体的限速设置代替工位风险分析。','Submitted','林知远','邮件','2026-08-06',NULL,'等责任接口人确认建议的适用范围。',1,'2026-08-05 09:00:00','林知远','2026-08-21 16:30:00','林知远');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (2,'CM-2026-002',1,1,NULL,'接触风险与末端工具','人员接近路线应覆盖侧面进入，不能只验证正面路径。','协作工位人员接近路径与工具夹持范围需要同时评估，不能仅用机器人本体的限速设置代替工位风险分析。','Submitted','许清禾','邮件','2026-08-06',NULL,'等责任接口人确认建议的适用范围。',2,'2026-08-05 09:00:00','许清禾','2026-08-21 16:30:00','许清禾');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (3,'CM-2026-003',1,1,NULL,'接触风险与末端工具','夹爪更换后需明确复测触发条件，建议在工位检查表中单列。','协作工位人员接近路径与工具夹持范围需要同时评估，不能仅用机器人本体的限速设置代替工位风险分析。','Submitted','顾星野','邮件','2026-08-06',NULL,'等责任接口人确认建议的适用范围。',3,'2026-08-05 09:00:00','顾星野','2026-08-21 16:30:00','顾星野');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (11,'CM-2026-011',7,7,NULL,'轮式移动性能试验条件','两次转弯试验的地面条件不同，建议保留地面照片并分别报告。','轮式机器人性能随工作条件变化，缺少条件记录时无法比较不同批次的测量结果。','Draft','苏念',NULL,NULL,NULL,'补齐涉及机型和附件编号后提交评审。',19,'2026-09-09 09:00:00','苏念','2026-09-25 16:30:00','苏念');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (22,'CM-2026-022',14,14,NULL,'整机安全基线检查','维护时解除防护后的操作边界没有写清，建议补充模式切换与恢复确认。','跨专业安全问题容易停留在部门边界，统一台账有利于确认整改范围和最终关闭证据。','Draft','许清禾',NULL,NULL,NULL,'补齐涉及机型和附件编号后提交评审。',40,'2026-08-26 09:00:00','许清禾','2026-09-11 16:30:00','许清禾');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (23,'CM-2026-023',15,15,NULL,'物流机器人实施准备','试验报告未注明充电器版本，建议补齐型号及保护参数。','新要求实施前需要完成产品配置和验证计划确认，不能等到交付时再核对安全资料。','Submitted','顾星野','邮件','2026-09-10',NULL,'等责任接口人确认建议的适用范围。',43,'2026-09-09 09:00:00','顾星野','2026-09-25 16:30:00','顾星野');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (25,'CM-2026-025',17,17,NULL,'物流电气试验能力建设','设备清单缺少测量范围，建议在校准信息旁新增量程字段。','只有统一试验条件和测量记录才能对整改前后结果进行有效比较。','Accepted','唐予安','邮件','2026-08-06','内部评审同意将试验设备与记录模板补入项目检查表，安排责任人更新模板。','将已同意的字段纳入下轮检查表，并通知使用部门。',49,'2026-08-05 09:00:00','唐予安','2026-08-21 16:30:00','唐予安');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (26,'CM-2026-026',17,17,NULL,'试验设备与记录模板','夹具布置应附照片或示意图，便于其他实验室复现。','只有统一试验条件和测量记录才能对整改前后结果进行有效比较。','Accepted','叶知秋','邮件','2026-08-06','内部评审同意将试验设备与记录模板补入项目检查表，安排责任人更新模板。','将已同意的字段纳入下轮检查表，并通知使用部门。',50,'2026-08-05 09:00:00','叶知秋','2026-08-21 16:30:00','叶知秋');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (27,'CM-2026-027',17,17,NULL,'试验设备与记录模板','需明确原始读数的保存位置，避免只有汇总结果。','只有统一试验条件和测量记录才能对整改前后结果进行有效比较。','Accepted','苏念','邮件','2026-08-06','内部评审同意将试验设备与记录模板补入项目检查表，安排责任人更新模板。','将已同意的字段纳入下轮检查表，并通知使用部门。',51,'2026-08-05 09:00:00','苏念','2026-08-21 16:30:00','苏念');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (30,'CM-2026-030',20,20,NULL,'人形机器人仿真平台实施准备','模型版本与控制策略版本应成对保存，单独保留模型无法复现本次结果。','模型配置和环境版本的变化会影响结果，平台验证必须保留可复现的运行记录。','Draft','周启明',NULL,NULL,NULL,'补齐涉及机型和附件编号后提交评审。',58,'2026-09-30 09:00:00','周启明','2026-10-02 16:30:00','周启明');
+INSERT INTO comment (id,comment_no,standard_id,draft_id,clause_no,topic,comment_text,rationale,status,submitted_by,submission_channel,submission_date,response,follow_up,source_recipient_id,created_at,created_by,updated_at,updated_by) VALUES (48,'CM-2026-048',32,32,NULL,'动力电池安全标准切换','现有报告的电池包配置与采购清单不一致，建议先列出差异再判断覆盖范围。','该标准面向电动汽车动力蓄电池，机器人电池项目应先确认适用性，避免直接套用汽车电池结论。','Partially Accepted','周启明','系统平台','2026-07-09','同意补充配置和记录字段；跨机型统一指标暂由后续专项验证决定。','先更新已同意的记录字段，指标调整另行组织验证。',94,'2026-07-08 09:00:00','周启明','2026-07-24 16:30:00','周启明');
+
+-- comment_status_history
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (1,NULL,'Draft','2026-08-05','根据内部反馈整理评审建议。',NULL,'2026-08-05 17:00:00','林知远');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (1,'Draft','Submitted','2026-08-06','通过既定渠道提交项目评审反馈。',NULL,'2026-08-06 17:00:00','林知远');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (2,NULL,'Draft','2026-08-05','根据内部反馈整理评审建议。',NULL,'2026-08-05 17:00:00','许清禾');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (2,'Draft','Submitted','2026-08-06','通过既定渠道提交项目评审反馈。',NULL,'2026-08-06 17:00:00','许清禾');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (3,NULL,'Draft','2026-08-05','根据内部反馈整理评审建议。',NULL,'2026-08-05 17:00:00','顾星野');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (3,'Draft','Submitted','2026-08-06','通过既定渠道提交项目评审反馈。',NULL,'2026-08-06 17:00:00','顾星野');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (11,NULL,'Draft','2026-09-09','根据内部反馈整理评审建议。',NULL,'2026-09-09 17:00:00','苏念');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (22,NULL,'Draft','2026-08-26','根据内部反馈整理评审建议。',NULL,'2026-08-26 17:00:00','许清禾');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (23,NULL,'Draft','2026-09-09','根据内部反馈整理评审建议。',NULL,'2026-09-09 17:00:00','顾星野');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (23,'Draft','Submitted','2026-09-10','通过既定渠道提交项目评审反馈。',NULL,'2026-09-10 17:00:00','顾星野');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (25,NULL,'Draft','2026-08-05','根据内部反馈整理评审建议。',NULL,'2026-08-05 17:00:00','唐予安');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (25,'Draft','Submitted','2026-08-06','通过既定渠道提交项目评审反馈。',NULL,'2026-08-06 17:00:00','唐予安');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (25,'Submitted','Accepted','2026-08-21','内部评审同意将试验设备与记录模板补入项目检查表，安排责任人更新模板。',NULL,'2026-08-21 17:00:00','唐予安');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (26,NULL,'Draft','2026-08-05','根据内部反馈整理评审建议。',NULL,'2026-08-05 17:00:00','叶知秋');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (26,'Draft','Submitted','2026-08-06','通过既定渠道提交项目评审反馈。',NULL,'2026-08-06 17:00:00','叶知秋');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (26,'Submitted','Accepted','2026-08-21','内部评审同意将试验设备与记录模板补入项目检查表，安排责任人更新模板。',NULL,'2026-08-21 17:00:00','叶知秋');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (27,NULL,'Draft','2026-08-05','根据内部反馈整理评审建议。',NULL,'2026-08-05 17:00:00','苏念');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (27,'Draft','Submitted','2026-08-06','通过既定渠道提交项目评审反馈。',NULL,'2026-08-06 17:00:00','苏念');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (27,'Submitted','Accepted','2026-08-21','内部评审同意将试验设备与记录模板补入项目检查表，安排责任人更新模板。',NULL,'2026-08-21 17:00:00','苏念');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (30,NULL,'Draft','2026-09-30','根据内部反馈整理评审建议。',NULL,'2026-09-30 17:00:00','周启明');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (48,NULL,'Draft','2026-07-08','根据内部反馈整理评审建议。',NULL,'2026-07-08 17:00:00','周启明');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (48,'Draft','Submitted','2026-07-09','通过既定渠道提交项目评审反馈。',NULL,'2026-07-09 17:00:00','周启明');
+INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (48,'Submitted','Partially Accepted','2026-07-24','同意补充配置和记录字段；跨机型统一指标暂由后续专项验证决定。',NULL,'2026-07-24 17:00:00','周启明');
+
+COMMIT;

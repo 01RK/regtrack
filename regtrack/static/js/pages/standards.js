@@ -1,5 +1,5 @@
 App.ready(async () => {
-  const { esc, dash, clip, get, tag, stageMini, stageLabel, emptyRow } = App;
+  const { esc, dash, get, tag, stageMini, stageLabel, emptyRow } = App;
   const M = App.meta;
 
   const state = { page: 1, size: 25, total: 0, archived: false };
@@ -54,20 +54,19 @@ App.ready(async () => {
     body.innerHTML = data.items.length
       ? data.items.map((s) => `
         <tr class="row-click" data-id="${s.id}">
-          <td><div class="cell-main">${esc(s.std_no)}</div>
+          <td data-label="标准"><div class="standard-identity"><span class="cell-main">${esc(s.std_no)}</span>${s.std_type ? `<span class="tag standard-type">${esc(s.std_type)}</span>` : ""}</div>
               <div class="cell-sub">${esc(s.name_cn)}</div></td>
-          <td>${stageMini(s.stage_code)} <span class="tag info">${esc(stageLabel(s.stage_code))}</span></td>
-          <td>${dash(s.std_type)}</td>
-          <td>${dash(s.tc_wg)}</td>
-          <td>${tag(s.risk_level)}</td>
-          <td>${dash(s.mb_owner)}</td>
-          <td class="cell-sub">${clip(s.impact_areas, 34)}</td>
-          <td class="num">${s.draft_count}</td>
-          <td class="num">${s.comment_count}</td>
-          <td class="num">${s.open_action_count ? `<span class="tag medium">${s.open_action_count}</span>` : 0}</td>
-          <td class="num">${dash(s.effective_date)}</td>
+          <td data-label="当前阶段"><div class="standard-stage">${stageMini(s.stage_code)}<span class="tag info">${esc(stageLabel(s.stage_code))}</span></div></td>
+          <td data-label="归口">${dash(s.tc_wg)}</td>
+          <td data-label="风险">${tag(s.risk_level)}</td>
+          <td data-label="负责人">${dash(s.mb_owner)}</td>
+          <td data-label="影响领域" class="cell-sub">${dash(s.impact_areas)}</td>
+          <td data-label="草案" class="num">${s.draft_count}</td>
+          <td data-label="意见" class="num">${s.comment_count}</td>
+          <td data-label="在办" class="num"><span class="${s.open_action_count ? "count-alert" : ""}">${s.open_action_count}</span></td>
+          <td data-label="实施日期" class="num">${dash(s.effective_date)}</td>
         </tr>`).join("")
-      : emptyRow(11, state.archived ? "归档里没有匹配的标准" : "没有匹配的标准",
+      : emptyRow(10, state.archived ? "归档里没有匹配的标准" : "没有匹配的标准",
                  state.archived ? "取消勾选即可回到正常列表" : "换个搜索词，或点右上角「新建标准」建档");
 
     body.querySelectorAll("tr[data-id]").forEach((tr) => {

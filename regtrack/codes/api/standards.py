@@ -129,7 +129,7 @@ def detail(standard_id):
     std["stage_timeline"] = stages.timeline(standard_id, std["stage_code"])
     std["stage_history"] = stages.records(standard_id)
     std["drafts"] = db.query(
-        """SELECT d.*, (SELECT COUNT(*) FROM clause_evolution ce WHERE ce.draft_id = d.id)
+        """SELECT d.*, (SELECT COUNT(*) FROM v_current_draft_chapter ce WHERE ce.draft_id = d.id)
                   AS clause_count
              FROM draft d WHERE d.standard_id = ?
             ORDER BY d.draft_date DESC, d.id DESC""", (standard_id,))

@@ -40,4 +40,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/settings.js', v='20260923-v18') }}"></script>{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/sortable.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/settings.js', v='20261002-drag-order') }}"></script>
+{% endblock %}

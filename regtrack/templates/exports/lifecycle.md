@@ -45,7 +45,7 @@ source: "RegTrack 法规跟踪系统"
 *{{ s.name_en }}*
 {%- endif %}
 
-> 本文件由法规跟踪系统于 {{ exported_at }} 导出，汇总该标准在各制定阶段的工作组会议、草案、条款变化、意见与事项，供留存与知识库检索使用。
+> 本文件由法规跟踪系统于 {{ exported_at }} 导出，汇总该标准在各制定阶段的工作组会议、草案章节、意见与事项，供留存与知识库检索使用。
 
 ## 1. 标准概况
 {{ kv("标准编号", s.std_no) }}
@@ -69,7 +69,7 @@ source: "RegTrack 法规跟踪系统"
 | # | 阶段 | 阶段编码 | 状态 | 记录来源 | 开始 | 结束 | 会议 | 草案 | 意见 | 事项 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 {%- for st in stages %}
-| {{ loop.index }} | {{ st.name }} | {{ st.code }} | {{ {"done": "已完成", "current": "当前", "future": "未进入"}[st.state] }} | {{ st.record_type_label or "—" }} | {{ st.start or "—" }} | {{ st.end or ("至今" if st.state == "current" else "—") }} | {{ st.meetings | length }} | {{ st.drafts | length }} | {{ st.comments | length }} | {{ st.actions | length }} |
+| {{ loop.index }} | {{ st.name }} | {{ st.code }} | {{ {"done": "已完成", "current": "当前", "future": "未进入", "unrecorded": "未登记"}[st.state] }} | {{ st.record_type_label or "—" }} | {{ st.start or "—" }} | {{ st.end or ("至今" if st.state == "current" else "—") }} | {{ st.meetings | length }} | {{ st.drafts | length }} | {{ st.comments | length }} | {{ st.actions | length }} |
 {%- endfor %}
 
 ## 3. 分阶段记录
@@ -79,6 +79,9 @@ source: "RegTrack 法规跟踪系统"
 {%- if st.state == "future" %}
 
 尚未进入该阶段。
+{%- elif st.state == "unrecorded" %}
+
+尚未登记该阶段，日期及记录来源未填写。
 {%- else %}
 
 {{ st.start }} ～ {{ st.end or "至今" }} · 记录来源：{{ st.record_type_label }}{% if st.note %} · 阶段说明：{{ st.note | md_inline }}{% endif %}
@@ -118,20 +121,16 @@ source: "RegTrack 法规跟踪系统"
 {{- block("补充说明", d.notes) }}
 {%- if d.clauses %}
 
-**条款变化（{{ d.clauses | length }} 条）**
+**当前草案章节（{{ d.clauses | length }} 项）**
 {%- for c in d.clauses %}
 
-###### 条款 {{ c.current_clause_no }} · {{ c.topic }} · {{ c.change_type }}
-{{ kv("对比版本", (c.last_version_name ~ " v" ~ c.last_sub_version_no) if c.last_version_name else "") }}
-{{- kv("原条款号", c.last_clause_no) }}
-{{- kv("变化说明", c.change_desc) }}
-{{- kv("测试影响", c.test_impact) }}
-{{- kv("认证影响", c.homologation_impact) }}
-{{- kv("合规风险", c.compliance_risk) }}
-{{- kv("负责人", c.responsible_person) }}
-{{- block("原条款内容", c.last_clause_text) }}
-{{- block("新条款内容", c.current_clause_text) }}
-{{- block("解读", c.interpretation) }}
+###### {{ c.clause_no }} · {{ c.title_cn | md_inline }}
+{{ kv("英文标题", c.title_en) }}
+{{- kv("来源页", c.source_page) }}
+{{- kv("复核状态", c.review_status) }}
+{{- block("中文正文", c.content_cn) }}
+{{- block("英文正文", c.content_en) }}
+{{- block("导入初始批注", c.initial_comment) }}
 {%- endfor %}
 {%- endif %}
 {%- endfor %}

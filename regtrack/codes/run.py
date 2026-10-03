@@ -17,7 +17,9 @@ from app import DEFAULT_DB, create_app
 
 VENDOR = Path(__file__).resolve().parent.parent / "static" / "vendor"
 VENDOR_FILES = ["bootstrap.min.css", "bootstrap.bundle.min.js",
-                "tom-select.bootstrap5.min.css", "tom-select.complete.min.js"]
+                "tom-select.bootstrap5.min.css", "tom-select.complete.min.js",
+                "marked.umd.js", "purify.min.js", "sortable.min.js", "katex/katex.min.css",
+                "katex/katex.min.js", "katex/fonts/KaTeX_Main-Regular.woff2"]
 
 
 def preflight(db_path: Path) -> bool:

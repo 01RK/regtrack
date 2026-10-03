@@ -66,7 +66,7 @@ App.ready(async () => {
           </div>
         </div>
         <div class="panel-body tight table-wrap">
-          <table class="table">
+          <table class="table meetings-table">
             <thead><tr><th>涉及标准</th><th>阶段</th><th>风险</th><th>负责人</th><th>本会派生事项</th><th style="width:44%">派生后续工作</th></tr></thead>
             <tbody>${m.standards.length ? m.standards.map((s) => standardRow(m, s)).join("")
               : emptyRow(6, "这场会还没挂标准", "打开会议后用搜索下拉把讨论到的标准挂进来")}</tbody>

@@ -124,7 +124,7 @@ def dashboard():
         "archived_standards": db.query_one(
             "SELECT COUNT(*) c FROM standard WHERE archived_at IS NOT NULL")["c"],
         "drafts": db.query_one("SELECT COUNT(*) c FROM draft")["c"],
-        "clauses": db.query_one("SELECT COUNT(*) c FROM clause_evolution")["c"],
+        "clauses": db.query_one("SELECT COUNT(*) c FROM v_current_draft_chapter")["c"],
         "meetings": db.query_one("SELECT COUNT(*) c FROM meeting")["c"],
         "comments": db.query_one("SELECT COUNT(*) c FROM comment")["c"],
         "actions": db.query_one("SELECT COUNT(*) c FROM action_item")["c"],

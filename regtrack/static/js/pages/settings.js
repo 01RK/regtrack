@@ -3,6 +3,7 @@ App.ready(async () => {
   const CATS = App.meta.lookup_categories;
   let activeCategory = Object.keys(CATS)[0];
   let categoryRows = {};
+  let sorter;
 
   document.querySelectorAll("[data-setting-tab]").forEach((tab) => {
     tab.onclick = () => {
@@ -31,6 +32,7 @@ App.ready(async () => {
     }).join("");
 
     function renderCategory(cat) {
+      if (sorter) sorter.destroy();
       activeCategory = cat;
       const rows = categoryRows[cat] || [];
       const activeCount = rows.filter((row) => row.is_active).length;
@@ -50,19 +52,20 @@ App.ready(async () => {
               <button class="btn btn-outline-secondary btn-sm" data-export="${cat}">导出</button>
               <label class="btn btn-outline-secondary btn-sm mb-0">导入<input type="file" accept=".json,application/json" hidden data-import="${cat}"></label>
               <button class="btn btn-outline-secondary btn-sm" data-add="${cat}">+ 新增</button>
-              <button class="btn btn-primary btn-sm" data-save-sort="${cat}">保存顺序</button>
             </div>
           </div>
-          <div class="lookup-table-note">排序数字越小越靠前；停用后不会出现在新记录的下拉框中。</div>
+          <div class="lookup-table-note"><span>拖动左侧手柄调整顺序，松开即保存。</span><span class="lookup-order-status" role="status" aria-live="polite"></span></div>
           <div class="panel-body tight table-wrap lookup-table-wrap">
             <table class="table lookup-table">
-              <thead><tr><th>值</th><th>说明（下拉框里的冗余显示）</th>
-                <th>排序</th><th>状态</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+              <thead><tr><th><span class="visually-hidden">拖动排序</span></th><th>值</th><th>说明（下拉框里的冗余显示）</th>
+                <th>状态</th><th><span class="visually-hidden">操作</span></th></tr></thead>
               <tbody>${rows.length ? rows.map((r) => `
-                <tr>
+                <tr data-id="${r.id}">
+                  <td><button type="button" class="lookup-drag-handle" aria-label="调整${esc(r.value)}的顺序" title="拖动排序；也可使用 Alt + ↑ / ↓">
+                    <svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="1.5"/><circle cx="11" cy="5" r="1.5"/><circle cx="5" cy="10" r="1.5"/><circle cx="11" cy="10" r="1.5"/><circle cx="5" cy="15" r="1.5"/><circle cx="11" cy="15" r="1.5"/></svg>
+                  </button></td>
                   <td class="cell-main">${esc(r.value)}</td>
                   <td class="cell-sub">${dash(r.note)}</td>
-                  <td><input class="form-control form-control-sm lookup-sort" type="number" min="0" step="1" value="${r.sort_order}" data-sort-id="${r.id}" aria-label="${esc(r.value)}的排序"></td>
                   <td>${r.is_active ? '<span class="tag ok">启用</span>' : '<span class="tag muted">停用</span>'}</td>
                   <td><div class="lookup-actions">
                     <button class="btn-link-quiet" data-edit='${esc(JSON.stringify(r))}'>编辑</button>
@@ -76,6 +79,51 @@ App.ready(async () => {
         </div>`;
 
       bindCategoryActions();
+      const tbody = host.querySelector("tbody");
+      sorter = Sortable.create(tbody, {
+        handle: ".lookup-drag-handle", draggable: "tr[data-id]",
+        animation: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 160,
+        ghostClass: "lookup-drag-ghost", chosenClass: "lookup-drag-chosen",
+        onEnd: (event) => { if (event.oldIndex !== event.newIndex) saveOrder(); },
+      });
+
+      async function saveOrder() {
+        const previous = categoryRows[cat].map((row) => String(row.id));
+        const status = host.querySelector(".lookup-order-status");
+        const controls = [...host.querySelectorAll("button, input"), ...nav.querySelectorAll("button")];
+        sorter.option("disabled", true);
+        controls.forEach((control) => { control.disabled = true; });
+        status.textContent = "正在保存…";
+        status.className = "lookup-order-status";
+        try {
+          categoryRows[cat] = await put(`/api/lookups/${cat}/order`, { ids: sorter.toArray().map(Number) });
+          App.lookups[cat] = categoryRows[cat];
+          status.textContent = "✓ 已自动保存";
+          status.classList.add("is-saved");
+        } catch (error) {
+          sorter.sort(previous, true);
+          status.textContent = "保存失败，已恢复原顺序";
+          status.classList.add("is-error");
+          fail(error.message);
+        } finally {
+          sorter.option("disabled", false);
+          controls.forEach((control) => { control.disabled = false; });
+        }
+      }
+
+      tbody.querySelectorAll(".lookup-drag-handle").forEach((handle) => {
+        handle.onkeydown = async (event) => {
+          if (!event.altKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+          event.preventDefault();
+          const row = handle.closest("tr");
+          const sibling = event.key === "ArrowUp" ? row.previousElementSibling : row.nextElementSibling;
+          if (!sibling) return;
+          if (event.key === "ArrowUp") tbody.insertBefore(row, sibling);
+          else tbody.insertBefore(sibling, row);
+          await saveOrder();
+          handle.focus();
+        };
+      });
     }
 
     nav.querySelectorAll("[data-lookup-category]").forEach((button) => {
@@ -88,18 +136,6 @@ App.ready(async () => {
     const host = document.getElementById("cats");
     host.querySelectorAll("[data-add]").forEach((b) => {
       b.onclick = () => openForm(b.dataset.add, null);
-    });
-    host.querySelectorAll("[data-save-sort]").forEach((b) => {
-      b.onclick = async () => {
-        try {
-          const panel = b.closest(".panel");
-          const values = [...panel.querySelectorAll("[data-sort-id]")].map((x) => ({ id: x.dataset.sortId, sort_order: Number(x.value) }));
-          if (values.some((x) => !Number.isInteger(x.sort_order) || x.sort_order < 0)) throw new Error("排序必须是非负整数");
-          const seen = new Set(); if (values.some((x) => seen.has(x.sort_order) || !seen.add(x.sort_order))) throw new Error("同一主题内排序不能重复");
-          await Promise.all(values.map((x) => put(`/api/lookups/${x.id}`, { sort_order: x.sort_order })));
-          ok("展示顺序已保存"); await reload();
-        } catch (e) { fail(e.message); }
-      };
     });
     host.querySelectorAll("[data-export]").forEach((b) => {
       b.onclick = () => { window.location.href = `/api/transfer/lookup/${encodeURIComponent(b.dataset.export)}/export`; };
@@ -288,9 +324,8 @@ App.ready(async () => {
         { name: "value", label: "值", cn: "写入业务记录的内容", type: "text", required: true, col: 12 },
         { name: "note", label: "说明", cn: "下拉框里显示在值下方", type: "text", col: 12,
           help: "例如人员写所在部门，机构写全称，方便同事确认选的是不是那一条。" },
-        { name: "sort_order", label: "排序", cn: "数字小的排前面", type: "text", col: 12 },
       ],
-      values: row || { sort_order: "100" },
+      values: row || {},
       submitText: row ? "保存" : "新增",
       async onSubmit(payload, m) {
         if (row) await put(`/api/lookups/${row.id}`, payload);

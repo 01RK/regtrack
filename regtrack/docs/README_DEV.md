@@ -30,7 +30,7 @@ source .venv/bin/activate
 
 pip install -r requirements.txt      # 只装 Flask
 python codes/fetch_vendor.py         # 下载前端依赖，需联网，只需一次
-python codes/init_db.py              # 建库 + 灌模拟数据
+python codes/init_db.py              # 建库 + 灌初始化记录
 python codes/run.py              # http://127.0.0.1:5000
 ```
 
@@ -49,7 +49,7 @@ python codes/run.py --debug              # 代码改动自动重载，不自动�
 python codes/run.py --db /tmp/x.db       # 指定其它库文件
 
 python codes/init_db.py --force    # 删掉旧库重建（现有数据会丢）
-python codes/init_db.py --empty    # 建空库，不灌模拟数据（上线用这个）
+python codes/init_db.py --empty    # 建空库，不灌初始化记录（上线用这个）
 ```
 
 ## 3. 目录结构
@@ -80,14 +80,16 @@ regtrack/
 
 ## 4. 数据库设计
 
-14 张表 + 1 个视图，DDL 见 `sql/schema.sql`。
+16 张表 + 2 个视图，DDL 见 `sql/schema.sql`。
 
 | 表 | 对应文档 | 要点 |
 | --- | --- | --- |
 | `standard` | Form 1 标准主档 | 主键 `id`，`std_no` 唯一；`stage_code` 由阶段记录算出；`archived_at` 置位即归档 |
 | `standard_impact_area` | 标准的影响领域 | 多值字段拆成关联表 |
 | `draft` | Form 2 草案登记 | `(standard_id, version_name, draft_sub_version_no)` 唯一 |
-| `clause_evolution` | Subform 条款变化 | 挂在 draft 下，全系统唯一录入入口 |
+| `draft_import` | 当前草案导入批次 | 保存文件名、来源版本文字与操作者；替换后仅保留当前批次 |
+| `draft_chapter` | 当前草案章节 | 归属当前导入批次，替换时旧章节删除 |
+| `draft_annotation` | 草案批注 | 可关联整份草案或单个章节；每章唯一；Excel 的 `Initial_Comment` 与人工内容共用 `content`，无来源字段，创建/修改时间和操作人均留存 |
 | `meeting` | Form 3 工作组会议 | `meeting_no` 形如 `MTG-2026-001` |
 | `meeting_standard` | 会议涉及标准 | 多对多，主键 `(meeting_id, standard_id)`；`note` 是「这场会 × 这项标准」的批注，随关联存亡 |
 | `comment` | Form 4 意见矩阵 | `comment_no` 形如 `CM-2026-001` |
@@ -178,7 +180,7 @@ regtrack/
 | --- | --- |
 | `/api` | `GET /meta` 固定值（含阶段编码与显示名）；`GET /dashboard` 总览统计（阶段分布按阶段编码顺序输出九项，含 0 条的）；`GET /dashboard/due-actions`、`GET /dashboard/meetings` 两块清单单独取数，供筛选器局部刷新 |
 | `/api/standards` | 列表（`?archived=1` 查归档）/ 详情 / 新建 / 修改；`DELETE /<id>` 归档、`POST /<id>/restore` 恢复；`GET /options` 下拉数据；`GET,POST /<id>/stages` 阶段时间轴与推进 / 补录、`PUT /<id>/stages/<record_id>` 修改阶段记录；`GET /<id>/lifecycle`；`GET /<id>/lifecycle.md` |
-| `/api/drafts` | 列表 / 详情 / 增删改；`GET /options`；`GET,POST /<id>/clauses`；`PUT,DELETE /clauses/<id>`；`GET /clauses/search` |
+| `/api/drafts` | 列表 / 详情 / 增删改；`GET /options`；`POST /imports/read`、`POST /imports`、`POST /<id>/annotations` |
 | `/api/transfer` | `GET /users` 登记人清单；`GET /export?user=` 按登记人导出自包含数据包；`POST /inspect` 导入前预检（包里有什么、本机有哪些操作人）；`POST /import` 确认登记人（`as_user`）后写入；字典的单独导入导出 |
 | `/api/meetings` | 列表 / 详情 / 增删改（新建与修改可带 `standard_ids` 列表，按列表重设涉及标准，未提交则不改动）；`POST /<id>/standards` 追加一项、`PUT /<id>/standards/<sid>` 改这项标准在本会的批注、`DELETE /<id>/standards/<sid>` 移除一项。会删掉非空批注的操作需带 `drop_notes` 确认 |
 | `/api/comments` | 列表 / 详情 / 增删改；`GET,POST /<id>/status-history` |
@@ -192,7 +194,7 @@ regtrack/
 前端也就不会只看到一句 `fail to fetch`。`core.js` 另外把 `fetch` 本身的连接失败
 翻译成「无法连接到本地服务」。
 
-草案列表、条款变化检索、意见和事项列表返回分组结构：`total` 是匹配记录数，
+草案、意见和事项列表返回分组结构：`total` 是匹配记录数，
 `group_total` 是匹配标准组数，`groups[].items` 是该标准下的匹配记录。`page_size`
 表示每页标准组数（页面默认 10），而不是记录数；兼容字段 `items` 按组顺序平铺当前页记录。
 组内按 `created_at DESC, id DESC`，组间按最新记录的 `created_at DESC, id DESC`，
@@ -243,6 +245,8 @@ regtrack/
 表按父在前的顺序处理，所以子表总能查到映射。单行违反约束只丢这一行并记下原因，
 不连累整批；`OWNER_COLUMNS`（`created_by` / `updated_by` / `recorded_by` / `archived_by`）
 里原本非空的值统一改写成确认的操作人，为空的保持为空。
+草案版本命中本机已有记录且已有章节时，导入包的章节批次、章节与草案批注跳过并计入结果；
+本机无章节时只导入来源草案的当前批次及其批注，避免留下隐藏的旧章节批次。
 **导入必须带 `as_user`**——先 `POST /inspect` 让用户确认登记人，这一步同时解决了
 同一个人中英文两种写法被拆成两个操作人的问题。
 
@@ -318,7 +322,7 @@ python -m unittest discover -s codes -p "test_api.py" -v
 粘贴文本的清洗、总览两块清单的按人与按时间筛选、数据包的自包含导出与重新编号导入、
 会议涉及标准的批注与取消挂载确认、请求头编码往返，
 以及若干前端契约（弹窗层级、只读字段的 `submit`、导航固定与滚动锁）。
-用临时库跑，不碰 `data/regtrack.db`。
+用临时库跑，不碰 `data/regtrack-v0.19.db`。
 
 启动装配检查（在 Node 里用极简 DOM 桩跑一遍 `core.js` 的 `boot()`，
 验证请求头、`/api/meta`、`/api/lookups`、操作人下拉都正常；

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}导入草案章节 · 法规跟踪系统{% endblock %}
+{% block eyebrow %}{% endblock %}
+{% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/drafts" aria-label="返回草案版本管理">← 返回</a><span>导入草案章节</span></span>{% endblock %}
+{% block actions %}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='20261001-v19-back-chevron') }}">{% endblock %}
+{% block content %}
+<div class="draft-import-flow">
+  <section class="panel">
+    <div class="panel-head"><span class="step-number">1</span><h2>选择导入方式</h2></div>
+    <div class="panel-body">
+      <div class="import-choices" aria-label="导入方式">
+        <button class="import-choice" id="source-upload" type="button"><strong>草案原文自动解析</strong><span>上传 Word / PDF</span></button>
+        <button class="import-choice" id="manual-import-button" type="button" aria-controls="manual-import" aria-expanded="false"><strong>手动导入</strong><span>上传章节 Excel</span></button>
+      </div>
+      <div id="source-upload-message" class="import-choice-message" role="status" aria-live="polite"></div>
+      <div id="manual-import" class="manual-import" hidden>
+        <details class="import-guide" open>
+        <summary>当前使用方法</summary>
+        <ol>
+          <li>下载<a href="{{ url_for('static', filename='standard-clause-import-blank.xlsx') }}" download>空白章节模板</a>。</li>
+          <li>在 Web 端大模型上传草案原文和模板，粘贴下方提示词，下载生成的 Excel。</li>
+          <li>核对编号、表格和公式，再上传 Excel。</li>
+        </ol>
+        <div class="prompt-head"><strong>单份草案解析提示词</strong><button class="btn btn-outline-secondary btn-sm" id="copy-import-prompt" type="button">复制提示词</button></div>
+        <textarea id="import-prompt" class="form-control" rows="8" wrap="soft" readonly aria-label="单份草案解析提示词">正在读取提示词…</textarea>
+        <div id="prompt-message" class="form-text" role="status" aria-live="polite"></div>
+        </details>
+        <label for="chapter-file" class="form-label mt-3">上传章节 Excel</label>
+        <input class="form-control" id="chapter-file" type="file" accept=".xlsx">
+        <p class="form-text mb-0">支持 .xlsx，最大 20 MB。</p>
+        <div id="upload-message" class="mt-3" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+  <section class="panel" id="assignment" hidden>
+    <div class="panel-head"><span class="step-number">2</span><h2>确认草案归属</h2></div>
+    <div class="panel-body">
+      <div id="file-identity" class="import-identity"></div>
+      <p class="form-text">确认所属标准和草案版本后，章节将写入该版本。</p>
+      <form id="assignment-form">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label" for="import-standard">所属标准</label><select id="import-standard" class="form-select" required></select><div class="form-text">优先显示名称相似的标准；也可搜索其他标准或快速建档。</div></div>
+          <div class="col-md-6"><label class="form-label" for="import-draft">草案版本</label><select id="import-draft" class="form-select" required></select></div>
+        </div>
+        <fieldset id="new-version" class="row g-3 mt-1" hidden disabled>
+          <div class="col-md-4"><label class="form-label" for="version-name">版本类型</label><select id="version-name" class="form-select" required></select></div>
+          <div class="col-md-4"><label class="form-label" for="sub-version">子版本号</label><input id="sub-version" class="form-control" placeholder="例如 1.0" required></div>
+          <div class="col-md-4"><label class="form-label" for="draft-date">草案日期</label><input id="draft-date" class="form-control" type="date" required></div>
+        </fieldset>
+        <section id="annotation-decisions" class="annotation-retention mt-4" hidden>
+          <div id="conflict-step" hidden>
+            <h3 class="h6">第 1 步 · 处理内容不同的批注</h3>
+            <p class="form-text">同一条款的新旧批注内容不同。勾选要换成新文件批注的条目；未勾选的沿用现有批注。内容相同的批注自动沿用。</p>
+            <div id="conflict-list"></div>
+            <button id="confirm-conflicts" class="btn btn-primary btn-sm mt-3" type="button">确认冲突选择，继续</button>
+          </div>
+          <div id="residual-step" hidden>
+            <h3 class="h6">第 2 步 · 处理旧版本残留批注</h3>
+            <p class="form-text">新文件保留了条款但未提供批注时，可选择沿用旧批注；新文件已删除的条款，其旧批注会移除。</p>
+            <div class="btn-group btn-group-sm mb-3"><button id="keep-all" class="btn btn-outline-secondary" type="button">全选可保留项</button><button id="keep-none" class="btn btn-outline-secondary" type="button">全部移除</button></div>
+            <div id="annotation-retention-list"></div>
+            <button id="back-conflicts" class="btn btn-link btn-sm mt-2" type="button" hidden>返回修改冲突选择</button>
+          </div>
+        </section>
+        <div class="import-actions"><span class="text-muted">确认后显示这份草案的章节。</span><button id="assign-submit" class="btn btn-primary" type="submit">确认归属并查看章节</button></div>
+        <div id="assignment-error" class="text-danger mt-2" role="alert"></div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/draft-import.js', v='20261001-preface-zero') }}"></script>{% endblock %}

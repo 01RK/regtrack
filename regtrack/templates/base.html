@@ -6,12 +6,13 @@
 <title>{% block title %}法规跟踪系统{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.bootstrap5.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20260923-v18') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20261002-drag-order') }}">
+<script src="{{ url_for('static', filename='js/shell.js', v='20261002-rail-toggle') }}"></script>
 {% block styles %}{% endblock %}
 </head>
-<body>
+<body data-page="{{ active }}">
 <div class="shell">
-  <nav class="rail">
+  <nav class="rail" id="main-navigation" aria-label="主导航">
     <div class="rail-brand">
       <b>法规跟踪系统</b>
       <span>Regulation Tracking</span>
@@ -30,6 +31,9 @@
       <div style="margin-top:8px">如需切换，请进入「设置」→「切换操作人」。</div>
     </div>
   </nav>
+  <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="收起导航" title="收起导航" aria-controls="main-navigation" aria-expanded="true">
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 5-5 5 5 5"/></svg>
+  </button>
 
   <div class="main">
     <header class="topbar">
@@ -51,7 +55,7 @@
 <script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core.js', v='20260923-v18') }}"></script>
 <script src="{{ url_for('static', filename='js/grouped-list.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/fields.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/fields.js', v='20261001-v19-standard-picker') }}"></script>
 <script src="{{ url_for('static', filename='js/forms.js', v='20260923-v18') }}"></script>
 <script src="{{ url_for('static', filename='js/action-form.js', v='20260923-v18') }}"></script>
 <script src="{{ url_for('static', filename='js/stage-manager.js', v='20260923-v18') }}"></script>

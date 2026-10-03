@@ -56,7 +56,9 @@ def create(category):
         "category": category,
         "value": value,
         "note": (payload.get("note") or "").strip() or None,
-        "sort_order": int(payload.get("sort_order") or 100),
+        "sort_order": db.query_one(
+            "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next FROM lookup_value WHERE category = ?",
+            (category,))["next"],
         "is_active": 1,
     })
     db.commit()
@@ -74,8 +76,6 @@ def update(row_id):
         data["value"] = value
     if "note" in payload:
         data["note"] = (payload["note"] or "").strip() or None
-    if "sort_order" in payload:
-        data["sort_order"] = int(payload["sort_order"] or 100)
     if "is_active" in payload:
         data["is_active"] = 1 if payload["is_active"] else 0
     if not data:
@@ -90,3 +90,20 @@ def remove(row_id):
     db.delete("lookup_value", row_id)
     db.commit()
     return jsonify(ok=True)
+
+
+@bp.put("/<category>/order")
+def reorder(category):
+    """保存完整分类顺序；一次事务更新，避免逐条请求留下半份排序。"""
+    lookups_service.check_category(category)
+    ids = payload_of(request).get("ids")
+    if not isinstance(ids, list) or any(type(row_id) is not int for row_id in ids):
+        raise ApiError("请提供字典项编号列表")
+    db.execute("BEGIN IMMEDIATE")
+    current = db.query("SELECT id FROM lookup_value WHERE category = ?", (category,))
+    if len(ids) != len(set(ids)) or set(ids) != {row["id"] for row in current}:
+        raise ApiError("字典项已发生变化，请刷新后重新排序", 409)
+    for position, row_id in enumerate(ids, 1):
+        db.update("lookup_value", row_id, {"sort_order": position})
+    db.commit()
+    return jsonify(db.query("SELECT * FROM lookup_value WHERE category = ? ORDER BY sort_order", (category,)))

@@ -1,4 +1,4 @@
-"""标准生命周期回顾：按阶段归档会议、草案、意见（导出时再加条款变化与事项）。"""
+"""标准生命周期回顾：按阶段归档会议、草案和意见。"""
 
 import io
 import re
@@ -18,7 +18,7 @@ bp = Blueprint("lifecycle", __name__, url_prefix="/api/standards")
 
 
 def _lifecycle_stages(standard: dict) -> list[dict]:
-    """已记录阶段取自阶段历史（被跳过的阶段自然不会出现），未来阶段取自阶段定义。"""
+    """已记录阶段取自历史；始终保留预研入口，未登记时不虚构日期。"""
     history = stages.records(standard["id"])
     history.sort(key=lambda r: (r["effective_date"], STAGE_ORDER[r["stage_code"]]))
     timeline = []
@@ -43,6 +43,14 @@ def _lifecycle_stages(standard: dict) -> list[dict]:
 
     current_rank = STAGE_ORDER[standard["stage_code"]]
     recorded = {row["stage_code"] for row in history}
+    if "PRE_RESEARCH" not in recorded:
+        timeline.insert(0, {
+            "code": "PRE_RESEARCH", "name": stages.label("PRE_RESEARCH"),
+            "state": "unrecorded", "start": None, "end": None, "note": None,
+            "record_type": None, "record_type_label": None,
+            "created_at": None, "created_by": None,
+            "updated_at": None, "updated_by": None, "modified": False,
+        })
     timeline += [
         {"code": code, "name": stages.label(code), "state": "future",
          "start": None, "end": None, "note": None,
@@ -59,7 +67,7 @@ def _lifecycle_stages(standard: dict) -> list[dict]:
 
 def _stage_for(timeline: list[dict], day: str, preferred: str | None = None) -> dict:
     """优先归入 preferred 阶段（须已经历）；否则归入 day 所在的已经历阶段区间。"""
-    reached = [s for s in timeline if s["state"] != "future"]
+    reached = [s for s in timeline if s["state"] in ("done", "current")]
     for stage in reached:
         if stage["code"] == preferred:
             return stage
@@ -71,7 +79,7 @@ def _stage_for(timeline: list[dict], day: str, preferred: str | None = None) -> 
 
 
 def payload(standard_id: int, full: bool) -> dict:
-    """full=False 供页面展示；full=True 供知识库导出，附带条款变化、状态历史与事项。"""
+    """full=False 供页面展示；full=True 供知识库导出，附带章节、状态历史与事项。"""
     standard = standards_api._get(standard_id)
     timeline = _lifecycle_stages(standard)
 
@@ -83,7 +91,7 @@ def payload(standard_id: int, full: bool) -> dict:
         _stage_for(timeline, meeting["meeting_date"])["meetings"].append(meeting)
 
     drafts = db.query(
-        """SELECT d.*, (SELECT COUNT(*) FROM clause_evolution ce WHERE ce.draft_id = d.id)
+        """SELECT d.*, (SELECT COUNT(*) FROM v_current_draft_chapter ce WHERE ce.draft_id = d.id)
                   AS clause_count
              FROM draft d WHERE d.standard_id = ?
             ORDER BY d.draft_date, d.id""", (standard_id,))
@@ -92,7 +100,9 @@ def payload(standard_id: int, full: bool) -> dict:
         stage = _stage_for(timeline, draft["draft_date"], VERSION_STAGES[draft["version_name"]])
         draft_stage[draft["id"]] = stage
         if full:
-            draft["clauses"] = drafts_api._clauses(draft["id"])
+            draft["clauses"] = db.query(
+                "SELECT * FROM v_current_draft_chapter WHERE draft_id = ? ORDER BY sequence",
+                (draft["id"],))
         stage["drafts"].append(draft)
 
     comments = db.query(

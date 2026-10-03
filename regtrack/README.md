@@ -6,7 +6,7 @@ Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
 覆盖文档中的 5 个主入口与全部子表：
 
 1. **标准主档 Standard Profile** → 子表：Stage History 阶段历史（推进 / 补录）
-2. **草案登记 Draft Registry** → 子表：Clause Evolution 条款变化（全系统唯一录入入口）
+2. **草案登记 Draft Registry** → 草案版本管理、Excel 章节导入、阅读与批注
 3. **工作组会议 WG Meeting** → 一场会议可挂多项标准 + 按标准行内一键派生 5 类事项
    （总览页另有「今年已参加的工作组会议」一块，按参会人与时间范围筛选）
 4. **意见矩阵 Comment Matrix** → 子表：Comment Status History 意见状态历史
@@ -26,7 +26,7 @@ Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
 记录。当前阶段由阶段记录自动算出，标准主档不能直接改写。删除操作执行的是归档：
 数据完整保留，可随时恢复。
 
-事项、意见矩阵、草案版本和条款变化检索统一按标准分组：默认全部展开，支持单组及
+事项、意见矩阵和草案版本统一按标准分组：默认全部展开，支持单组及
 全部展开/收起。筛选只保留符合条件的记录；组内按系统登记时间倒序，标准组则按组内
 最新登记记录倒序。分页以标准组为单位，同一标准不会被拆到两页。
 
@@ -34,8 +34,8 @@ Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
 
 ### 用户端（Windows）
 
-直接双击 release/RegTrack.exe。首次启动会在 exe 同级的 data/regtrack.db
-自动创建空数据库，之后继续使用同一个数据库；不会加载 sql/seed.sql 模拟数据。
+直接双击 release/RegTrack.exe。首次启动会在 exe 同级的 data/regtrack-v0.19.db
+自动创建空数据库，之后继续使用同一个数据库；不会加载 sql/seed.sql 初始化记录。
 
 ```bash
 # 开发机从源码启动（需要 Python）
@@ -43,7 +43,7 @@ pip install -r requirements.txt
 python codes/run.py              # 首次启动自动创建空库
 ```
 
-sql/seed.sql 只用于开发验证；需要演示数据时才手工执行
+sql/seed.sql 只用于开发验证；需要初始化记录时才手工执行
 python codes/init_db.py --force， 不要在生产发布包中执行。
 
 ## 文档
@@ -69,11 +69,12 @@ codes/              全部 Python 代码（应用、接口、工具和测试）
   init_db.py        数据库初始化入口
   fetch_vendor.py   前端依赖下载入口
   test_api.py       接口冒烟测试
-sql/schema.sql     建表 SQL（14 张表 + 索引 + 视图）
+sql/schema.sql     建表 SQL（含章节导入批次、章节快照与批注）
 static/js/records.js  五类记录的明细与表单（全站共用，负责叠层与返回）
 static/js/stage-manager.js  阶段时间轴、推进 / 补录与阶段详情
 static/js/grouped-list.js  标准分组列表的展开、收起与无障碍状态
-sql/seed.sql       模拟数据（阶段/状态历史均为逐级完整的链条，含历史补录示例）
+sql/seed.sql       标准主档与内部跟踪初始化记录（7 项标准，含状态历史）
+sql/seed-sources.md  标准公开来源、数据数量与登记口径
 templates/         页面骨架
 static/            样式与前端脚本
 ```

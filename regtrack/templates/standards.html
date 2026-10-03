@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="panel">
+<div class="panel standards-panel">
   <div class="filters">
     <div class="fl"><label for="f-q">搜索</label>
       <input id="f-q" class="form-control search" placeholder="标准编号 / 中英文名称 / TC-WG"></div>
@@ -18,18 +18,23 @@
     <label class="fl-check"><input type="checkbox" id="f-archived"><span>查看归档</span></label>
     <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
   </div>
-  <div class="panel-body tight table-wrap">
-    <table class="table">
+  <div class="panel-body tight standards-list">
+    <table class="table standards-table">
+      <colgroup>
+        <col style="width:24%"><col style="width:17%"><col style="width:12%">
+        <col style="width:7%"><col style="width:7%"><col style="width:10%">
+        <col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:11%">
+      </colgroup>
       <thead><tr>
-        <th>标准编号 / 名称</th><th>当前阶段</th><th>类别</th><th>归口</th>
+        <th>标准编号 / 名称</th><th>当前阶段</th><th>归口</th>
         <th>风险</th><th>负责人</th><th>影响领域</th>
         <th>草案</th><th>意见</th><th>在办</th><th>实施日期</th>
       </tr></thead>
-      <tbody id="rows"><tr><td colspan="11"><div class="loading">载入中…</div></td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="10"><div class="loading">载入中…</div></td></tr></tbody>
     </table>
   </div>
   <div class="pager" id="pager"></div>
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/standards.js', v='20260923-v18') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/standards.js', v='20261002-standard-layout') }}"></script>{% endblock %}

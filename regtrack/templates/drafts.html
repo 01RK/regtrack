@@ -3,13 +3,14 @@
 {% block eyebrow %}02 · Draft Registry{% endblock %}
 {% block heading %}草案登记{% endblock %}
 {% block actions %}
+<a class="btn btn-outline-secondary btn-sm" href="/drafts/import">导入章节 Excel</a>
 <button class="btn btn-primary btn-sm" id="btn-new">登记草案</button>
 {% endblock %}
 
 {% block content %}
 <ul class="nav nav-tabs" style="margin-bottom:14px" role="tablist">
-  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-drafts" type="button">草案版本</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-clauses" type="button">条款变化检索</button></li>
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-drafts" type="button">草案版本管理</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-compare" type="button">标准比对</button></li>
 </ul>
 
 <div class="tab-content">
@@ -34,7 +35,7 @@
           </colgroup>
           <thead><tr>
             <th>版本</th><th>子版本</th><th>草案日期</th>
-            <th>总体影响</th><th>条款变化</th><th>发布方</th><th>主要内容</th>
+            <th>总体影响</th><th>章节</th><th>发布方</th><th>主要内容</th>
           </tr></thead>
           <tbody id="rows"><tr><td colspan="7"><div class="loading">载入中…</div></td></tr></tbody>
         </table>
@@ -43,38 +44,8 @@
     </div>
   </div>
 
-  <div class="tab-pane fade" id="tab-clauses">
-    <div class="panel">
-      <div class="filters">
-        <div class="fl"><label for="c-q">搜索</label>
-          <input id="c-q" class="form-control search" placeholder="条款号 / 主题 / 变化说明 / 标准"></div>
-        <div class="fl"><label for="c-type">变化类型</label><select id="c-type" class="form-select"></select></div>
-        <div class="fl"><label for="c-risk">合规风险</label><select id="c-risk" class="form-select"></select></div>
-        <div class="fl"><label for="c-test">测试影响</label><select id="c-test" class="form-select"></select></div>
-        <button class="btn btn-outline-secondary btn-sm" id="c-reset" style="height:32px">重置</button>
-        <div class="group-tools" aria-label="条款标准分组显示控制">
-          <button class="btn btn-outline-secondary btn-sm" id="clause-groups-expand" type="button">全部展开</button>
-          <button class="btn btn-outline-secondary btn-sm" id="clause-groups-collapse" type="button">全部收起</button>
-        </div>
-      </div>
-      <div class="panel-body tight table-wrap">
-        <table class="table grouped-table clauses-grouped-table">
-          <colgroup>
-            <col style="width:14%"><col style="width:8%"><col style="width:15%">
-            <col style="width:14%"><col style="width:14%"><col style="width:7%">
-            <col style="width:7%"><col style="width:10%"><col style="width:11%">
-          </colgroup>
-          <thead><tr>
-            <th>出现版本</th><th>条款号</th><th>主题</th><th>变化类型</th>
-            <th>对比版本</th><th>测试</th><th>准入</th><th>合规风险</th><th>负责人</th>
-          </tr></thead>
-          <tbody id="c-rows"><tr><td colspan="9"><div class="loading">载入中…</div></td></tr></tbody>
-        </table>
-      </div>
-      <div class="pager" id="c-pager"></div>
-    </div>
-  </div>
+  <div class="tab-pane fade" id="tab-compare" role="tabpanel"></div>
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/drafts.js', v='20260923-v18') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/drafts.js', v='20261001-v19') }}"></script>{% endblock %}

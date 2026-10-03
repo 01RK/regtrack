@@ -39,6 +39,7 @@ def create_app(database: str | Path = DEFAULT_DB) -> Flask:
         static_folder=str(BASE_DIR / "static"),
     )
     app.config["DATABASE"] = str(database)
+    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
     app.json.ensure_ascii = False
     app.teardown_appcontext(db.close_db)
 
@@ -51,6 +52,14 @@ def create_app(database: str | Path = DEFAULT_DB) -> Flask:
     for item in NAV:
         _register_page(app, item)
 
+    @app.get("/drafts/import")
+    def draft_import_page():
+        return render_template("draft_import.html", nav=NAV, active="drafts")
+
+    @app.get("/drafts/<int:draft_id>")
+    def draft_detail_page(draft_id):
+        return render_template("draft_detail.html", nav=NAV, active="drafts", draft_id=draft_id)
+
     _register_error_handlers(app)
     return app
 
@@ -61,6 +70,10 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(ApiError)
     def _api_error(err: ApiError):
         return jsonify(err.payload()), err.status
+
+    @app.errorhandler(413)
+    def _too_large(err):
+        return jsonify(error="文件过大，请选择 20 MB 以内的文件"), 413
 
     @app.errorhandler(sqlite3.IntegrityError)
     def _integrity_error(err: sqlite3.IntegrityError):

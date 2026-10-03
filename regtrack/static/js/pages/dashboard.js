@@ -54,7 +54,7 @@ App.ready(async () => {
     document.getElementById("stats").innerHTML = [
       ["标准主档", c.standards, "/standards", ""],
       ["草案版本", c.drafts, "/drafts", ""],
-      ["条款变化", c.clauses, "/drafts", ""],
+      ["草案章节", c.clauses, "/drafts", ""],
       ["工作组会议", c.meetings, "/meetings", ""],
       ["正式意见", c.comments, "/comments", ""],
       ["在办事项", c.open_actions, "/actions?open=1", "flagged"],

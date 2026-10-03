@@ -342,7 +342,7 @@ a.stat:hover {
    容器查询按面板宽度分三档（宽 / 中 / 窄）调整布局与列宽。 */
 .lc-panel {
     --lc-radius: 12px;
-    --lc-card-radius: 10px;
+    --lc-card-radius: 6px;
     --lc-line: #2a6fa5;
     --lc-line-2: #5aa0cf;
     --lc-muted-line: #c3ccd8;
@@ -748,7 +748,7 @@ html.lc-immersive {
     flex-direction: column;
     align-items: center;
     min-width: 0;
-    padding: 14px 6px 10px;
+    padding: 10px 6px 8px;
     text-align: center;
     background: #fff;
     border-bottom: 1px solid var(--rule);
@@ -760,7 +760,7 @@ html.lc-immersive {
 .lc-node::after {
     content: "";
     position: absolute;
-    top: 21px;
+    top: 17px;
     height: 4px;
     background: var(--lc-line);
 }
@@ -831,7 +831,7 @@ html.lc-immersive {
 }
 
 .lc-node .name {
-    margin-top: 7px;
+    margin-top: 5px;
     font-size: 12.5px;
     font-weight: 650;
     white-space: nowrap;
@@ -862,7 +862,7 @@ html.lc-immersive {
 }
 
 .lc-node .dur {
-    margin-top: 4px;
+    margin-top: 0;
     padding: 0 7px;
     font-size: 10px;
     line-height: 16px;
@@ -879,13 +879,20 @@ html.lc-immersive {
     color: var(--ink-3);
 }
 
-.lc-node .pills {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 3px;
-    margin-top: 5px;
+.lc-node.is-unrecorded .dot { background: #fff; border-color: var(--lc-muted-line); border-style: dashed; }
+.lc-node.is-unrecorded .name { color: var(--ink-2); }
+.lc-node.is-unrecorded::before, .lc-node.is-unrecorded::after {
+    height: 0;
+    border-top: 2px dashed var(--lc-muted-line);
+    background: none;
 }
+
+.lc-node .pills {
+    display: contents;
+}
+
+.lc-node-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px 5px; margin-top: 3px; }
+.lc-node-meta .date { margin-top: 0; }
 
 .lc-node .pills i {
     font-size: 10px;
@@ -911,9 +918,9 @@ html.lc-immersive {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     min-width: 0;
-    padding: 16px 10px 28px;
+    padding: 10px 8px 18px;
     border-right: 1px solid rgba(216, 223, 232, .7);
 }
 
@@ -986,25 +993,11 @@ html.lc-immersive {
     transition: box-shadow .15s, transform .15s, border-color .15s;
 }
 
-/* 挂钩 */
-.lc-card::before,
-.lc-comment::before {
-    content: "";
-    position: absolute;
-    top: -6px;
-    left: calc(50% - 5px);
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #fff;
-    border: 2px solid var(--lc-muted-line);
-}
-
 .lc-card {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 9px 11px 10px;
+    padding: 6px 9px 7px;
     font: inherit;
     text-align: left;
     color: inherit;
@@ -1014,9 +1007,6 @@ html.lc-immersive {
 .lc-card.kind-meeting {
     box-shadow: inset 3px 0 0 var(--c-meeting), 0 1px 2px rgba(22, 32, 43, .04), 0 4px 12px -8px rgba(22, 32, 43, .18);
 }
-
-.lc-card.kind-draft::before { border-color: var(--lc-line); }
-.lc-card.kind-meeting::before { border-color: var(--c-meeting); }
 
 .lc-card:hover,
 .lc-comment:hover {
@@ -1038,6 +1028,13 @@ html.lc-immersive {
     justify-content: space-between;
     gap: 6px;
 }
+
+.lc-card-heading { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.lc-card-heading .lc-kind { flex: none; margin-top: 1px; }
+.lc-card-heading .lc-card-title { flex: 1; min-width: 0; margin-top: 0; }
+.lc-card-details { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 6px; }
+.lc-card-details .lc-card-meta { flex: 1 1 110px; min-width: 0; overflow-wrap: anywhere; }
+.lc-card-details .lc-when { flex: none; white-space: nowrap; margin-left: auto; }
 
 .lc-kind {
     padding: 0 6px;
@@ -1061,7 +1058,11 @@ html.lc-immersive {
 }
 
 .lc-card-title {
-    margin-top: 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 1px;
     font-size: 12.5px;
     font-weight: 650;
     line-height: 1.4;
@@ -1082,13 +1083,13 @@ html.lc-immersive {
 
 .lc-card-text {
     display: -webkit-box;
-    margin-top: 4px;
-    padding-top: 5px;
+    margin-top: 2px;
+    padding-top: 3px;
     font-size: 11px;
     line-height: 1.55;
     color: var(--ink-2);
     border-top: 1px dashed #e3e8ef;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -1103,13 +1104,13 @@ html.lc-immersive {
 .lc-comments {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 6px;
 }
 
 .lc-sep {
     display: flex;
     justify-content: center;
-    margin: 6px 0 2px;
+    margin: 3px 0 1px;
 }
 
 .lc-sep span {
@@ -1133,10 +1134,6 @@ html.lc-immersive {
     box-shadow: inset 3px 0 0 var(--tone), 0 1px 2px rgba(22, 32, 43, .04), 0 4px 12px -8px rgba(22, 32, 43, .18);
 }
 
-.lc-comment::before {
-    border-color: var(--tone);
-}
-
 .lc-comment.tone-accepted { --tone: var(--tone-accepted); }
 .lc-comment.tone-partial { --tone: var(--tone-partial); }
 .lc-comment.tone-rejected { --tone: var(--tone-rejected); }
@@ -1150,9 +1147,9 @@ html.lc-immersive {
 .lc-comment-face {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     width: 100%;
-    padding: 8px 11px 9px;
+    padding: 6px 9px 7px;
     font: inherit;
     text-align: left;
     color: inherit;

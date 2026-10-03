@@ -215,7 +215,7 @@
     ]);
 
     const draftTable = (rows) => table(
-      ["版本", "子版本", "草案日期", "总体影响", "条款变化", "发布方", ""],
+      ["版本", "子版本", "草案日期", "总体影响", "章节", "发布方", ""],
       rows.map((d) => `<tr>
         <td class="cell-main">${esc(d.version_name)}</td>
         <td class="num">${esc(d.sub_version_no)}</td>
@@ -326,217 +326,6 @@
         await m.close();
         if (ctx.onChanged) await ctx.onChanged();
         if (isNew) open("draft", saved.id, { trail: trailOf(ctx), onChanged: ctx.onChanged });
-      },
-    });
-  }
-
-  async function draftDetail(id, ctx) {
-    let d = await get(`/api/drafts/${id}`);
-    const body = document.createElement("div");
-    const dlg = shell(ctx, {
-      title: `${d.std_no} · ${d.version_name} v${d.sub_version_no}`,
-      subtitle: "Draft Registry · 草案登记",
-      body,
-      footer: `<button class="btn btn-outline-secondary btn-sm" data-del>删除</button>
-               <div class="ms-auto btn-row">
-                 <button class="btn btn-outline-secondary btn-sm" data-edit>编辑草案</button>
-                 <button class="btn btn-primary btn-sm" data-addclause>+ 登记条款变化</button>
-                 <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
-               </div>`,
-    });
-
-    const label = `${d.version_name} v${d.sub_version_no}`;
-    const refresh = bubble(ctx, async () => { d = await get(`/api/drafts/${id}`); render(); });
-
-    function render() {
-      body.innerHTML = `
-        <dl class="kv">
-          <dt>Standard</dt>
-          <dd>${esc(d.std_no)} ${esc(d.name_cn)}（当前阶段 ${esc(window.App.stageLabel(d.stage_code))}）</dd>
-          <dt>Version</dt><dd>${esc(d.version_name)} · 子版本 ${esc(d.sub_version_no)} · ${esc(d.draft_date)}</dd>
-          <dt>Issued By</dt><dd>${d.issued_by ? esc(d.issued_by) : ""}</dd>
-          <dt>Overall Impact</dt><dd>${d.overall_impact ? esc(d.overall_impact) : ""}</dd>
-          <dt>Draft File / Link</dt><dd>${d.file_link ? esc(d.file_link) : ""}</dd>
-          <dt>Main Summary</dt><dd>${d.main_summary ? esc(d.main_summary) : ""}</dd>
-          <dt>Notes</dt><dd>${d.notes ? esc(d.notes) : ""}</dd>
-        </dl>
-        <div class="panel" style="margin-top:16px">
-          <div class="panel-head">
-            <h2>受影响条款 · Clause Evolution</h2>
-            <span class="hint">全系统唯一的条款变化登记入口 · 共 ${d.clauses.length} 条</span>
-          </div>
-          <div class="panel-body tight table-wrap">
-            <table class="table">
-              <thead><tr>
-                <th>条款号</th><th>主题</th><th>变化类型</th><th>对比版本</th>
-                <th>上一版条款号</th><th>测试</th><th>准入</th><th>合规风险</th><th>负责人</th><th></th>
-              </tr></thead>
-              <tbody>${d.clauses.length ? d.clauses.map(clauseRow).join("")
-                : emptyRow(10, "这一版还没有登记条款变化", "点右下角「+ 登记条款变化」逐条录入")}</tbody>
-            </table>
-          </div>
-        </div>
-        ${d.comments && d.comments.length ? commentPanel() : ""}`;
-
-      body.querySelectorAll("[data-clause]").forEach((btn) => {
-        btn.onclick = () => clauseDetail(d.clauses.find((c) => c.id === Number(btn.dataset.clause)));
-      });
-      bindLinks(body, ctx, label, refresh);
-    }
-
-    const commentPanel = () => `
-      <div class="panel">
-        <div class="panel-head"><h2>针对这一版的正式意见</h2>
-          <span class="hint">共 ${d.comments.length} 条</span></div>
-        <div class="panel-body tight">
-          ${table(["意见号", "条款", "主题", "状态", "提交人", ""],
-            d.comments.map((c) => `<tr>
-              <td class="num">${esc(c.comment_no)}</td>
-              <td class="num">${dash(c.clause_no)}</td>
-              <td>${dash(c.topic)}</td>
-              <td>${statusTag(c.status)}</td>
-              <td>${esc(c.submitted_by)}</td>
-              <td>${openBtn("comment", c.id, "打开意见")}</td>
-            </tr>`).join(""), 6, "还没有意见", "")}
-        </div>
-      </div>`;
-
-    const clauseRow = (c) => `
-      <tr>
-        <td class="num cell-main">${esc(c.current_clause_no)}</td>
-        <td>${esc(c.topic)}</td>
-        <td><span class="tag info">${esc(c.change_type)}</span></td>
-        <td class="cell-sub">${c.last_version_name ? esc(c.last_version_name) + " v" + esc(c.last_sub_version_no) : "首版"}</td>
-        <td class="num">${dash(c.last_clause_no)}</td>
-        <td>${tag(c.test_impact, c.test_impact === "Yes" ? "medium" : c.test_impact === "No" ? "ok" : "muted")}</td>
-        <td>${tag(c.homologation_impact)}</td>
-        <td>${tag(c.compliance_risk)}</td>
-        <td>${dash(c.responsible_person)}</td>
-        <td><button class="btn-link-quiet" data-clause="${c.id}">查看 / 编辑</button></td>
-      </tr>`;
-
-    function clauseDetail(c) {
-      const detailBody = document.createElement("div");
-      const cm = shell({ trail: trailOf(ctx).concat(label) }, {
-        title: `条款 ${c.current_clause_no} · ${c.topic}`,
-        subtitle: "Subform · Clause Evolution 条款变化",
-        size: "lg",
-        body: detailBody,
-        footer: `<button class="btn btn-outline-secondary btn-sm" data-cdel>删除这条</button>
-                 <div class="ms-auto btn-row">
-                   <button class="btn btn-outline-secondary btn-sm" data-cedit>编辑</button>
-                   <button class="btn btn-primary btn-sm" data-bs-dismiss="modal">关闭</button>
-                 </div>`,
-      });
-
-      function renderClause() {
-        detailBody.innerHTML = kv([
-          ["Draft Ver New", `${d.version_name} v${d.sub_version_no}（系统自动）`],
-          ["Current Clause No.", c.current_clause_no],
-          ["Draft Ver Last", c.last_version_name ? `${c.last_version_name} v${c.last_sub_version_no}` : "首版 · 无可对比版本"],
-          ["Last Ver Clause No.", c.last_clause_no],
-          ["Topic", c.topic],
-          ["Last Ver Clause Text", c.last_clause_text],
-          ["Current Clause Text", c.current_clause_text],
-          ["Change Type", c.change_type],
-          ["Description of Change", c.change_desc],
-          ["Interpretation", c.interpretation],
-          ["Test Impact", c.test_impact],
-          ["Homologation Impact", c.homologation_impact],
-          ["Compliance Risk", c.compliance_risk],
-          ["Responsible Person", c.responsible_person],
-        ]);
-        // 条款号或主题被编辑后，同步更新当前详情标题。
-        const titleEl = cm.el.querySelector(".modal-title");
-        const sub = titleEl.querySelector(".sub");
-        Array.from(titleEl.childNodes).forEach((node) => { if (node !== sub) node.remove(); });
-        titleEl.appendChild(document.createTextNode(`条款 ${c.current_clause_no} · ${c.topic}`));
-      }
-      renderClause();
-
-      cm.footer.querySelector("[data-cedit]").onclick = () => {
-        clauseForm(d, c, async () => {
-          await refresh();
-          c = d.clauses.find((row) => row.id === c.id);
-          if (c) renderClause();
-          else await cm.close();
-        });
-      };
-      cm.footer.querySelector("[data-cdel]").onclick = () => {
-        confirmDialog("确认删除这条条款变化记录？", async () => {
-          try {
-            await del(`/api/drafts/clauses/${c.id}`);
-            ok("已删除");
-            await cm.close();
-            await refresh();
-          } catch (e) { fail(e.message); }
-        });
-      };
-    }
-
-    render();
-
-    dlg.footer.querySelector("[data-edit]").onclick = () => {
-      draftForm(d, { trail: trailOf(ctx), onChanged: refresh });
-    };
-    dlg.footer.querySelector("[data-addclause]").onclick = () => clauseForm(d, null, refresh);
-    dlg.footer.querySelector("[data-del]").onclick = () => {
-      confirmDialog(`确认删除草案 ${d.version_name} v${d.sub_version_no}？其下的条款变化会一并删除。`, async () => {
-        try {
-          await del(`/api/drafts/${d.id}`);
-          ok("已删除");
-          await dlg.close();
-          if (ctx.onChanged) await ctx.onChanged();
-        } catch (e) { fail(e.message); }
-      });
-    };
-    return dlg;
-  }
-
-  function clauseForm(draft, clause, onDone) {
-    const NONE = "__none__";
-    const versionOptions = [{ value: NONE, text: "首版 · 无可对比版本", sub: "该标准只有这一版时选此项" }]
-      .concat(draft.sibling_versions.map((v) => ({
-        value: String(v.id),
-        text: `${v.version_name} v${v.sub_version_no}`,
-        sub: v.draft_date,
-      })));
-    const initial = Object.assign({}, clause || {});
-    initial.last_draft_id = clause && clause.last_draft_id ? String(clause.last_draft_id) : NONE;
-
-    Forms.formModal({
-      title: clause ? `编辑条款 ${clause.current_clause_no}` : "登记条款变化",
-      subtitle: `Clause Evolution · ${draft.std_no} ${draft.version_name} v${draft.sub_version_no}`,
-      size: "xl",
-      fields: [
-        { section: "先定位条款" },
-        { name: "draft_ver_new", label: "Draft Ver New", cn: "出现版本", type: "auto", col: 4,
-          display: `${draft.version_name} v${draft.sub_version_no}` },
-        { name: "current_clause_no", label: "Current Clause No.", cn: "当前版章节号", type: "text", required: true, col: 4, placeholder: "如 7.5 / Annex A" },
-        { name: "topic", label: "Topic", cn: "条款主题", type: "text", required: true, col: 4, placeholder: "如 热扩散测试" },
-        { name: "last_draft_id", label: "Draft Ver Last", cn: "对比的上一版", type: "choices", options: versionOptions, required: true, col: 6 },
-        { name: "last_clause_no", label: "Last Ver Clause No.", cn: "上一版章节号", type: "text", col: 6 },
-        { section: "再对照内容" },
-        { name: "last_clause_text", label: "Last Ver Clause Text", cn: "上一版原文", type: "textarea", rows: 5, col: 6 },
-        { name: "current_clause_text", label: "Current Clause Text", cn: "当前版原文", type: "textarea", rows: 5, col: 6 },
-        { section: "后判定变化与影响" },
-        { name: "change_type", label: "Change Type", cn: "变化类型", type: "fixed", options: M().change_types, required: true, col: 4 },
-        { name: "test_impact", label: "Test Impact", cn: "影响现有测试？", type: "fixed", options: M().yes_no_tbd, col: 4 },
-        { name: "homologation_impact", label: "Homologation Impact", cn: "准入影响", type: "fixed", options: M().risk_levels, col: 4 },
-        { name: "change_desc", label: "Description of Change", cn: "具体改了什么", type: "textarea", rows: 3, required: true, col: 12 },
-        { name: "interpretation", label: "Interpretation", cn: "对公司意味着什么", type: "textarea", rows: 3, col: 12 },
-        { name: "compliance_risk", label: "Compliance Risk", cn: "合规风险", type: "fixed", options: M().risk_levels, col: 6 },
-        { name: "responsible_person", label: "Responsible Person", cn: "跟进人", type: "lookup", category: "person", col: 6 },
-      ],
-      values: initial,
-      submitText: clause ? "保存修改" : "登记这条变化",
-      async onSubmit(payload, m) {
-        payload.last_draft_id = payload.last_draft_id === NONE ? null : payload.last_draft_id;
-        if (clause) await put(`/api/drafts/clauses/${clause.id}`, payload);
-        else await post(`/api/drafts/${draft.id}/clauses`, payload);
-        ok(clause ? "已保存" : "条款变化已登记");
-        await m.close();
-        await onDone();
       },
     });
   }
@@ -1112,7 +901,7 @@
 
   const DETAIL = {
     standard: standardDetail,
-    draft: draftDetail,
+
     meeting: meetingDetail,
     comment: commentDetail,
     action: actionDetail,
@@ -1123,6 +912,7 @@
   const MAX_RECORD_DEPTH = 4;
 
   async function open(kind, id, ctx = {}) {
+    if (kind === "draft") { window.location.href = `/drafts/${id}`; return; }
     const detail = DETAIL[kind];
     if (!detail) { fail("不支持的记录类型"); return null; }
     const key = `${kind}:${id}`;
@@ -1166,6 +956,6 @@
 
   window.Records = {
     open,
-    standardForm, draftForm, meetingForm, commentForm, clauseForm, derive,
+    standardForm, draftForm, meetingForm, commentForm, derive,
   };
 })();

@@ -138,37 +138,61 @@ CREATE INDEX ix_draft_standard ON draft (standard_id, draft_date DESC);
 CREATE INDEX ix_draft_group_created
     ON draft (standard_id, created_at DESC, id DESC);
 
--- ◆ Subform · Clause Evolution 条款变化（全系统唯一入口）
-CREATE TABLE clause_evolution (
-    id                  INTEGER PRIMARY KEY,
-    draft_id            INTEGER NOT NULL REFERENCES draft (id) ON DELETE CASCADE,
-    -- Draft Ver Last：对比基准版本；首版无可对比版本时为 NULL
-    last_draft_id       INTEGER REFERENCES draft (id) ON DELETE SET NULL,
-    current_clause_no   TEXT NOT NULL,
-    last_clause_no      TEXT,
-    topic               TEXT NOT NULL,
-    last_clause_text    TEXT,
-    current_clause_text TEXT,
-    change_type         TEXT NOT NULL
-        CHECK (change_type IN ('新增 Add', '删除 Delete', '修改 Modify',
-                               '澄清 Clarification', '编辑性 Editorial')),
-    change_desc         TEXT NOT NULL,
-    interpretation      TEXT,
-    test_impact         TEXT
-        CHECK (test_impact IS NULL OR test_impact IN ('Yes', 'No', 'TBD')),
-    homologation_impact TEXT
-        CHECK (homologation_impact IS NULL OR homologation_impact IN ('High', 'Medium', 'Low', 'TBD')),
-    compliance_risk     TEXT
-        CHECK (compliance_risk IS NULL OR compliance_risk IN ('High', 'Medium', 'Low', 'TBD')),
-    responsible_person  TEXT,
-    created_at          TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-    created_by          TEXT,
-    updated_at          TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-    updated_by          TEXT
+-- 保存当前导入正文；替换时先重绑沿用的批注，再删除旧批次及其他旧批注。
+CREATE TABLE draft_import (
+    id INTEGER PRIMARY KEY,
+    draft_id INTEGER NOT NULL REFERENCES draft(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    source_version TEXT NOT NULL,
+    source_standard_no TEXT NOT NULL,
+    source_standard_name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    UNIQUE(id, draft_id)
 );
-CREATE INDEX ix_clause_draft ON clause_evolution (draft_id);
-CREATE INDEX ix_clause_group_created
-    ON clause_evolution (draft_id, created_at DESC, id DESC);
+CREATE INDEX ix_draft_import ON draft_import(draft_id, id DESC);
+CREATE TABLE draft_chapter (
+    id INTEGER PRIMARY KEY,
+    draft_id INTEGER NOT NULL REFERENCES draft(id) ON DELETE CASCADE,
+    import_batch_id INTEGER NOT NULL,
+    clause_no TEXT NOT NULL, parent_clause_no TEXT NOT NULL,
+    level INTEGER NOT NULL, sequence INTEGER NOT NULL,
+    title_cn TEXT, content_cn TEXT, title_en TEXT, content_en TEXT, illustration TEXT,
+    clause_type TEXT, source_page TEXT,
+    review_status TEXT, confidence TEXT, needs_review TEXT, import_key TEXT NOT NULL,
+    UNIQUE(import_batch_id, clause_no), UNIQUE(import_batch_id, sequence),
+    UNIQUE(import_batch_id, import_key), UNIQUE(id, draft_id),
+    FOREIGN KEY (import_batch_id, draft_id) REFERENCES draft_import(id, draft_id) ON DELETE CASCADE
+);
+CREATE INDEX ix_draft_chapter ON draft_chapter(draft_id, import_batch_id);
+CREATE TABLE draft_chapter_image (
+    id INTEGER PRIMARY KEY,
+    draft_id INTEGER NOT NULL,
+    chapter_id INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    mime_type TEXT NOT NULL,
+    data_base64 TEXT NOT NULL,
+    UNIQUE(chapter_id, position),
+    FOREIGN KEY (chapter_id, draft_id) REFERENCES draft_chapter(id, draft_id) ON DELETE CASCADE
+);
+CREATE INDEX ix_draft_chapter_image ON draft_chapter_image(chapter_id, position);
+CREATE TABLE draft_annotation (
+    id INTEGER PRIMARY KEY,
+    draft_id INTEGER NOT NULL REFERENCES draft(id) ON DELETE CASCADE,
+    chapter_id INTEGER,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    FOREIGN KEY (chapter_id, draft_id) REFERENCES draft_chapter(id, draft_id) ON DELETE CASCADE
+);
+CREATE INDEX ix_draft_annotation ON draft_annotation(draft_id, chapter_id);
+CREATE UNIQUE INDEX uq_draft_annotation_chapter
+    ON draft_annotation(chapter_id) WHERE chapter_id IS NOT NULL;
+CREATE VIEW v_current_draft_chapter AS
+SELECT c.* FROM draft_chapter c
+WHERE c.import_batch_id = (SELECT MAX(i.id) FROM draft_import i WHERE i.draft_id = c.draft_id);
 
 -- ---------------------------------------------------------------------
 -- 4. WG Meeting 工作组会议

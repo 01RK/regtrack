@@ -73,66 +73,10 @@ App.ready(async () => {
   }
 
   /* ------------------------------- 明细与表单统一走 Records（全站共用） */
-  const ctx = { onChanged: async () => { await loadDrafts(); await loadClauses(); } };
-  const openDetail = (id) => Records.open("draft", id, ctx);
+  const ctx = { onChanged: async () => { await loadDrafts(); } };
+  const openDetail = (id) => (window.location.href = `/drafts/${id}`);
 
   document.getElementById("btn-new").onclick = () => Records.draftForm(null, ctx);
 
-  /* ============================================= 二、条款变化检索 */
-  const cState = { page: 1, size: 10 };
-  const clauseBody = document.getElementById("c-rows");
-  const clauseGroups = GroupedList.create(
-    clauseBody,
-    document.getElementById("clause-groups-expand"),
-    document.getElementById("clause-groups-collapse"),
-  );
-  const resetClauseGroups = () => { cState.page = 1; clauseGroups.reset(); loadClauses(); };
-  fillSelect("c-type", M.change_types, "全部变化类型", resetClauseGroups);
-  fillSelect("c-risk", M.risk_levels, "全部风险", resetClauseGroups);
-  fillSelect("c-test", M.yes_no_tbd, "全部", resetClauseGroups);
-  let t2;
-  document.getElementById("c-q").oninput = () => {
-    clearTimeout(t2);
-    t2 = setTimeout(resetClauseGroups, 260);
-  };
-  document.getElementById("c-reset").onclick = () => {
-    ["c-q", "c-type", "c-risk", "c-test"].forEach((id) => { document.getElementById(id).value = ""; });
-    cState.page = 1;
-    clauseGroups.reset();
-    loadClauses();
-  };
-
-  async function loadClauses() {
-    const data = await get("/api/drafts/clauses/search", {
-      q: document.getElementById("c-q").value,
-      change_type: document.getElementById("c-type").value,
-      risk: document.getElementById("c-risk").value,
-      test_impact: document.getElementById("c-test").value,
-      page: cState.page, page_size: cState.size,
-    });
-    if (data.groups.length) {
-      clauseGroups.render(data.groups, 9, (c, groupAttrs) => `
-        <tr class="row-click" data-draft="${c.draft_id}" ${groupAttrs}>
-          <td>${esc(c.version_name)} <span class="cell-sub">v${esc(c.sub_version_no)}</span></td>
-          <td class="num cell-main">${esc(c.current_clause_no)}</td>
-          <td>${esc(c.topic)}</td>
-          <td><span class="tag info">${esc(c.change_type)}</span></td>
-          <td class="cell-sub">${c.last_version_name ? esc(c.last_version_name) + " v" + esc(c.last_sub_version_no) : "首版"}</td>
-          <td>${tag(c.test_impact, c.test_impact === "Yes" ? "medium" : c.test_impact === "No" ? "ok" : "muted")}</td>
-          <td>${tag(c.homologation_impact)}</td>
-          <td>${tag(c.compliance_risk)}</td>
-          <td>${dash(c.responsible_person)}</td>
-        </tr>`);
-    } else {
-      clauseBody.innerHTML = emptyRow(9, "没有匹配的条款变化", "条款变化统一在草案里登记");
-    }
-    clauseBody.querySelectorAll("tr[data-draft]").forEach((tr) => {
-      tr.onclick = () => openDetail(Number(tr.dataset.draft));
-    });
-    pager("c-pager", data.total, data.group_total, cState, loadClauses);
-  }
-
-  await Promise.all([loadDrafts(), loadClauses()]);
-  const deep = new URLSearchParams(location.search).get("id");
-  if (deep) openDetail(Number(deep));
+  await loadDrafts();
 });

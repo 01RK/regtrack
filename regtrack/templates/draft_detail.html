@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}草案详情 · 法规跟踪系统{% endblock %}
+{% block eyebrow %}{% endblock %}
+{% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/drafts" aria-label="返回草案版本管理">← 返回</a><span id="draft-heading">草案详情</span></span>{% endblock %}
+{% block actions %}<button class="btn btn-outline-secondary btn-sm" id="edit-draft">编辑元数据</button><a class="btn btn-primary btn-sm" href="/drafts/import?draft_id={{ draft_id }}">导入章节 Excel</a>{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='vendor/katex/katex.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='20261001-v19-back-chevron') }}">{% endblock %}
+{% block content %}
+<div id="draft-page" data-id="{{ draft_id }}">
+  <div id="draft-context" class="draft-context"></div>
+  <div class="draft-view-tabs" role="tablist" aria-label="草案详情">
+    <button class="active" data-view="overview" role="tab" aria-selected="true">草案概览</button>
+    <button data-view="reader" role="tab" aria-selected="false">章节阅读 <span id="chapter-count"></span></button>
+  </div>
+  <div id="draft-error" class="text-danger" role="alert"></div>
+  <section id="view-overview" class="draft-overview" role="tabpanel">
+    <div class="panel"><div class="panel-head"><h2>草案元数据</h2></div><div class="panel-body"><dl id="draft-metadata" class="detail-grid"></dl></div></div>
+    <div class="panel"><div class="panel-head"><h2>整份草案批注</h2></div><div class="panel-body"><div id="whole-annotations"></div><form id="whole-form"><label class="form-label" for="whole-content">新增整份草案批注</label><textarea id="whole-content" class="form-control" rows="4" required placeholder="针对这份草案的总体意见"></textarea><button class="btn btn-primary btn-sm mt-2">保存批注</button></form></div></div>
+  </section>
+  <section id="view-reader" role="tabpanel" hidden>
+    <div id="reader-empty" class="panel p-5 text-center" hidden><h2 class="h5">这份草案还没有章节</h2><p class="text-muted">导入章节 Excel 后即可阅读与批注。</p><a class="btn btn-primary" href="/drafts/import?draft_id={{ draft_id }}">导入章节 Excel</a></div>
+    <div class="draft-workspace" id="reader-workspace">
+      <aside class="reader-column chapter-directory"><header><h2>章节目录</h2><input id="chapter-search" class="form-control form-control-sm" placeholder="搜索编号或标题" aria-label="搜索章节目录"></header><nav id="chapter-tree" class="reader-scroll" aria-label="章节目录"></nav></aside>
+      <article class="reader-column chapter-paper"><div class="reader-language" role="group" aria-label="阅读语言"><button type="button" data-language="cn" class="active" aria-pressed="true">简体中文</button><button type="button" data-language="en" aria-pressed="false">English</button></div><div class="reader-scroll" id="chapter-paper"></div></article>
+      <aside class="reader-column chapter-notes"><header><h2>当前章节批注 <span id="annotation-clause"></span></h2></header><div id="chapter-annotations" class="reader-scroll"></div><form id="chapter-form"><label class="form-label" for="chapter-content">新增章节批注</label><textarea id="chapter-content" class="form-control" rows="3" required placeholder="仅针对当前章节"></textarea><button class="btn btn-primary btn-sm mt-2">保存批注</button></form></aside>
+    </div>
+  </section>
+</div>
+<dialog id="illustration-viewer" class="illustration-viewer" aria-label="查看附图"><button type="button" id="close-illustration" aria-label="关闭附图">×</button><img id="illustration-large" alt=""><p id="illustration-caption"></p></dialog>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='vendor/marked.umd.js') }}"></script><script src="{{ url_for('static', filename='vendor/purify.min.js') }}"></script><script src="{{ url_for('static', filename='vendor/katex/katex.min.js') }}"></script><script src="{{ url_for('static', filename='js/pages/draft-detail.js', v='20261001-v19-literal-tilde') }}"></script>{% endblock %}
