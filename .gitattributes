@@ -1,0 +1,4 @@
+# Keep GitHub language statistics focused on application code.
+regtrack/static/vendor/** linguist-vendored
+docs/** linguist-documentation
+regtrack/docs/** linguist-documentation
