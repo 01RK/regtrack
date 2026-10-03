@@ -1,7 +1,5 @@
 # RegTrack 法规跟踪系统
 
-GitHub 初学者可从 [RegTrack 多页入门课](docs/github-guide/index.html) 开始，了解分支、提交、上传和 PR 合并。下载仓库后，直接用浏览器打开该 HTML 文件即可离线阅读。
-
 RegTrack 是一个本地运行的法规与标准跟踪工具，使用 Python、Flask 和 SQLite 构建。它帮助个人或团队集中管理标准生命周期、草案版本、工作组会议、意见和后续事项。数据保存在本机 SQLite 数据库中。
 
 ## 功能
