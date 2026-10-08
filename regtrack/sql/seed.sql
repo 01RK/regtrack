@@ -165,12 +165,24 @@ INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_li
 INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (125,32,'立项草案','1.0','2026-04-16',NULL,'机器人标准与测试部','明确工作范围与责任接口：动力电池安全标准切换。本轮先确认适用对象，收集现有资料与待解决问题。','High',NULL,'2026-04-16 09:00:00','苏念','2026-04-16 16:30:00','苏念');
 INSERT INTO draft (id,standard_id,version_name,sub_version_no,draft_date,file_link,issued_by,main_summary,overall_impact,notes,created_at,created_by,updated_at,updated_by) VALUES (32,32,'讨论稿','1.0','2026-06-15',NULL,'机器人标准与测试部','形成首轮检查与记录方案：动力电池安全标准切换。请重点反馈试验条件是否完整，以及现有设备能否支持验证。','High','先完成机器人电池应用的适用性判断，再确认后续验证范围。','2026-06-15 09:00:00','苏念','2026-06-15 16:30:00','苏念');
 
+-- 章节与批注演示：模拟正文，不是标准原文。
+INSERT INTO draft_import (id,draft_id,filename,source_version,source_standard_no,source_standard_name,created_at,created_by)
+VALUES (1,15,'电气安全章节演示.xlsx','发布稿 1.0（模拟正文）','GB/T 47494-2026','物流机器人 电气安全要求','2026-10-08 09:00:00','许清禾');
+INSERT INTO draft_chapter (id,draft_id,import_batch_id,clause_no,parent_clause_no,level,sequence,title_cn,content_cn,title_en,content_en,clause_type,import_key) VALUES
+(1,15,1,'1','',1,1,'适用范围（模拟）','演示机器人电气安全评审的适用性说明，不作为标准原文引用。','Scope (demo)','Example content for annotation review; not standard text.','Clause','demo-scope'),
+(2,15,1,'2','',1,2,'保护连接（模拟）','演示保护连接的检查记录及整改建议，不作为标准原文引用。','Protective connections (demo)','Example inspection notes; not standard text.','Clause','demo-connections');
+INSERT INTO draft_annotation (draft_id,chapter_id,annotation_type,content,created_at,created_by,updated_at,updated_by) VALUES
+(15,1,'Interpretation','本节用于界定本次评审涵盖的机型和电气配置。','2026-10-08 09:10:00','许清禾','2026-10-08 09:10:00','许清禾'),
+(15,1,'Comment','现有机型清单尚未附上对应的电气配置版本。','2026-10-08 09:11:00','许清禾','2026-10-08 09:11:00','许清禾'),
+(15,1,'Question','可更换电池配置是否包含在本次评审范围内？','2026-10-08 09:12:00','许清禾','2026-10-08 09:12:00','许清禾'),
+(15,2,'Recommendation','建议记录保护连接检查点、测量值和责任人。','2026-10-08 09:13:00','许清禾','2026-10-08 09:13:00','许清禾');
+
 -- draft_annotation
-INSERT INTO draft_annotation (draft_id,chapter_id,content,created_at,created_by,updated_at,updated_by) VALUES (15,NULL,'逐机型复核电气图纸、接地连接、充电接口和保护装置，形成实施前差距与整改清单。
+INSERT INTO draft_annotation (draft_id,chapter_id,annotation_type,content,created_at,created_by,updated_at,updated_by) VALUES (15,NULL,'Recommendation','逐机型复核电气图纸、接地连接、充电接口和保护装置，形成实施前差距与整改清单。
 下次评审确认充电与电气保护配置的证据编号及责任人。','2026-10-02 09:00:00','许清禾','2026-10-02 16:30:00','许清禾');
-INSERT INTO draft_annotation (draft_id,chapter_id,content,created_at,created_by,updated_at,updated_by) VALUES (17,NULL,'梳理试验设备、夹具、测量范围与记录模板，确认新旧设备的适用性和校准有效期。
+INSERT INTO draft_annotation (draft_id,chapter_id,annotation_type,content,created_at,created_by,updated_at,updated_by) VALUES (17,NULL,'Recommendation','梳理试验设备、夹具、测量范围与记录模板，确认新旧设备的适用性和校准有效期。
 下次评审确认试验设备与记录模板的证据编号及责任人。','2026-10-02 09:00:00','沈可欣','2026-10-02 16:30:00','沈可欣');
-INSERT INTO draft_annotation (draft_id,chapter_id,content,created_at,created_by,updated_at,updated_by) VALUES (20,NULL,'整理模型、场景、控制策略与运行配置版本，明确结果导出格式和平台间对照流程。
+INSERT INTO draft_annotation (draft_id,chapter_id,annotation_type,content,created_at,created_by,updated_at,updated_by) VALUES (20,NULL,'Recommendation','整理模型、场景、控制策略与运行配置版本，明确结果导出格式和平台间对照流程。
 下次评审确认模型版本与结果复现的证据编号及责任人。','2026-09-28 09:00:00','苏念','2026-09-28 16:30:00','苏念');
 
 -- meeting

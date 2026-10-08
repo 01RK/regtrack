@@ -31,15 +31,15 @@
   <div class="panel-body tight table-wrap">
     <table class="table grouped-table actions-grouped-table">
       <colgroup>
-        <col style="width:13%"><col style="width:15%"><col style="width:21%">
-        <col style="width:10%"><col style="width:15%"><col style="width:8%">
-        <col style="width:11%"><col style="width:7%">
+        <col style="width:13%"><col style="width:17%"><col style="width:26%">
+        <col style="width:16%"><col style="width:8%">
+        <col style="width:12%"><col style="width:8%">
       </colgroup>
       <thead><tr>
-        <th>事项号</th><th>类型</th><th>标题</th><th>关联会议</th>
+        <th>事项号</th><th>类型</th><th>标题</th>
         <th>状态</th><th>优先级</th><th>截止</th><th>反馈进度</th>
       </tr></thead>
-      <tbody id="rows"><tr><td colspan="8"><div class="loading">载入中…</div></td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="7"><div class="loading">载入中…</div></td></tr></tbody>
     </table>
   </div>
   <div class="pager" id="pager"></div>
@@ -47,5 +47,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/pages/actions.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/actions.js', v='20261008-multiple-annotations') }}"></script>
 {% endblock %}
