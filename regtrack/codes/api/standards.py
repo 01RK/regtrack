@@ -21,8 +21,7 @@ FIELDS = [
 
 
 def _validate(data: dict) -> None:
-    require(data, [("std_no", "Standard No. 标准编号"),
-                   ("name_cn", "Standard Name CN 中文名称")])
+    require(data, [("name_cn", "Standard Name CN 中文名称")])
     check_enum(data, "std_type", STANDARD_TYPES, "Standard Type")
     check_enum(data, "risk_level", RISK_LEVELS, "Current Risk Level")
     for f, label in (("planned_release_date", "Planned Release Date"),

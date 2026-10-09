@@ -322,7 +322,7 @@ python -m unittest discover -s codes -p "test_api.py" -v
 粘贴文本的清洗、总览两块清单的按人与按时间筛选、数据包的自包含导出与重新编号导入、
 会议涉及标准的批注与取消挂载确认、请求头编码往返，
 以及若干前端契约（弹窗层级、只读字段的 `submit`、导航固定与滚动锁）。
-用临时库跑，不碰 `data/regtrack-v0.19.db`。
+用临时库跑，不碰 `data/regtrack-v0.19-fix3.db`。
 
 启动装配检查（在 Node 里用极简 DOM 桩跑一遍 `core.js` 的 `boot()`，
 验证请求头、`/api/meta`、`/api/lookups`、操作人下拉都正常；

@@ -56,6 +56,10 @@ def create_app(database: str | Path = DEFAULT_DB) -> Flask:
     def draft_import_page():
         return render_template("draft_import.html", nav=NAV, active="drafts")
 
+    @app.get("/meetings/import")
+    def meeting_import_page():
+        return render_template("meeting_import.html", nav=NAV, active="meetings")
+
     @app.get("/drafts/<int:draft_id>")
     def draft_detail_page(draft_id):
         return render_template("draft_detail.html", nav=NAV, active="drafts", draft_id=draft_id)

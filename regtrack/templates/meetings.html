@@ -3,6 +3,7 @@
 {% block eyebrow %}03 · WG Meeting{% endblock %}
 {% block heading %}工作组会议{% endblock %}
 {% block actions %}
+<a class="btn btn-outline-primary btn-sm" href="/meetings/import">导入会议纪要</a>
 <button class="btn btn-primary btn-sm" id="btn-new">登记会议</button>
 {% endblock %}
 
@@ -21,5 +22,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/pages/meetings.js', v='20261002-layout') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/meetings.js', v='20261009-tracked-only') }}"></script>
 {% endblock %}

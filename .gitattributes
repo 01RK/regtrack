@@ -1,3 +1,6 @@
 # Keep GitHub language statistics focused on application code.
 regtrack/static/vendor/** linguist-vendored
 regtrack/docs/** linguist-documentation
+*.pdf binary
+*.pptx binary
+*.xlsx binary

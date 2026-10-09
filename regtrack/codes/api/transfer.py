@@ -290,11 +290,14 @@ def _row_for(spec, row, idmap, as_user, columns):
 
 def _existing_id(conn, spec, data):
     """自然键命中本机已有记录时返回它的 id。"""
-    if not spec.natural or any(data.get(k) is None for k in spec.natural):
+    natural = spec.natural
+    if spec.table == 'standard' and (not data.get('std_no') or 'XXXX' in data['std_no'].upper()):
+        natural = ('name_cn',)
+    if not natural or any(data.get(k) is None for k in natural):
         return None
-    where = " AND ".join(f"{k} = ?" for k in spec.natural)
+    where = " AND ".join(f"{k} = ?" for k in natural)
     found = conn.execute(f"SELECT id FROM {spec.table} WHERE {where}",
-                         [data[k] for k in spec.natural]).fetchone()
+                         [data[k] for k in natural]).fetchone()
     return found["id"] if found else None
 
 

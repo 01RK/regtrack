@@ -37,7 +37,7 @@ CREATE INDEX ix_lookup_category ON lookup_value (category, is_active, sort_order
 -- ---------------------------------------------------------------------
 CREATE TABLE standard (
     id                    INTEGER PRIMARY KEY,
-    std_no                TEXT NOT NULL UNIQUE,          -- 标准编号，唯一身份
+    std_no                TEXT,                         -- 正式编号或尚未编号的填写形式
     name_cn               TEXT NOT NULL,
     name_en               TEXT,
     -- 当前阶段：由 standard_stage_history 计算得出，不允许直接编辑
@@ -69,6 +69,8 @@ CREATE TABLE standard (
 CREATE INDEX ix_standard_stage ON standard (stage_code);
 CREATE INDEX ix_standard_archived ON standard (archived_at);
 CREATE INDEX ix_standard_name ON standard (name_cn);
+CREATE UNIQUE INDEX ux_standard_number ON standard (std_no)
+    WHERE std_no <> '' AND upper(std_no) NOT LIKE '%XXXX%';
 
 -- Main Impact Area 多选
 CREATE TABLE standard_impact_area (

@@ -404,4 +404,5 @@ INSERT INTO comment_status_history (comment_id,previous_value,new_value,effectiv
 INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (48,'Draft','Submitted','2026-07-09','通过既定渠道提交项目评审反馈。',NULL,'2026-07-09 17:00:00','周启明');
 INSERT INTO comment_status_history (comment_id,previous_value,new_value,effective_date,note,reference,recorded_at,recorded_by) VALUES (48,'Submitted','Partially Accepted','2026-07-24','同意补充配置和记录字段；跨机型统一指标暂由后续专项验证决定。',NULL,'2026-07-24 17:00:00','周启明');
 
+
 COMMIT;

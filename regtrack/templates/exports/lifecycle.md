@@ -41,7 +41,7 @@
 {%- endmacro -%}
 {%- set s = standard -%}
 ---
-title: {{ (s.std_no ~ " " ~ s.name_cn ~ " 生命周期回顾") | tojson }}
+title: {{ (((s.std_no or "") ~ " " ~ s.name_cn ~ " 生命周期回顾") | trim) | tojson }}
 std_no: {{ s.std_no | tojson }}
 name_cn: {{ s.name_cn | tojson }}
 name_en: {{ (s.name_en or "") | tojson }}
@@ -54,7 +54,7 @@ exported_at: {{ exported_at | tojson }}
 source: "RegTrack 法规跟踪系统"
 ---
 
-# {{ s.std_no }} {{ s.name_cn }}
+# {{ (((s.std_no or "") ~ " " ~ s.name_cn) | trim) }}
 {%- if s.name_en %}
 
 *{{ s.name_en }}*

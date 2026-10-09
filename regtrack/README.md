@@ -1,5 +1,7 @@
 # 法规跟踪系统 RegTrack
 
+工作组会议新增纪要数据包导入：[使用与验证说明](docs/MEETING_IMPORT.md)。页面提供 Excel 模板和提示词，支持会议确认、标准匹配、按需追踪与事项入库。当前默认数据库为 `data/regtrack-v0.19-fix3.db`，使用新版 schema 独立建库，不迁移旧数据库。
+
 按《法规跟踪系统 Forms 与 Subforms 设计说明》实现的本地系统：
 Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
 
@@ -34,7 +36,7 @@ Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
 
 ### 用户端（Windows）
 
-直接双击 release/RegTrack.exe。首次启动会在 exe 同级的 data/regtrack-v0.19.db
+直接双击 release/RegTrack.exe。首次启动会在 exe 同级的 data/regtrack-v0.19-fix3.db
 自动创建空数据库，之后继续使用同一个数据库；不会加载 sql/seed.sql 初始化记录。
 
 ```bash

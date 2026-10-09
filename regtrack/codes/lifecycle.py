@@ -166,7 +166,7 @@ def md_inline(value) -> str:
 def export_lifecycle(standard_id):
     data = payload(standard_id, full=True)
     text = render_template("exports/lifecycle.md", exported_at=now(), **data)
-    std_no = data["standard"]["std_no"]
+    std_no = data["standard"]["std_no"] or data["standard"]["name_cn"]
     safe_no = re.sub(r'[\\/:*?"<>|\s]+', "_", std_no).strip("_")
     return send_file(
         io.BytesIO(text.encode("utf-8")),

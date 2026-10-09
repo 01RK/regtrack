@@ -81,7 +81,7 @@ python codes/run.py --db data/regtrack-lifecycle-20261003.db --port 5088
 python codes/init_db.py --force
 ```
 
-该命令会**删除目标数据库文件后重新建库，并默认灌入 `sql/seed.sql` 中的初始化记录**。目标路径默认为 `regtrack/data/regtrack-v0.19.db`；如需指定其他文件，可使用 `--db`：
+该命令会**删除目标数据库文件后重新建库，并默认灌入 `sql/seed.sql` 中的初始化记录**。目标路径默认为 `regtrack/data/regtrack-v0.19-fix3.db`；如需指定其他文件，可使用 `--db`：
 
 ```powershell
 python codes/init_db.py --db data/demo.db --force
