@@ -18,7 +18,7 @@ from common import (
     ApiError, check_date, check_enum, clean, payload_of, require,
     stamp_create, stamp_update, current_user, now,
 )
-from constants import OVERALL_IMPACTS, VERSION_NAMES
+from constants import ANNOTATION_TYPES, OVERALL_IMPACTS, VERSION_NAMES
 
 bp = Blueprint("drafts", __name__, url_prefix="/api/drafts")
 
@@ -90,6 +90,15 @@ def options():
             ORDER BY draft_date DESC, id DESC""", (standard_id,)))
 
 
+def annotations(draft_id: int) -> list[dict]:
+    """当前章节及整份草案的批注，阅读页面与生命周期导出共用。"""
+    return db.query("""SELECT a.*, c.clause_no, c.title_cn
+        FROM draft_annotation a LEFT JOIN draft_chapter c ON c.id = a.chapter_id
+        WHERE a.draft_id = ? AND (a.chapter_id IS NULL OR EXISTS
+          (SELECT 1 FROM v_current_draft_chapter cc WHERE cc.id = a.chapter_id))
+        ORDER BY a.id DESC""", (draft_id,))
+
+
 @bp.get("/<int:draft_id>")
 def detail(draft_id):
     draft = _get(draft_id)
@@ -98,11 +107,7 @@ def detail(draft_id):
         FROM draft_chapter_image i JOIN v_current_draft_chapter c ON c.id = i.chapter_id
         WHERE c.draft_id = ? ORDER BY c.sequence, i.position""", (draft_id,))
     draft["imports"] = db.query("SELECT * FROM draft_import WHERE draft_id = ? ORDER BY id DESC", (draft_id,))
-    draft["annotations"] = db.query("""SELECT a.*, c.clause_no, c.title_cn
-        FROM draft_annotation a LEFT JOIN draft_chapter c ON c.id = a.chapter_id
-        WHERE a.draft_id = ? AND (a.chapter_id IS NULL OR EXISTS
-          (SELECT 1 FROM v_current_draft_chapter cc WHERE cc.id = a.chapter_id))
-        ORDER BY a.id DESC""", (draft_id,))
+    draft["annotations"] = annotations(draft_id)
     draft["linked_comments"] = db.query("""SELECT id, comment_no, clause_no, status, comment_text, updated_at
         FROM comment WHERE draft_id = ? ORDER BY id""", (draft_id,))
     return jsonify(draft)
@@ -224,13 +229,15 @@ def import_file():
         latest = db.query_one("SELECT MAX(id) AS id FROM draft_import WHERE draft_id = ?", (draft_id,))["id"]
         if latest is not None and target.get("replace_import_id") != latest:
             raise ApiError("本次导入将整体替换当前章节，请刷新并确认替换及批注保留项。", 409)
-        old_annotations = db.query("""SELECT a.id, a.content, c.clause_no FROM draft_annotation a
+        old_annotations = db.query("""SELECT a.id, a.content, a.annotation_type, a.updated_at, c.clause_no FROM draft_annotation a
             JOIN draft_chapter c ON c.id = a.chapter_id
             WHERE a.draft_id = ? AND c.import_batch_id = ? ORDER BY c.sequence""",
             (draft_id, latest))
         linked_comments = db.query("""SELECT id, comment_no, clause_no, status, comment_text, updated_at
             FROM comment WHERE draft_id = ? ORDER BY id""", (draft_id,))
-        if latest is not None and (annotation_snapshot != {str(a["id"]): a["content"] for a in old_annotations}
+        if latest is not None and (annotation_snapshot != {
+                str(a["id"]): {key: a[key] for key in ("content", "annotation_type", "updated_at")}
+                for a in old_annotations}
                                    or comment_snapshot != linked_comments):
             raise ApiError("批注或关联意见已变化，请重新确认后再导入", 409)
         incoming = {chapter["clause_no"]: chapter.get("initial_comment", "").strip()
@@ -241,10 +248,15 @@ def import_file():
                      if row["clause_no"] in incoming and not incoming[row["clause_no"]]}
         if not set(replace_ids).issubset(conflicts) or not set(keep_ids).issubset(residuals):
             raise ApiError("批注选择已变化，请重新读取文件和草案后再导入", 409)
-        retained_by_clause = {row["clause_no"]: row["id"] for row in old_annotations
+        retained_annotations = [row for row in old_annotations
                               if row["id"] in keep_ids or
                               (row["clause_no"] in incoming and incoming[row["clause_no"]]
-                               and row["id"] not in replace_ids)}
+                               and row["id"] not in replace_ids)]
+        retained_clauses = {row["clause_no"] for row in retained_annotations}
+        replaced_clauses = {row["clause_no"] for row in old_annotations if row["id"] in replace_ids}
+        retained_imports = {row["clause_no"] for row in retained_annotations
+                            if row["annotation_type"] == "Comment"
+                            and row["content"].strip() == incoming.get(row["clause_no"])}
         batch_id = db.insert("draft_import", {
             "draft_id": draft_id, "filename": upload.filename.replace("\\", "/").rsplit("/", 1)[-1],
             "source_version": source["source_version"], "created_at": now(), "created_by": current_user(),
@@ -263,14 +275,16 @@ def import_file():
                     "draft_id": draft_id, "chapter_id": chapter_id, "position": position,
                     **image,
                 })
-        for clause_no, annotation_id in retained_by_clause.items():
-            db.update("draft_annotation", annotation_id, {"chapter_id": new_chapters[clause_no]})
+        for annotation in retained_annotations:
+            db.update("draft_annotation", annotation["id"], {"chapter_id": new_chapters[annotation["clause_no"]]})
         for clause_no, content in initial_comments.items():
-            if content and clause_no not in retained_by_clause:
+            if content and clause_no not in retained_imports and (
+                    clause_no not in retained_clauses or clause_no in replaced_clauses):
                 created_at = now()
                 user = current_user()
                 db.insert("draft_annotation", {
                     "draft_id": draft_id, "chapter_id": new_chapters[clause_no],
+                    "annotation_type": "Comment",
                     "content": content, "created_at": created_at,
                     "created_by": user, "updated_at": created_at, "updated_by": user,
                 })
@@ -291,6 +305,7 @@ def import_file():
 def add_annotation(draft_id):
     _get(draft_id)
     data = payload_of(request)
+    check_enum(data, "annotation_type", ANNOTATION_TYPES, "批注类型", required=True)
     content = data.get("content")
     if not isinstance(content, str) or not content.strip():
         raise ApiError("请填写批注内容", field="content")
@@ -299,10 +314,9 @@ def add_annotation(draft_id):
         chapter = db.query_one("SELECT id FROM v_current_draft_chapter WHERE id = ? AND draft_id = ?", (chapter_id, draft_id))
         if not chapter:
             raise ApiError("章节已被替换，请刷新后对当前章节批注", 409)
-        if db.query_one("SELECT id FROM draft_annotation WHERE chapter_id = ?", (chapter_id,)):
-            raise ApiError("该章节已有批注，请编辑现有批注", 409)
     annotation_id = db.insert("draft_annotation", {
         "draft_id": draft_id, "chapter_id": chapter_id, "content": content.strip(),
+        "annotation_type": data["annotation_type"],
         "created_at": now(), "created_by": current_user(),
         "updated_at": now(), "updated_by": current_user(),
     })
@@ -319,6 +333,7 @@ def update_annotation(draft_id, annotation_id):
     if not annotation:
         raise ApiError("批注不存在", 404)
     data = payload_of(request)
+    check_enum(data, "annotation_type", ANNOTATION_TYPES, "批注类型", required=True)
     content = data.get("content")
     if not isinstance(content, str) or not content.strip():
         raise ApiError("请填写批注内容", field="content")
@@ -327,7 +342,8 @@ def update_annotation(draft_id, annotation_id):
             (annotation["chapter_id"], draft_id)):
         raise ApiError("章节已被替换，请刷新后编辑当前批注", 409)
     db.update("draft_annotation", annotation_id, {
-        "content": content.strip(), "updated_at": now(), "updated_by": current_user(),
+        "content": content.strip(), "annotation_type": data["annotation_type"],
+        "updated_at": now(), "updated_by": current_user(),
     })
     db.commit()
     return jsonify(db.query_one("SELECT * FROM draft_annotation WHERE id = ?", (annotation_id,)))

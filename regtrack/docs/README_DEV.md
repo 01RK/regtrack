@@ -89,7 +89,7 @@ regtrack/
 | `draft` | Form 2 草案登记 | `(standard_id, version_name, draft_sub_version_no)` 唯一 |
 | `draft_import` | 当前草案导入批次 | 保存文件名、来源版本文字与操作者；替换后仅保留当前批次 |
 | `draft_chapter` | 当前草案章节 | 归属当前导入批次，替换时旧章节删除 |
-| `draft_annotation` | 草案批注 | 可关联整份草案或单个章节；每章唯一；Excel 的 `Initial_Comment` 与人工内容共用 `content`，无来源字段，创建/修改时间和操作人均留存 |
+| `draft_annotation` | 草案批注 | 可关联整份草案或单个章节；每章一对多；annotation_type 必填，CHECK 限定 Interpretation / Comment / Question / Recommendation；Excel 的 `Initial_Comment` 与人工内容共用 `content`，无来源字段，创建/修改时间和操作人均留存 |
 | `meeting` | Form 3 工作组会议 | `meeting_no` 形如 `MTG-2026-001` |
 | `meeting_standard` | 会议涉及标准 | 多对多，主键 `(meeting_id, standard_id)`；`note` 是「这场会 × 这项标准」的批注，随关联存亡 |
 | `comment` | Form 4 意见矩阵 | `comment_no` 形如 `CM-2026-001` |

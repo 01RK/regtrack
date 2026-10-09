@@ -180,6 +180,8 @@ CREATE TABLE draft_annotation (
     id INTEGER PRIMARY KEY,
     draft_id INTEGER NOT NULL REFERENCES draft(id) ON DELETE CASCADE,
     chapter_id INTEGER,
+    annotation_type TEXT NOT NULL
+        CHECK (annotation_type IN ('Interpretation', 'Comment', 'Question', 'Recommendation')),
     content TEXT NOT NULL,
     created_at TEXT NOT NULL,
     created_by TEXT NOT NULL,
@@ -188,8 +190,6 @@ CREATE TABLE draft_annotation (
     FOREIGN KEY (chapter_id, draft_id) REFERENCES draft_chapter(id, draft_id) ON DELETE CASCADE
 );
 CREATE INDEX ix_draft_annotation ON draft_annotation(draft_id, chapter_id);
-CREATE UNIQUE INDEX uq_draft_annotation_chapter
-    ON draft_annotation(chapter_id) WHERE chapter_id IS NOT NULL;
 CREATE VIEW v_current_draft_chapter AS
 SELECT c.* FROM draft_chapter c
 WHERE c.import_batch_id = (SELECT MAX(i.id) FROM draft_import i WHERE i.draft_id = c.draft_id);

@@ -46,12 +46,11 @@ App.ready(async () => {
       page: state.page, page_size: state.size,
     });
     if (data.groups.length) {
-      groupView.render(data.groups, 8, (a, groupAttrs) => `
+      groupView.render(data.groups, 7, (a, groupAttrs) => `
         <tr class="row-click" data-id="${a.id}" ${groupAttrs}>
           <td class="num">${esc(a.item_no)}</td>
           <td>${esc(a.item_type)}</td>
           <td class="cell-main">${esc(a.title)}</td>
-          <td class="cell-sub">${a.meeting_no ? esc(a.meeting_no) : "—"}</td>
           <td>${statusTag(a.current_status)}</td>
           <td>${tag(a.priority)}</td>
           <td class="num">${a.due_date
@@ -62,7 +61,7 @@ App.ready(async () => {
             ? `${a.responded_count}/${a.recipient_count}` : "—"}</td>
         </tr>`);
     } else {
-      body.innerHTML = emptyRow(8, "没有匹配的事项", "点右上角新建，或在会议里用标准行的按钮派生");
+      body.innerHTML = emptyRow(7, "没有匹配的事项", "点右上角新建，或在会议里用标准行的按钮派生");
     }
     body.querySelectorAll("tr[data-id]").forEach((tr) => {
       tr.onclick = () => openDetail(Number(tr.dataset.id));

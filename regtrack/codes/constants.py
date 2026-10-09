@@ -66,6 +66,8 @@ COMMENT_STATUSES = [
     "Rejected", "Pending", "Withdrawn",
 ]
 
+ANNOTATION_TYPES = ["Interpretation", "Comment", "Question", "Recommendation"]
+
 # 草案版本名称只能从下列固定值中选择；映射值为该版本通常对应的阶段编码，
 # 生命周期回顾据此归档草案，映射为 None 或该阶段未经历时按草案日期归档。
 VERSION_STAGES = {
@@ -166,6 +168,7 @@ def meta_payload() -> dict:
         "yes_no_tbd": YES_NO_TBD,
         "meeting_types": MEETING_TYPES,
         "comment_statuses": COMMENT_STATUSES,
+        "annotation_types": ANNOTATION_TYPES,
         "submission_channels": SUBMISSION_CHANNELS,
         "action_types": ACTION_TYPES,
         "action_statuses": ACTION_STATUSES,

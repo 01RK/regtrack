@@ -87,9 +87,9 @@ App.ready(async () => {
     deletedComments = currentDraft.linked_comments.filter(c => c.clause_no && !chapterNos.has(c.clause_no.trim()));
     document.getElementById("conflict-list").innerHTML = conflicts.map(a => `<label class="decision-item">
       <span class="decision-title"><input type="checkbox" value="${a.id}"> <strong>${esc(a.clause_no)} ${esc(a.title_cn || "")}</strong> · 使用新导入批注</span>
-      <span class="decision-pair"><span><small>现有批注</small><p>${esc(a.content)}</p></span><span><small>新导入批注</small><p>${esc(incomingComments[a.clause_no])}</p></span></span>
+      <span class="decision-pair"><span><small>现有批注 · ${esc(a.annotation_type)}</small><p>${esc(a.content)}</p></span><span><small>新导入批注 · Comment</small><p>${esc(incomingComments[a.clause_no])}</p></span></span>
     </label>`).join("");
-    document.getElementById("annotation-retention-list").innerHTML = residuals.map(a => `<label class="decision-item"><span class="decision-title"><input type="checkbox" value="${a.id}" checked> <strong>${esc(a.clause_no)} ${esc(a.title_cn || "")}</strong> · 保留现有批注</span><p>${esc(a.content)}</p></label>`).join("") + unmatched.map(a => `<div class="decision-item unmatched"><strong>${esc(a.clause_no)} ${esc(a.title_cn || "")}</strong><small>新文件没有此条款，批注将移除</small><p>${esc(a.content)}</p></div>`).join("") + (!residuals.length && !unmatched.length ? '<p class="form-text">没有需要选择的残留批注。</p>' : "");
+    document.getElementById("annotation-retention-list").innerHTML = residuals.map(a => `<label class="decision-item"><span class="decision-title"><input type="checkbox" value="${a.id}" checked> <strong>${esc(a.clause_no)} ${esc(a.title_cn || "")}</strong> · 保留现有批注 · ${esc(a.annotation_type)}</span><p>${esc(a.content)}</p></label>`).join("") + unmatched.map(a => `<div class="decision-item unmatched"><strong>${esc(a.clause_no)} ${esc(a.title_cn || "")}</strong><small>${esc(a.annotation_type)} · 新文件没有此条款，批注将移除</small><p>${esc(a.content)}</p></div>`).join("") + (!residuals.length && !unmatched.length ? '<p class="form-text">没有需要选择的残留批注。</p>' : "");
     document.getElementById("back-conflicts").hidden = !conflicts.length;
     decisions.hidden = !conflicts.length && !residuals.length && !unmatched.length;
     conflictStep.hidden = !conflicts.length;
@@ -151,7 +151,8 @@ App.ready(async () => {
         if (current.imports.length) {
           target.keep_annotation_ids = [...document.querySelectorAll("#annotation-retention-list input[type=checkbox]:checked")].map(box => Number(box.value));
           target.replace_annotation_ids = [...document.querySelectorAll("#conflict-list input[type=checkbox]:checked")].map(box => Number(box.value));
-          target.annotation_snapshot = Object.fromEntries(current.annotations.filter(a => a.chapter_id != null).map(a => [a.id, a.content]));
+          target.annotation_snapshot = Object.fromEntries(current.annotations.filter(a => a.chapter_id != null)
+            .map(a => [a.id, { content: a.content, annotation_type: a.annotation_type, updated_at: a.updated_at }]));
           target.comment_snapshot = current.linked_comments;
           const removed = residualIds.length - target.keep_annotation_ids.length + removedWithChapter + target.replace_annotation_ids.length;
           const commentNumbers = deletedComments.slice(0, 5).map(c => c.comment_no).join("、");

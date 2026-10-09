@@ -103,6 +103,15 @@ def payload(standard_id: int, full: bool) -> dict:
             draft["clauses"] = db.query(
                 "SELECT * FROM v_current_draft_chapter WHERE draft_id = ? ORDER BY sequence",
                 (draft["id"],))
+            draft["annotations"] = []
+            chapters = {chapter["id"]: chapter for chapter in draft["clauses"]}
+            for chapter in draft["clauses"]:
+                chapter["annotations"] = []
+            for annotation in drafts_api.annotations(draft["id"]):
+                if annotation["chapter_id"] is None:
+                    draft["annotations"].append(annotation)
+                else:
+                    chapters[annotation["chapter_id"]]["annotations"].append(annotation)
         stage["drafts"].append(draft)
 
     comments = db.query(

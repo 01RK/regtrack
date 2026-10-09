@@ -359,7 +359,7 @@ class ApiTestCase(unittest.TestCase):
             conn.close()
 
     def test_09_grouped_table_layout_is_stable(self):
-        expected_columns = {"actions.html": 8, "comments.html": 8, "drafts.html": 7}
+        expected_columns = {"actions.html": 7, "comments.html": 8, "drafts.html": 7}
         template_dir = Path(__file__).resolve().parent.parent / "templates"
         for filename, count in expected_columns.items():
             html = (template_dir / filename).read_text(encoding="utf-8")

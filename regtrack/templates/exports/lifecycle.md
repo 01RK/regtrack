@@ -24,6 +24,21 @@
 {%- endfor %}
 {%- endif -%}
 {%- endmacro -%}
+{%- macro annotations(label, rows) -%}
+{%- if rows %}
+
+**{{ label }}（{{ rows | length }} 条）**
+{%- for a in rows %}
+
+**批注 #{{ a.id }} · {{ a.annotation_type }}**
+{{ kv("创建时间", a.created_at) }}
+{{- kv("创建人", a.created_by) }}
+{{- kv("修改时间", a.updated_at) }}
+{{- kv("修改人", a.updated_by) }}
+{{- block("批注内容", a.content) }}
+{%- endfor %}
+{%- endif -%}
+{%- endmacro -%}
 {%- set s = standard -%}
 ---
 title: {{ (s.std_no ~ " " ~ s.name_cn ~ " 生命周期回顾") | tojson }}
@@ -119,6 +134,7 @@ source: "RegTrack 法规跟踪系统"
 {{- kv("原文位置", d.file_link) }}
 {{- block("主要内容", d.main_summary) }}
 {{- block("补充说明", d.notes) }}
+{{- annotations("整份草案批注", d.annotations) }}
 {%- if d.clauses %}
 
 **当前草案章节（{{ d.clauses | length }} 项）**
@@ -130,7 +146,7 @@ source: "RegTrack 法规跟踪系统"
 {{- kv("复核状态", c.review_status) }}
 {{- block("中文正文", c.content_cn) }}
 {{- block("英文正文", c.content_en) }}
-{{- block("导入初始批注", c.initial_comment) }}
+{{- annotations("章节批注", c.annotations) }}
 {%- endfor %}
 {%- endif %}
 {%- endfor %}
