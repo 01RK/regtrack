@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}导入会议纪要 · 法规跟踪系统{% endblock %}
+{% block eyebrow %}WG Meeting · Minutes Import{% endblock %}
+{% block heading %}导入会议纪要{% endblock %}
+{% block actions %}<a class="btn btn-outline-secondary btn-sm" href="/meetings">返回会议</a>{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/meeting-import.css', v='action-review') }}">{% endblock %}
+{% block content %}
+<div class="minutes-flow">
+<nav class="minutes-progress" aria-label="导入进度"><span data-progress="0" aria-current="step"><b>1</b>上传 Excel</span><span data-progress="1"><b>2</b>确认会议</span><span data-progress="2"><b>3</b>选择追踪标准</span><span data-progress="3"><b>4</b>核对并导入</span></nav>
+<div id="file-context" class="minutes-context" hidden></div>
+<section class="panel minutes-stage" data-step="0"><div class="panel-body">
+<h2 tabindex="-1">准备会议 Excel</h2><p class="minutes-lead">将原始材料交给大模型整理，再逐步确认会议和追踪范围。</p>
+<div class="minutes-methods" aria-label="导入方式"><button id="source-upload" class="minutes-method" type="button"><strong>自动解析原始会议材料</strong><span>上传 Word / PDF / PPT</span></button><button id="manual-import-button" class="minutes-method selected" type="button" aria-controls="manual-import-guide"><strong>手动导入</strong><span>上传会议 Excel</span></button></div>
+<div id="source-upload-message" class="minutes-method-message" role="status" aria-live="polite"></div>
+<div id="manual-import-content">
+<details id="manual-import-guide" class="minutes-guide" open>
+  <summary>当前使用方法</summary>
+  <ol>
+    <li>下载<a href="/static/meeting-import-template.xlsx" download>空白模板</a>。</li>
+    <li>在 Web 端大模型上传会议原始材料（Word / PDF / PPT）和模板，粘贴下方提示词，下载生成的 Excel。</li>
+    <li>核对会议标题、实际会议日期、分标准纪要和事项，再上传 Excel。接下来分步确认会议及标准追踪范围。</li>
+  </ol>
+  <p class="form-text">请保留 Meeting、Standards、Actions 三张表，第1行表头和第2行字段说明不变，从第3行填写数据。未编号标准按类型填写，如 GB/T XXXX；类型无法判断时留空。不追踪标准及其纪要、仅关联这些标准的事项均不入库。</p>
+  <div class="prompt-head"><strong>会议解析提示词</strong><button id="copy-prompt" class="btn btn-outline-secondary btn-sm" type="button">复制提示词</button></div>
+  <textarea id="minutes-prompt" class="form-control" rows="8" wrap="soft" readonly aria-label="会议解析提示词"></textarea>
+  <div id="copy-status" class="form-text" role="status" aria-live="polite"></div>
+</details>
+<label for="minutes-file" class="minutes-upload"><strong>上传会议 Excel</strong><span>支持 .xlsx，最大 2 MB。此步骤仅预览，不写入数据库。</span><input id="minutes-file" class="form-control" type="file" accept=".xlsx"></label><div id="read-error" class="text-danger" role="alert"></div>
+<div class="minutes-footer"><span id="upload-status" role="status">上传后继续确认会议</span><button id="start-review" class="btn btn-primary" type="button" disabled>下一步：确认会议 →</button></div></div></div></section>
+<form id="meeting-step" class="panel minutes-stage" data-step="1" hidden><div class="panel-body"><h2 tabindex="-1">这份纪要属于哪场会议？</h2><p class="minutes-lead">核对标题与日期，再选择现有会议或新建会议。</p><div id="meeting-source"></div><div id="meeting-options" class="minutes-options"></div><div id="meeting-existing" class="minutes-existing"></div><p class="form-text">推荐标题相似度 ≥70% 的最多3场会议，或同日会议；两类结果合并去重。关联现有会议时保留其标题、日期，追加讨论内容。</p><div class="minutes-footer"><button class="btn btn-outline-secondary" type="button" data-back="0">上一步</button><button class="btn btn-primary" type="submit">下一步：选择追踪标准 →</button></div></div></form>
+<form id="standards-step" class="panel minutes-stage" data-step="2" hidden><div class="panel-body"><h2 tabindex="-1">哪些标准需要继续追踪？</h2><p class="minutes-lead">确认已有主档即追踪。其他标准可新建主档，或选择不追踪；不追踪标准、纪要及仅关联这些标准的事项均不入库。</p><div id="standards-count" class="minutes-count" aria-live="polite"></div><div id="standard-choices"></div><div class="minutes-footer"><button class="btn btn-outline-secondary" type="button" data-back="1">上一步</button><button class="btn btn-primary" type="submit">下一步：核对导入内容 →</button></div></div></form>
+<form id="review-step" class="panel minutes-stage" data-step="3" hidden><div class="panel-body"><h2 tabindex="-1">核对本次导入</h2><p class="minutes-lead">以下是将写入数据库的内容。需要调整时，可返回上一步。</p><div id="import-summary" class="minutes-summary"></div><div id="selected-standards"></div><h3 class="minutes-subtitle">核对新旧事项</h3><p class="form-text">仅包含追踪标准的事项，以及独立的会议整体事项。多标准事项在至少一个关联标准被追踪时保留。</p><div id="action-count" class="minutes-count" role="status" aria-live="polite"></div><div id="action-warning" class="minutes-review-warning" role="status" hidden></div><div id="action-preview"></div><div id="action-delete-notice" class="minutes-delete-notice" role="status" aria-live="polite" hidden></div><p id="excluded-message" class="minutes-excluded"></p><p class="form-text">已有事项和本次新增事项一起核对。相同标题的新事项默认标记为不导入，可删除或恢复任意条目；确认前不会改动数据库。新事项按 Others / Open 建立，新标准初始阶段为「预研」。</p><label class="minutes-confirm"><input id="confirm-import" type="checkbox" required> 我已核对保留及删除范围，确认按当前选择写入数据库。</label><div class="minutes-footer"><button type="button" class="btn btn-outline-secondary" data-back="2">返回调整追踪范围</button><button id="commit-import" class="btn btn-primary" type="submit">确认并导入</button></div><div id="commit-error" class="text-danger" role="alert"></div></div></form>
+<section id="import-success" class="panel" hidden><div class="panel-body" role="status"></div></section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/meeting-import.js', v='action-review') }}"></script>{% endblock %}

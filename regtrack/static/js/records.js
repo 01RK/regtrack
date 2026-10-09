@@ -69,7 +69,7 @@
   function standardSpec(isNew, values) {
     const spec = [
       { section: "身份" },
-      { name: "std_no", label: "Standard No.", cn: "标准编号", type: "text", required: true, col: 6, placeholder: "如 GB 38031—2025" },
+      { name: "std_no", label: "Standard No.", cn: "标准编号", type: "text", col: 6, placeholder: "如 GB 38031—2025，可留空" },
       { name: "name_cn", label: "Standard Name CN", cn: "中文名称", type: "text", required: true, col: 6 },
       { name: "name_en", label: "Standard Name EN", cn: "英文名称", type: "text", col: 12 },
     ];
@@ -422,6 +422,7 @@
       body,
       footer: `<button class="btn btn-outline-secondary btn-sm" data-del>删除</button>
                <div class="ms-auto btn-row">
+                 <a class="btn btn-outline-primary btn-sm" href="/meetings/import?meeting_id=${id}">导入纪要</a>
                  <button class="btn btn-outline-secondary btn-sm" data-edit>编辑会议</button>
                  <button class="btn btn-primary btn-sm" data-bs-dismiss="modal">关闭</button>
                </div>`,
@@ -442,6 +443,7 @@
           <dt>Material / Minutes</dt><dd>${m.material_link ? esc(m.material_link) : ""}</dd>
           <dt>Next Meeting Date</dt><dd>${m.next_meeting_date ? esc(m.next_meeting_date) : ""}</dd>
         </dl>
+
 
         <div class="panel" style="margin-top:16px">
           <div class="panel-head">

@@ -304,12 +304,12 @@
       size: "md",
       body: `
         <p class="form-text" style="margin-bottom:12px">
-          系统里还没有这个标准。填最少三项就能建档，保存后自动回到刚才的位置并选中。
+          系统里还没有这个标准。填写名称和当前阶段即可建档，保存后自动回到刚才的位置并选中。
           更早的阶段可以随后用「推进 / 补录阶段」补齐，其余信息在标准主档补充。
         </p>
         <div class="form-grid">
           <div class="f-12">
-            <label class="form-label">Standard No.<span class="req">*</span><span class="en">标准编号</span></label>
+            <label class="form-label">Standard No.<span class="en">标准编号（可留空）</span></label>
             <input class="form-control" id="qc-no" placeholder="如 GB 38031—2025" value="${esc(prefill || "")}">
           </div>
           <div class="f-12">
@@ -340,7 +340,7 @@
           stage_code: q("#qc-stage").value,
           stage_effective_date: q("#qc-date").value,
         });
-        ok(`已建档 ${created.std_no}`);
+        ok(`已建档 ${created.std_no || created.name_cn}`);
         await m.close();
         onCreated(created);
       } catch (e) {

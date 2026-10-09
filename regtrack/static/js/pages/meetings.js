@@ -62,10 +62,12 @@ App.ready(async () => {
           <div class="ms-auto btn-row">
             <span class="tag info">${m.standard_count} 个标准</span>
             <span class="tag">${m.action_count} 个事项</span>
+            <a class="btn btn-outline-primary btn-sm" href="/meetings/import?meeting_id=${m.id}">导入纪要</a>
             <button class="btn btn-outline-secondary btn-sm" data-open="${m.id}">打开</button>
           </div>
         </div>
         <div class="panel-body tight table-wrap">
+          ${m.key_discussions ? `<div style="padding:16px;white-space:pre-wrap"><strong>Key Discussions</strong><div>${esc(m.key_discussions)}</div></div>` : ''}
           <table class="table meetings-table">
             <thead><tr><th>涉及标准</th><th>阶段</th><th>风险</th><th>负责人</th><th>本会派生事项</th><th style="width:44%">派生后续工作</th></tr></thead>
             <tbody>${m.standards.length ? m.standards.map((s) => standardRow(m, s)).join("")

@@ -49,6 +49,7 @@ regtrack-source-upload.zip
 
 # Local requirements and reference documents
 /extra-req/
+/ref_metg_material/
 
 # Local Codex workspace state
 /.codex/
