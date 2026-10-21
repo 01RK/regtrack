@@ -8,7 +8,7 @@ from flask import jsonify, request
 import db
 
 
-def response(item_sql: str, params: list, enrich=None):
+def response(item_sql: str, params: list, enrich=None, max_group_size=50):
     """把已经筛选过的明细查询按标准分组，并以标准组为分页单位。
 
     item_sql 必须返回 group_key、standard_id、std_no、name_cn、id、created_at。
@@ -16,7 +16,7 @@ def response(item_sql: str, params: list, enrich=None):
     """
     try:
         page = max(1, int(request.args.get("page", 1)))
-        group_size = min(50, max(1, int(request.args.get("page_size", 10))))
+        group_size = min(max_group_size, max(1, int(request.args.get("page_size", 10))))
     except ValueError:
         page, group_size = 1, 10
     offset = (page - 1) * group_size

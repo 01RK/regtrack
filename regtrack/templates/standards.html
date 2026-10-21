@@ -1,22 +1,22 @@
 {% extends "base.html" %}
-{% block title %}标准主档 · 法规跟踪系统{% endblock %}
-{% block eyebrow %}01 · Standard Profile{% endblock %}
-{% block heading %}标准主档{% endblock %}
+{% block title %}{{ t('标准主档', 'Standard Profile') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block eyebrow %}{{ U('01 · Standard Profile', 'Module 01') }}{% endblock %}
+{% block heading %}{{ U('标准主档', 'Standard Profile') }}{% endblock %}
 {% block actions %}
-<button class="btn btn-primary btn-sm" id="btn-new">新建标准</button>
+<button class="btn btn-primary btn-sm" id="btn-new">{{ U('新建标准', 'New Standard') }}</button>
 {% endblock %}
 
 {% block content %}
 <div class="panel standards-panel">
   <div class="filters">
-    <div class="fl"><label for="f-q">搜索</label>
-      <input id="f-q" class="form-control search" placeholder="标准编号 / 中英文名称 / TC-WG"></div>
-    <div class="fl"><label for="f-stage">当前阶段</label><select id="f-stage" class="form-select"></select></div>
-    <div class="fl"><label for="f-risk">风险等级</label><select id="f-risk" class="form-select"></select></div>
-    <div class="fl"><label for="f-type">标准类别</label><select id="f-type" class="form-select"></select></div>
-    <div class="fl"><label for="f-owner">MB Owner</label><select id="f-owner" class="form-select"></select></div>
-    <label class="fl-check"><input type="checkbox" id="f-archived"><span>查看归档</span></label>
-    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
+    <div class="fl"><label for="f-q">{{ L('Search', '搜索') }}</label>
+      <input id="f-q" class="form-control search" placeholder="{{ t('标准编号 / 中英文名称 / TC-WG', 'Number / name / TC-WG') }}"></div>
+    <div class="fl"><label for="f-stage">{{ L('Current Stage', '当前阶段') }}</label><select id="f-stage" class="form-select"></select></div>
+    <div class="fl"><label for="f-risk">{{ L('Risk Level', '风险等级') }}</label><select id="f-risk" class="form-select"></select></div>
+    <div class="fl"><label for="f-type">{{ L('Standard Type', '标准类别') }}</label><select id="f-type" class="form-select"></select></div>
+    <div class="fl"><label for="f-owner">{{ L('MB Owner', '内部负责人') }}</label><select id="f-owner" class="form-select"></select></div>
+    <label class="fl-check"><input type="checkbox" id="f-archived"><span>{{ U('查看归档', 'Show archived') }}</span></label>
+    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">{{ U('重置', 'Reset') }}</button>
   </div>
   <div class="panel-body tight standards-list">
     <table class="table standards-table">
@@ -26,15 +26,15 @@
         <col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:11%">
       </colgroup>
       <thead><tr>
-        <th>标准编号 / 名称</th><th>当前阶段</th><th>归口</th>
-        <th>风险</th><th>负责人</th><th>影响领域</th>
-        <th>草案</th><th>意见</th><th>在办</th><th>实施日期</th>
+        <th>{{ L('Standard', '标准编号 / 名称') }}</th><th>{{ L('Current Stage', '当前阶段') }}</th><th>{{ L('TC / WG', '归口') }}</th>
+        <th>{{ L('Risk', '风险') }}</th><th>{{ L('Owner', '负责人') }}</th><th>{{ L('Impact Area', '影响领域') }}</th>
+        <th>{{ L('Drafts', '草案') }}</th><th>{{ L('Opinions', '意见') }}</th><th>{{ L('Open', '在办') }}</th><th>{{ L('Effective Date', '实施日期') }}</th>
       </tr></thead>
-      <tbody id="rows"><tr><td colspan="10"><div class="loading">载入中…</div></td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="10"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
     </table>
   </div>
   <div class="pager" id="pager"></div>
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/standards.js', v='20261002-standard-layout') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/standards.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}

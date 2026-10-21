@@ -1,26 +1,35 @@
 {% extends "base.html" %}
-{% block title %}工作组会议 · 法规跟踪系统{% endblock %}
-{% block eyebrow %}03 · WG Meeting{% endblock %}
-{% block heading %}工作组会议{% endblock %}
+{% block title %}{{ t('工作组会议', 'WG Meeting') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block eyebrow %}{{ U('03 · WG Meeting', 'Module 03') }}{% endblock %}
+{% block heading %}{{ U('工作组会议', 'WG Meeting') }}{% endblock %}
 {% block actions %}
-<a class="btn btn-outline-primary btn-sm" href="/meetings/import">导入会议纪要</a>
-<button class="btn btn-primary btn-sm" id="btn-new">登记会议</button>
+<a class="btn btn-outline-primary btn-sm" href="/meetings/import">{{ U('导入会议纪要', 'Import Minutes') }}</a>
+<button class="btn btn-primary btn-sm" id="btn-new">{{ U('登记会议', 'Register Meeting') }}</button>
 {% endblock %}
 
 {% block content %}
 <div class="panel">
   <div class="filters">
-    <div class="fl"><label for="f-q">搜索</label>
-      <input id="f-q" class="form-control search" placeholder="会议标题 / 会议号 / 组织方 / 讨论议题"></div>
-    <div class="fl"><label for="f-type">会议类型</label><select id="f-type" class="form-select"></select></div>
-    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
+    <div class="fl"><label for="f-q">{{ L('Search', '搜索') }}</label>
+      <input id="f-q" class="form-control search" placeholder="{{ t('会议标题 / 会议号 / 组织方 / 讨论议题', 'Title / number / organizer / discussion') }}"></div>
+    <div class="fl"><label for="f-type">{{ L('Meeting Type', '会议类型') }}</label><select id="f-type" class="form-select"></select></div>
+    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">{{ U('重置', 'Reset') }}</button>
+    <div class="group-tools">
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="groups-expand">{{ U('全部展开', 'Expand all') }}</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="groups-collapse">{{ U('全部收起', 'Collapse all') }}</button>
+    </div>
   </div>
+  <div class="panel-body tight table-wrap">
+    <table class="table meeting-list-table">
+      <colgroup><col style="width:39%"><col style="width:16%"><col style="width:24%"><col style="width:13%"><col style="width:8%"></colgroup>
+      <thead><tr><th>{{ L('Meeting', '会议') }}</th><th>{{ L('Date / Type', '日期 / 类型') }}</th><th>{{ L('Organizer', '组织方') }}</th><th>{{ L('Summary', '关联概况') }}</th><th>{{ L('Details', '详情') }}</th></tr></thead>
+      <tbody id="list"><tr><td colspan="5"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
+    </table>
+  </div>
+  <div class="pager" id="pager"></div>
 </div>
-
-<div id="list"><div class="loading">载入中…</div></div>
-<div class="pager" id="pager" style="background:#fff;border:1px solid var(--rule);border-top:0"></div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/pages/meetings.js', v='20261009-tracked-only') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/meetings.js', v='v20-fix2.13-zoom') }}"></script>
 {% endblock %}

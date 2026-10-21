@@ -1,40 +1,40 @@
 {% extends "base.html" %}
-{% block title %}意见矩阵 · 法规跟踪系统{% endblock %}
-{% block eyebrow %}04 · Comment Matrix{% endblock %}
-{% block heading %}意见矩阵{% endblock %}
+{% block title %}{{ t('意见矩阵', 'Comment Matrix') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block eyebrow %}{{ U('04 · Comment Matrix', 'Module 04') }}{% endblock %}
+{% block heading %}{{ U('意见矩阵', 'Comment Matrix') }}{% endblock %}
 {% block actions %}
-<button class="btn btn-primary btn-sm" id="btn-new">登记正式意见</button>
+<a class="btn btn-outline-secondary btn-sm" href="/comments/import">{{ U('导入意见', 'Import Opinions') }}</a>
+<a class="btn btn-outline-primary btn-sm" href="/comments/export">{{ U('导出意见', 'Export Opinions') }}</a>
 {% endblock %}
 
 {% block content %}
 <div class="panel">
   <div class="filters">
-    <div class="fl"><label for="f-q">搜索</label>
-      <input id="f-q" class="form-control search" placeholder="意见号 / 条款 / 主题 / 意见内容 / 标准"></div>
-    <div class="fl"><label for="f-status">意见状态</label><select id="f-status" class="form-select"></select></div>
-    <div class="fl"><label for="f-by">提交人</label><select id="f-by" class="form-select"></select></div>
-    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
-    <div class="group-tools" aria-label="标准分组显示控制">
-      <button class="btn btn-outline-secondary btn-sm" id="groups-expand" type="button">全部展开</button>
-      <button class="btn btn-outline-secondary btn-sm" id="groups-collapse" type="button">全部收起</button>
+    <div class="fl"><label for="f-standard-q">{{ L('Standard', '标准') }}</label>
+      <input id="f-standard-q" class="form-control search" placeholder="{{ t('标准号 / 标准名称', 'Standard no. / name') }}"></div>
+    <div class="fl"><label for="f-content-q">{{ L('Comment / Proposal', '意见内容') }}</label><input id="f-content-q" class="form-control search" placeholder="{{ t('意见内容 / 回复 / 跟进', 'Opinion / response / follow-up') }}"></div>
+    <div class="fl"><label for="f-source">{{ L('Source', '意见来源') }}</label><select id="f-source" class="form-select"></select></div>
+    <div class="fl"><label for="f-type">{{ L('Comment Type', '意见类型') }}</label><select id="f-type" class="form-select"></select></div>
+    <div class="fl"><label for="f-status">{{ L('Comment Status', '意见状态') }}</label><select id="f-status" class="form-select"></select></div>
+    <div class="fl"><label for="f-by">{{ L('Submitted By', '提交人') }}</label><select id="f-by" class="form-select"></select></div>
+    <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">{{ U('重置', 'Reset') }}</button>
+    <div class="group-tools" aria-label="{{ t('标准分组显示控制', 'Standard group display') }}">
+      <button class="btn btn-outline-secondary btn-sm" id="groups-expand" type="button">{{ U('全部展开', 'Expand all') }}</button>
+      <button class="btn btn-outline-secondary btn-sm" id="groups-collapse" type="button">{{ U('全部收起', 'Collapse all') }}</button>
     </div>
   </div>
   <div class="panel-body tight table-wrap">
     <table class="table grouped-table comments-grouped-table">
-      <colgroup>
-        <col style="width:12%"><col style="width:13%"><col style="width:8%">
-        <col style="width:12%"><col style="width:22%"><col style="width:14%">
-        <col style="width:9%"><col style="width:10%">
-      </colgroup>
+      <colgroup><col style="width:11%"><col style="width:20%"><col style="width:12%"><col style="width:11%"><col style="width:18%"><col style="width:9%"><col style="width:9%"><col style="width:10%"></colgroup>
       <thead><tr>
-        <th>意见号</th><th>草案版本</th><th>条款</th><th>主题</th>
-        <th>意见内容</th><th>状态</th><th>提交人</th><th>提交日期</th>
+        <th>{{ L('Comment No.', '意见号') }}</th><th>{{ L('Draft and Clause', '草案与条款') }}</th><th>{{ L('Source', '意见来源') }}</th><th>{{ L('Comment Type', '意见类型') }}</th>
+        <th>{{ L('Comment / Proposal', '意见内容') }}</th><th>{{ L('Status', '状态') }}</th><th>{{ L('Submitted By', '提交人') }}</th><th>{{ L('Submission Date', '提交日期') }}</th>
       </tr></thead>
-      <tbody id="rows"><tr><td colspan="8"><div class="loading">载入中…</div></td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="8"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
     </table>
   </div>
   <div class="pager" id="pager"></div>
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/comments.js', v='20260923-v18') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/comments.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}

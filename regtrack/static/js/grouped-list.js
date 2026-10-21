@@ -2,9 +2,20 @@
 (function () {
   "use strict";
 
-  function create(body, expandButton, collapseButton) {
-    const collapsed = new Set();
+  function create(body, expandButton, collapseButton, { defaultCollapsed = false } = {}) {
+    const storageKey = `regtrack.grouped-list:${location.pathname}:${body.id}`;
+    const saved = JSON.parse(sessionStorage.getItem(storageKey) || '{"collapsed":[],"expanded":[]}');
+    const collapsed = new Set(saved.collapsed);
+    const expanded = new Set(saved.expanded);
+    const seen = new Set([...collapsed, ...expanded]);
     let currentKeys = [];
+
+    function saveState() {
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        collapsed: [...collapsed],
+        expanded: [...expanded],
+      }));
+    }
 
     function keyOf(value) {
       return String(value);
@@ -14,16 +25,16 @@
       const key = keyOf(group.group_key);
       const closed = collapsed.has(key);
       const standardId = group.standard_id;
-      const countLabel = `符合 ${group.item_count} 条`;
-      const latest = group.latest_created_at ? `最新登记 ${group.latest_created_at}` : "";
+      const countLabel = App.t(`符合 ${group.item_count} 条`, `${group.item_count} matching`);
+      const latest = group.latest_created_at ? App.t(`最新登记 ${group.latest_created_at}`, `Latest ${group.latest_created_at}`) : "";
       return `<tr class="standard-group-row" data-group-row="${App.esc(key)}">
         <td colspan="${colCount}">
           <button type="button" class="standard-group-toggle" aria-expanded="${closed ? "false" : "true"}"
-                  title="${closed ? "展开" : "收起"} ${App.esc(group.std_no)}">
+                  title="${closed ? App.t("展开", "Expand") : App.t("收起", "Collapse")} ${App.esc(group.std_no)}">
             <span class="group-chevron" aria-hidden="true">${closed ? "▸" : "▾"}</span>
             <span class="group-standard-no">${App.esc(group.std_no)}</span>
             <span class="group-standard-name">${App.esc(group.name_cn)}</span>
-            ${standardId === null ? '<span class="tag muted">未关联</span>' : ""}
+            ${standardId === null ? `<span class="tag muted">${App.t("未关联", "Unlinked")}</span>` : ""}
             <span class="group-summary">${App.esc(countLabel)}${latest ? ` · ${App.esc(latest)}` : ""}</span>
           </button>
         </td>
@@ -37,6 +48,10 @@
 
     function render(groups, colCount, itemRenderer) {
       currentKeys = groups.map((group) => keyOf(group.group_key));
+      currentKeys.forEach(key => {
+        if (!seen.has(key) && defaultCollapsed) collapsed.add(key);
+        seen.add(key);
+      });
       body.innerHTML = groups.map((group) =>
         header(group, colCount) + group.items.map((item) =>
           itemRenderer(item, itemAttrs(group))).join("")
@@ -45,15 +60,21 @@
     }
 
     function apply(key, shouldCollapse) {
-      if (shouldCollapse) collapsed.add(key);
-      else collapsed.delete(key);
+      if (shouldCollapse) {
+        collapsed.add(key);
+        expanded.delete(key);
+      } else {
+        collapsed.delete(key);
+        expanded.add(key);
+      }
+      saveState();
       const groupRow = Array.from(body.querySelectorAll("[data-group-row]"))
         .find((row) => row.dataset.groupRow === key);
       if (groupRow) {
         const button = groupRow.querySelector(".standard-group-toggle");
         const chevron = groupRow.querySelector(".group-chevron");
         button.setAttribute("aria-expanded", shouldCollapse ? "false" : "true");
-        button.title = `${shouldCollapse ? "展开" : "收起"} ${groupRow.querySelector(".group-standard-no").textContent}`;
+        button.title = `${shouldCollapse ? App.t("展开", "Expand") : App.t("收起", "Collapse")} ${groupRow.querySelector(".group-standard-no").textContent}`;
         chevron.textContent = shouldCollapse ? "▸" : "▾";
       }
       body.querySelectorAll("[data-group-item]").forEach((row) => {
@@ -80,6 +101,9 @@
 
     function reset() {
       collapsed.clear();
+      expanded.clear();
+      seen.clear();
+      saveState();
     }
 
     if (expandButton) expandButton.onclick = expandAll;

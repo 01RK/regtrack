@@ -1,4 +1,4 @@
-.draft-context{color:var(--ink-2);margin-bottom:14px;font-size:13px}.draft-view-tabs{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin-bottom:16px}.draft-view-tabs button{border:0;background:none;padding:10px 2px;color:var(--ink-2);border-bottom:2px solid transparent;font-size:13px}.draft-view-tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}.draft-view-tabs span{font-size:11px;color:var(--ink-3);margin-left:4px}.draft-overview{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr);gap:16px;align-items:start}.draft-overview .panel{margin:0}.draft-workspace{display:grid;grid-template-columns:245px minmax(300px,1fr) 300px;gap:14px;height:calc(100dvh - 225px);min-height:390px}.reader-column{background:white;border:1px solid var(--rule);border-radius:4px;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}.reader-column header{padding:14px;border-bottom:1px solid var(--rule);flex:none}.reader-column h2{font-size:14px;font-weight:600;margin:0 0 10px}.reader-column header h2:last-child{margin-bottom:0}.reader-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;flex:1}.chapter-directory nav{padding:8px}.chapter-directory button{display:block;text-align:left;width:100%;border:0;border-radius:3px;background:none;padding:9px 8px;color:var(--ink-2);line-height:1.5;font-size:12.5px;overflow-wrap:anywhere}.chapter-directory button:hover{background:var(--surface-2)}.chapter-directory button.active{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:inset 3px 0 var(--accent)}.chapter-paper .reader-scroll{padding:24px 28px}.chapter-paper h2{font-size:22px;line-height:1.5;margin:16px 0}.chapter-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.95;margin:16px 0}.chapter-english{background:var(--surface-2);border-left:3px solid var(--rule);padding:16px;margin-top:24px}.chapter-source{font-size:11px;color:var(--ink-3);line-height:1.8;overflow-wrap:anywhere;margin-top:20px}.chapter-notes .reader-scroll{padding:14px}.chapter-notes-body>#chapter-form{padding:16px 0 0;margin-top:16px;border-top:1px solid var(--rule)}.draft-import-flow{max-width:950px;margin:auto}.step-number{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:600}.import-identity{background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:16px;margin-bottom:20px;overflow-wrap:anywhere}.import-identity h2{font-size:17px;margin:10px 0}.import-identity p{margin:0 0 8px}.import-identity small{color:var(--ink-3)}.import-actions{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:24px;padding-top:16px;border-top:1px solid var(--rule);font-size:12px}.draft-overview[hidden],.draft-workspace[hidden]{display:none}@media(max-width:1250px){.draft-workspace{grid-template-columns:200px minmax(260px,1fr) 250px;gap:10px}.chapter-paper .reader-scroll{padding:18px}}@media(max-width:1000px){.draft-workspace{display:flex;flex-direction:column;height:auto;min-height:0}.chapter-directory{max-height:260px}.chapter-directory nav{max-height:180px}.chapter-paper{min-height:350px;max-height:70dvh}.chapter-notes{min-height:280px;max-height:65dvh}.draft-overview{grid-template-columns:1fr}.import-actions{align-items:start;flex-direction:column}}
+.draft-context{color:var(--ink-2);margin-bottom:14px;font-size:13px}.draft-view-tabs{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin-bottom:16px}.draft-view-tabs button{border:0;background:none;padding:10px 2px;color:var(--ink-2);border-bottom:2px solid transparent;font-size:13px}.draft-view-tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}.draft-view-tabs span{font-size:11px;color:var(--ink-3);margin-left:4px}.draft-overview{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr);gap:16px;align-items:start}.draft-overview .panel{margin:0}.draft-workspace{display:grid;grid-template-columns:245px minmax(300px,1fr) 300px;gap:14px;height:calc(100dvh - 225px);min-height:390px}.reader-column{background:white;border:1px solid var(--rule);border-radius:4px;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}.reader-column header{padding:14px;border-bottom:1px solid var(--rule);flex:none}.reader-column h2{font-size:14px;font-weight:600;margin:0 0 10px}.reader-column header h2:last-child{margin-bottom:0}.reader-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;flex:1}.chapter-directory nav{padding:8px}.chapter-directory button{display:block;text-align:left;width:100%;border:0;border-radius:3px;background:none;padding:9px 8px;color:var(--ink-2);line-height:1.5;font-size:12.5px;overflow-wrap:anywhere}.chapter-directory button:hover{background:var(--surface-2)}.chapter-directory button.active{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:inset 3px 0 var(--accent)}.chapter-paper .reader-scroll{padding:24px 28px}.chapter-paper h2{font-size:22px;line-height:1.5;margin:16px 0}.chapter-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.95;margin:16px 0}.chapter-english{background:var(--surface-2);border-left:3px solid var(--rule);padding:16px;margin-top:24px}.chapter-source{font-size:11px;color:var(--ink-3);line-height:1.8;overflow-wrap:anywhere;margin-top:20px}.chapter-notes .reader-scroll{padding:14px}.draft-import-flow{max-width:950px;margin:auto}.step-number{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:600}.import-identity{background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:16px;margin-bottom:20px;overflow-wrap:anywhere}.import-identity h2{font-size:17px;margin:10px 0}.import-identity p{margin:0 0 8px}.import-identity small{color:var(--ink-3)}.import-actions{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:24px;padding-top:16px;border-top:1px solid var(--rule);font-size:12px}.draft-overview[hidden],.draft-workspace[hidden]{display:none}@container workspace (max-width:1250px){.draft-workspace{grid-template-columns:200px minmax(260px,1fr) 250px;gap:10px}.chapter-paper .reader-scroll{padding:18px}}@container workspace (max-width:1000px){.draft-workspace{display:flex;flex-direction:column;height:auto;min-height:0}.chapter-directory{max-height:260px}.chapter-directory nav{max-height:180px}.chapter-paper{min-height:350px;max-height:70dvh}.chapter-notes{min-height:280px;max-height:65dvh}.draft-overview{grid-template-columns:1fr}.import-actions{align-items:start;flex-direction:column}}
 
 .annotation-retention{border-top:1px solid var(--rule);padding-top:18px}.retention-item{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:start;padding:12px;border:1px solid var(--rule);border-radius:4px;margin-top:8px;background:#fff}.retention-item.unmatched{opacity:.68}.retention-item p{margin:5px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.retention-item small{color:var(--ink-3)}
 
@@ -16,19 +16,13 @@
 .annotation-card{border:1px solid var(--rule);border-radius:8px;padding:14px;margin-bottom:12px;background:var(--surface);transition:border-color .15s,box-shadow .15s}
 .annotation-card.is-editing{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .annotation-head,.annotation-meta,.annotation-editor-head{display:flex;align-items:center;gap:8px;min-width:0}
-.annotation-head{justify-content:space-between;margin-bottom:7px}
 .annotation-author{font-size:12px;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
-.annotation-edit{display:inline-flex;align-items:center;gap:4px;padding:4px 6px;border:0;border-radius:4px;background:transparent;color:var(--ink-3);font-size:11px;flex:none}
-.annotation-edit svg{width:13px;height:13px}
-.annotation-edit:hover,.annotation-edit:focus-visible{background:var(--accent-soft);color:var(--accent)}
-.annotation-edit:focus-visible,.annotation-cancel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .annotation-meta{flex-wrap:wrap;font-size:10px;color:var(--ink-3);gap:6px 8px}
 .annotation-type{display:inline-flex;padding:2px 6px;border-radius:4px;line-height:1.5;color:var(--ink-2);background:var(--surface-2);font-size:10px;font-weight:500}
 .annotation-type[data-type="Interpretation"]{color:var(--accent);background:var(--accent-soft)}
 .annotation-type[data-type="Question"]{color:var(--amber);background:var(--amber-soft)}
 .annotation-type[data-type="Recommendation"]{color:var(--green);background:var(--green-soft)}
 .annotation-card .annotation-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;font-size:13px;margin:12px 0 0}
-.annotation-history{margin-top:10px;font-size:10px;color:var(--ink-3)}
 .annotation-history summary{cursor:pointer;width:fit-content}
 .annotation-history>div{margin-top:5px;line-height:1.8;overflow-wrap:anywhere}
 .annotation-card [hidden]{display:none}
@@ -40,16 +34,41 @@
 .annotation-type-field select{min-width:0;width:auto;flex:1;font-size:11px;background-color:var(--surface-2);border-color:var(--rule);border-radius:5px}
 .annotation-editor .annotation-input{width:100%;min-height:120px;max-height:280px;padding:10px;font-size:13px;line-height:1.8;resize:vertical;border-color:var(--rule);border-radius:5px}
 .annotation-editor .annotation-input:focus{border-color:var(--rule-strong);box-shadow:none}
-.annotation-edit-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px}
 .annotation-edit-actions .btn{font-size:11px;padding:5px 12px;border-radius:5px}
 .annotation-cancel{border:0;border-radius:5px;background:transparent;padding:5px 8px;font-size:11px;color:var(--ink-2)}
 .annotation-cancel:hover{background:var(--surface-2)}
 @media(prefers-reduced-motion:reduce){.annotation-card{transition:none}}
 
-.annotation-compose-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.annotation-compose-head label{font-size:11px;color:var(--ink-2);margin:0}
-.annotation-compose-head select{width:145px;min-width:0;font-size:11px;background-color:var(--surface-2);border-color:var(--rule);flex:none}
-
-.chapter-notes>header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+/* Annotation layout v20-fix2.8c: one action row per card, one compose form per scope. */
+.annotation-head{justify-content:space-between;margin-bottom:8px}
+.annotation-head time{font-size:10.5px;color:var(--ink-3);flex:none}
+.annotation-flag{display:inline-flex;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:500;line-height:1.5;color:var(--amber);background:var(--amber-soft)}
+.annotation-footer{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-top:12px;padding-top:9px;border-top:1px dashed var(--rule)}
+.annotation-history{font-size:10.5px;color:var(--ink-3);min-width:0;padding-top:3px}
+.annotation-history[open]{flex:1 1 100%}
+.annotation-footer:has(.annotation-history[open]){flex-wrap:wrap}
+.annotation-actions{display:flex;align-items:center;gap:2px;flex:none;margin-left:auto}
+.annotation-action{border:0;border-radius:4px;background:transparent;padding:3px 7px;font-size:11px;color:var(--accent);line-height:1.5}
+.annotation-action:hover{background:var(--accent-soft)}
+.annotation-action.danger{color:var(--flag)}
+.annotation-action.danger:hover{background:#fdf0ef}
+.annotation-action:focus-visible,.annotation-cancel:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.annotation-list .annotation-card:last-child{margin-bottom:0}
+.annotation-empty{margin:0;font-size:12px;color:var(--ink-3)}
+.annotation-count{font-size:11px;color:var(--ink-3);font-weight:400;margin-left:auto}
+.chapter-notes>header{display:flex;align-items:center;gap:8px}
 .chapter-notes>header h2{margin:0}
-.chapter-notes>header button{flex:none;font-size:11px;padding:4px 8px}
+.annotation-compose-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.annotation-compose-head label{font-size:12px;font-weight:600;color:var(--ink-2);margin:0;min-width:0}
+.annotation-compose-head select{width:140px;min-width:0;font-size:11.5px;background-color:var(--surface-2);border-color:var(--rule);flex:none}
+.annotation-compose textarea{font-size:13px;line-height:1.7;resize:vertical}
+.annotation-compose-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.annotation-compose-footer>.btn{flex:none}
+.annotation-panel .annotation-compose{margin-top:16px;padding-top:16px;border-top:1px solid var(--rule)}
+.chapter-notes>.annotation-compose{flex:none;padding:12px 14px 14px;border-top:1px solid var(--rule);background:var(--surface-2)}
+.chapter-notes>.annotation-compose textarea{background:#fff;min-height:72px;max-height:180px}
+.follow-up-toggle{display:inline-flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-size:12px;font-weight:500;color:var(--ink-2);line-height:1.35;min-width:0}
+.follow-up-toggle .form-check-input{float:none;flex:0 0 16px;width:16px;height:16px;margin:0;cursor:pointer}
+.follow-up-toggle .cn-sub{display:block;margin-left:0;font-size:10.5px}
+.annotation-editor .annotation-compose-footer{flex-direction:column;align-items:stretch;gap:10px}
+.annotation-edit-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding-top:10px;border-top:1px dashed var(--rule)}

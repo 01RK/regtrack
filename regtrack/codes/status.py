@@ -8,6 +8,7 @@ recipient_status_history，并通过真实外键关联主表。调用方只需�
 """
 
 import db
+import comment_history
 from common import ApiError, check_date, current_user, now, require
 from constants import STATUS_FIELDS
 
@@ -41,7 +42,9 @@ def history(entity_type: str, entity_id: int, field_key: str) -> list[dict]:
 
 
 def add(entity_type: str, entity_id: int, field_key: str, payload: dict) -> dict:
-    """新增一条状态变更，并同步主记录当前值。"""
+    """Append an action or recipient status event."""
+    if entity_type == "comment":
+        raise ApiError("Use the opinion edit form to update status", 400)
     entity_table, history_table, parent_key, allowed, _ = _resolve(
         entity_type, field_key
     )
@@ -83,7 +86,10 @@ def add(entity_type: str, entity_id: int, field_key: str, payload: dict) -> dict
 
 def seed_initial(entity_type: str, entity_id: int, field_key: str,
                  value: str, effective_date: str, note: str | None = None) -> None:
-    """新建主记录时写入第一条历史，保证历史链从建档起就是完整的。"""
+    """Write the initial status event."""
+    if entity_type == "comment":
+        comment_history.initial(entity_id, value, effective_date)
+        return
     _, history_table, parent_key, _, _ = _resolve(entity_type, field_key)
     db.insert(history_table, {
         parent_key: entity_id,

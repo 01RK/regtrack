@@ -102,7 +102,7 @@ a.stat:hover {
 
 .chart-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
     gap: 16px;
     margin: 16px 0;
 }
@@ -170,8 +170,6 @@ a.stat:hover {
 .chart-legend .lbl {
     color: var(--ink-2);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .chart-legend .val {
@@ -220,7 +218,7 @@ a.stat:hover {
 
 .bar-row {
     display: grid;
-    grid-template-columns: 5.2em 1fr 3.2em;
+    grid-template-columns: 10em minmax(0, 1fr) 3.2em;
     align-items: center;
     gap: 10px;
     padding: 2px 4px;

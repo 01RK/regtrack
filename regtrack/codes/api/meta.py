@@ -142,7 +142,7 @@ def dashboard():
     return jsonify({
         "counts": counts,
         "people": _people(),
-        # 九个阶段全部输出（含 0 条的），横向柱图据此画出完整的生命周期标尺
+        # 十个阶段全部输出（含 0 条的），横向柱图据此画出完整的生命周期标尺
         "by_stage": [{"code": s["code"], "name": STAGE_LABELS[s["code"]],
                       "c": by_stage_rows.get(s["code"], 0)}
                      for s in STAGES],

@@ -137,9 +137,13 @@ def detail(standard_id):
              FROM meeting m JOIN meeting_standard ms ON ms.meeting_id = m.id
             WHERE ms.standard_id = ? ORDER BY m.meeting_date DESC""", (standard_id,))
     std["comments"] = db.query(
-        """SELECT c.id, c.comment_no, c.clause_no, c.topic, c.status, c.submitted_by,
-                  c.submission_date
-             FROM comment c WHERE c.standard_id = ? ORDER BY c.id DESC""", (standard_id,))
+        """SELECT c.id, c.comment_no, c.clause_no, c.source_kind, c.comment_type, c.before_clause_no, c.after_clause_no, c.status, c.submitted_by,
+                  c.submission_date, d.version_name, d.sub_version_no,
+                  bd.version_name AS before_version_name, bd.sub_version_no AS before_sub_version_no,
+                  ad.version_name AS after_version_name, ad.sub_version_no AS after_sub_version_no
+             FROM comment c LEFT JOIN draft d ON d.id=c.draft_id
+             LEFT JOIN draft bd ON bd.id=c.before_draft_id LEFT JOIN draft ad ON ad.id=c.after_draft_id
+             WHERE c.standard_id = ? ORDER BY c.id DESC""", (standard_id,))
     std["actions"] = db.query(
         """SELECT a.id, a.item_no, a.item_type, a.title, a.current_status, a.priority,
                   COALESCE(a.submission_due_date, a.check_due_date, a.target_date) AS due_date

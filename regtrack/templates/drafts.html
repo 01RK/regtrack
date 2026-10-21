@@ -1,29 +1,29 @@
 {% extends "base.html" %}
-{% block title %}草案登记 · 法规跟踪系统{% endblock %}
-{% block eyebrow %}02 · Draft Registry{% endblock %}
-{% block heading %}草案登记{% endblock %}
+{% block title %}{{ t('草案登记', 'Draft Registry') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block eyebrow %}{{ U('02 · Draft Registry', 'Module 02') }}{% endblock %}
+{% block heading %}{{ U('草案登记', 'Draft Registry') }}{% endblock %}
 {% block actions %}
-<a class="btn btn-outline-secondary btn-sm" href="/drafts/import">导入章节 Excel</a>
-<button class="btn btn-primary btn-sm" id="btn-new">登记草案</button>
+<a class="btn btn-outline-secondary btn-sm" href="/drafts/import">{{ U('导入草案原文', 'Import Draft Text') }}</a>
+<button class="btn btn-primary btn-sm" id="btn-new">{{ U('登记草案', 'Register Draft') }}</button>
 {% endblock %}
 
 {% block content %}
 <ul class="nav nav-tabs" style="margin-bottom:14px" role="tablist">
-  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-drafts" type="button">草案版本管理</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-compare" type="button">标准比对</button></li>
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-drafts" type="button">{{ U('草案版本管理', 'Draft Versions') }}</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-compare" type="button">{{ U('标准比对', 'Comparison') }}</button></li>
 </ul>
 
 <div class="tab-content">
   <div class="tab-pane fade show active" id="tab-drafts">
     <div class="panel">
       <div class="filters">
-        <div class="fl"><label for="f-q">搜索</label>
-          <input id="f-q" class="form-control search" placeholder="标准编号 / 名称 / 版本 / 摘要"></div>
-        <div class="fl"><label for="f-impact">总体影响</label><select id="f-impact" class="form-select"></select></div>
-        <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">重置</button>
-        <div class="group-tools" aria-label="草案标准分组显示控制">
-          <button class="btn btn-outline-secondary btn-sm" id="draft-groups-expand" type="button">全部展开</button>
-          <button class="btn btn-outline-secondary btn-sm" id="draft-groups-collapse" type="button">全部收起</button>
+        <div class="fl"><label for="f-q">{{ L('Search', '搜索') }}</label>
+          <input id="f-q" class="form-control search" placeholder="{{ t('标准编号 / 名称 / 版本 / 摘要', 'Number / name / version / summary') }}"></div>
+        <div class="fl"><label for="f-impact">{{ L('Overall Impact', '总体影响') }}</label><select id="f-impact" class="form-select"></select></div>
+        <button class="btn btn-outline-secondary btn-sm" id="f-reset" style="height:32px">{{ U('重置', 'Reset') }}</button>
+        <div class="group-tools" aria-label="{{ t('草案标准分组显示控制', 'Standard group display') }}">
+          <button class="btn btn-outline-secondary btn-sm" id="draft-groups-expand" type="button">{{ U('全部展开', 'Expand all') }}</button>
+          <button class="btn btn-outline-secondary btn-sm" id="draft-groups-collapse" type="button">{{ U('全部收起', 'Collapse all') }}</button>
         </div>
       </div>
       <div class="panel-body tight table-wrap">
@@ -34,18 +34,18 @@
             <col style="width:32%">
           </colgroup>
           <thead><tr>
-            <th>版本</th><th>子版本</th><th>草案日期</th>
-            <th>总体影响</th><th>章节</th><th>发布方</th><th>主要内容</th>
+            <th>{{ L('Version', '版本') }}</th><th>{{ L('Sub-Version', '子版本') }}</th><th>{{ L('Draft Date', '草案日期') }}</th>
+            <th>{{ L('Overall Impact', '总体影响') }}</th><th>{{ L('Chapters', '章节') }}</th><th>{{ L('Issued By', '发布方') }}</th><th>{{ L('Main Summary', '主要内容') }}</th>
           </tr></thead>
-          <tbody id="rows"><tr><td colspan="7"><div class="loading">载入中…</div></td></tr></tbody>
+          <tbody id="rows"><tr><td colspan="7"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
         </table>
       </div>
       <div class="pager" id="pager"></div>
     </div>
   </div>
 
-  <div class="tab-pane fade" id="tab-compare" role="tabpanel"></div>
+  <div class="tab-pane fade" id="tab-compare" role="tabpanel"><div class="panel"><div class="panel-body"><h2>{{ U('标准比对', 'Comparison') }}</h2><p class="text-muted">{{ t('比对功能尚未开发。现可在意见矩阵选择“多版本比对意见批注”，手动登记前后草案与对应条款。', 'Comparison is not available yet. In the Comment Matrix you can record a draft comparison annotation with the before and after drafts and clauses.') }}</p><a class="btn btn-outline-primary btn-sm" href="/comments">{{ U('前往意见矩阵', 'Go to Comment Matrix') }}</a></div></div></div>
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/drafts.js', v='20261001-v19') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/drafts.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}

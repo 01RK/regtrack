@@ -1,6 +1,5 @@
 App.ready(async () => {
-  const { esc, dash, get, post, put, del, tag, statusTag, overdue, emptyRow,
-          ok, fail, confirmDialog } = App;
+  const { esc, get, tag, statusTag, overdue, emptyRow, t } = App;
   const M = App.meta;
   const state = { page: 1, size: 10 };
   const body = document.getElementById("rows");
@@ -15,9 +14,9 @@ App.ready(async () => {
     el.innerHTML = `<option value="">${label}</option>` + values.map((v) => `<option>${esc(v)}</option>`).join("");
     el.onchange = () => { state.page = 1; groupView.reset(); load(); };
   }
-  fillSelect("f-type", M.action_types, "全部类型");
-  fillSelect("f-status", M.action_statuses, "全部状态");
-  fillSelect("f-priority", M.priorities, "全部优先级");
+  fillSelect("f-type", M.action_types, t("全部类型", "All types"));
+  fillSelect("f-status", M.action_statuses, t("全部状态", "All statuses"));
+  fillSelect("f-priority", M.priorities, t("全部优先级", "All priorities"));
   document.getElementById("f-open").onchange = () => {
     state.page = 1; groupView.reset(); load();
   };
@@ -61,7 +60,7 @@ App.ready(async () => {
             ? `${a.responded_count}/${a.recipient_count}` : "—"}</td>
         </tr>`);
     } else {
-      body.innerHTML = emptyRow(7, "没有匹配的事项", "点右上角新建，或在会议里用标准行的按钮派生");
+      body.innerHTML = emptyRow(7, ["没有匹配的事项", "No matching actions"], ["点右上角新建，或在会议里用标准行的按钮派生", "Create one at the top right, or derive it from a meeting"]);
     }
     body.querySelectorAll("tr[data-id]").forEach((tr) => {
       tr.onclick = () => openDetail(Number(tr.dataset.id));
@@ -69,9 +68,9 @@ App.ready(async () => {
 
     const pages = Math.max(1, Math.ceil(data.group_total / state.size));
     const pager = document.getElementById("pager");
-    pager.innerHTML = `<span>共 ${data.total} 条记录 · ${data.group_total} 个标准组 · 第 ${state.page}/${pages} 页</span>
-      <button class="btn btn-outline-secondary btn-sm" ${state.page <= 1 ? "disabled" : ""} data-prev>上一页</button>
-      <button class="btn btn-outline-secondary btn-sm" ${state.page >= pages ? "disabled" : ""} data-next>下一页</button>`;
+    pager.innerHTML = `<span>${window.App.uiText(`共 ${data.total} 条记录 · ${data.group_total} 个标准组 · 第 ${state.page}/${pages} 页`, `${data.total} records · ${data.group_total} standard groups · Page ${state.page}/${pages}`)}</span>
+      <button class="btn btn-outline-secondary btn-sm" ${state.page <= 1 ? "disabled" : ""} data-prev>${window.App.uiText("上一页", "Previous")}</button>
+      <button class="btn btn-outline-secondary btn-sm" ${state.page >= pages ? "disabled" : ""} data-next>${window.App.uiText("下一页", "Next")}</button>`;
     const prev = pager.querySelector("[data-prev]");
     const next = pager.querySelector("[data-next]");
     if (prev) prev.onclick = () => { state.page--; load(); };
@@ -79,7 +78,7 @@ App.ready(async () => {
   }
 
   document.getElementById("new-type-menu").innerHTML = M.action_types.map((type) =>
-    `<li><button class="dropdown-item" data-new-type="${esc(type)}">${esc(type)} · ${esc(ActionForm.TYPE_LABEL[type])}</button></li>`).join("");
+    `<li><button class="dropdown-item" data-new-type="${esc(type)}">${esc(ActionForm.typeText(type))}</button></li>`).join("");
   document.querySelectorAll("[data-new-type]").forEach((b) => {
     b.onclick = () => ActionForm.open({
       isNew: true, typeLocked: true,

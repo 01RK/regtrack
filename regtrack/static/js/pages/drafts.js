@@ -1,5 +1,5 @@
 App.ready(async () => {
-  const { esc, dash, clip, get, post, put, del, tag, emptyRow, ok, fail, confirmDialog } = App;
+  const { esc, dash, clip, get, tag, emptyRow, t } = App;
   const M = App.meta;
 
   /* =============================================== 一、草案版本列表 */
@@ -9,6 +9,7 @@ App.ready(async () => {
     draftBody,
     document.getElementById("draft-groups-expand"),
     document.getElementById("draft-groups-collapse"),
+    { defaultCollapsed: true },
   );
 
   function fillSelect(id, values, label, onChange) {
@@ -17,7 +18,7 @@ App.ready(async () => {
       values.map((v) => `<option>${esc(v)}</option>`).join("");
     el.onchange = onChange;
   }
-  fillSelect("f-impact", M.overall_impacts, "全部影响", () => {
+  fillSelect("f-impact", M.overall_impacts, t("全部影响", "All impacts"), () => {
     state.page = 1; draftGroups.reset(); loadDrafts();
   });
 
@@ -52,7 +53,7 @@ App.ready(async () => {
           <td class="cell-sub">${clip(d.main_summary, 60)}</td>
         </tr>`);
     } else {
-      draftBody.innerHTML = emptyRow(7, "没有匹配的草案", "点右上角「登记草案」把新收到的一版挂到标准上");
+      draftBody.innerHTML = emptyRow(7, ["没有匹配的草案", "No matching drafts"], ["点右上角「登记草案」把新收到的一版挂到标准上", "Use Register Draft to add a newly received version"]);
     }
     draftBody.querySelectorAll("tr[data-id]").forEach((tr) => {
       tr.onclick = () => openDetail(Number(tr.dataset.id));
@@ -63,9 +64,9 @@ App.ready(async () => {
   function pager(id, total, groupTotal, st, reload) {
     const pages = Math.max(1, Math.ceil(groupTotal / st.size));
     const host = document.getElementById(id);
-    host.innerHTML = `<span>共 ${total} 条记录 · ${groupTotal} 个标准组 · 第 ${st.page}/${pages} 页</span>
-      <button class="btn btn-outline-secondary btn-sm" ${st.page <= 1 ? "disabled" : ""} data-prev>上一页</button>
-      <button class="btn btn-outline-secondary btn-sm" ${st.page >= pages ? "disabled" : ""} data-next>下一页</button>`;
+    host.innerHTML = `<span>${window.App.uiText(`共 ${total} 条记录 · ${groupTotal} 个标准组 · 第 ${st.page}/${pages} 页`, `${total} records · ${groupTotal} standard groups · Page ${st.page}/${pages}`)}</span>
+      <button class="btn btn-outline-secondary btn-sm" ${st.page <= 1 ? "disabled" : ""} data-prev>${window.App.uiText("上一页", "Previous")}</button>
+      <button class="btn btn-outline-secondary btn-sm" ${st.page >= pages ? "disabled" : ""} data-next>${window.App.uiText("下一页", "Next")}</button>`;
     const prev = host.querySelector("[data-prev]");
     const next = host.querySelector("[data-next]");
     if (prev) prev.onclick = () => { st.page--; reload(); };

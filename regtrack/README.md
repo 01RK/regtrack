@@ -1,6 +1,6 @@
 # 法规跟踪系统 RegTrack
 
-工作组会议新增纪要数据包导入：[使用与验证说明](docs/MEETING_IMPORT.md)。页面提供 Excel 模板和提示词，支持会议确认、标准匹配、按需追踪与事项入库。当前默认数据库为 `data/regtrack-v0.19-fix3.db`，使用新版 schema 独立建库，不迁移旧数据库。
+工作组会议新增纪要数据包导入：[使用与验证说明](docs/MEETING_IMPORT.md)。页面提供 Excel 模板和提示词，支持会议确认、标准匹配、按需追踪与事项入库。当前默认数据库为 `data/regtrack-v20-fix2.8c.db`，使用新版 schema 独立建库，不迁移旧数据库。
 
 按《法规跟踪系统 Forms 与 Subforms 设计说明》实现的本地系统：
 Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
@@ -19,8 +19,8 @@ Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
 标准向下查看草案 / 会议 / 意见 / 事项，会议查看派生事项，事项查看生成意见；
 来源字段只展示不反向跳转，避免循环打开。弹窗带面包屑与「返回」按钮，悬浮时提示返回目标。
 
-标准生命周期为九个阶段：预研 → 立项 → 起草 → 征求意见稿 → 送审稿 → 报批稿 →
-发布 → 实施 → 废止。阶段在系统内部以固定编码（`PRE_RESEARCH`、`PROJECT_APPROVAL`…）
+标准生命周期为十个阶段：预研 → 立项 → 起草 → 征求意见 → 审查 → 报批 →
+发布 → 实施 → 复审 → 废止。阶段在系统内部以固定编码（`PRE_RESEARCH`、`PROJECT_APPROVAL`…）
 存取，界面只负责显示名称。同一入口「推进 / 补录阶段」兼顾两种记录：选当前阶段之后的
 阶段为正常推进，选当前阶段之前尚未填写的阶段为历史补录——可填真实发生时间，
 并在记录上留痕以便审计。阶段记录不锁定：推进与补录都能更正生效日期、依据与说明，
@@ -36,7 +36,7 @@ Python（Flask）+ SQLite + HTML，本地运行，不需要部署。
 
 ### 用户端（Windows）
 
-直接双击 release/RegTrack.exe。首次启动会在 exe 同级的 data/regtrack-v0.19-fix3.db
+直接双击 release/RegTrack.exe。首次启动会在 exe 同级的 data/regtrack-v20-fix2.8c.db
 自动创建空数据库，之后继续使用同一个数据库；不会加载 sql/seed.sql 初始化记录。
 
 ```bash
@@ -56,7 +56,7 @@ python codes/init_db.py --force， 不要在生产发布包中执行。
 ## 目录
 
 ```
-codes/              全部 Python 代码（应用、接口、工具和测试）
+codes/              全部 Python 代码（应用、接口和工具）
   app.py            应用工厂、页面路由与统一错误处理
   constants.py      固定值唯一定义源（含阶段编码表）
   db.py             SQLite 连接、查询助手与建库
@@ -70,12 +70,11 @@ codes/              全部 Python 代码（应用、接口、工具和测试）
   run.py            启动入口
   init_db.py        数据库初始化入口
   fetch_vendor.py   前端依赖下载入口
-  test_api.py       接口冒烟测试
 sql/schema.sql     建表 SQL（含章节导入批次、章节快照与批注）
 static/js/records.js  五类记录的明细与表单（全站共用，负责叠层与返回）
 static/js/stage-manager.js  阶段时间轴、推进 / 补录与阶段详情
 static/js/grouped-list.js  标准分组列表的展开、收起与无障碍状态
-sql/seed.sql       标准主档与内部跟踪初始化记录（7 项标准，含状态历史）
+sql/seed.sql       标准主档与内部跟踪初始化记录（6 项标准，含状态历史）
 sql/seed-sources.md  标准公开来源、数据数量与登记口径
 templates/         页面骨架
 static/            样式与前端脚本

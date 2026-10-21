@@ -156,16 +156,27 @@ source: "RegTrack 法规跟踪系统"
 #### 意见
 {%- for c in st.comments %}
 
-##### {{ c.comment_no }}{% if c.clause_no %} · 条款 {{ c.clause_no }}{% endif %}{% if c.topic %} · {{ c.topic | md_inline }}{% endif %} — {{ c.status }}
+##### {{ c.comment_no }}{% if c.clause_no %} · 条款 {{ c.clause_no }}{% endif %} · {{ c.comment_type }} — {{ c.status }}
+{% if c.source_kind == 'comparison' %}
+{{ kv("前版草案", c.before_version_name ~ " v" ~ c.before_sub_version_no) }}
+{{ kv("前版条款", c.before_clause_no) }}
+{{ kv("后版草案", c.after_version_name ~ " v" ~ c.after_sub_version_no) }}
+{{ kv("后版条款", c.after_clause_no) }}
+{% else %}
 {{ kv("针对草案", (c.version_name ~ " v" ~ c.sub_version_no) if c.version_name else "") }}
+{% endif %}
 {{- kv("提交人", c.submitted_by) }}
 {{- kv("提交渠道", c.submission_channel) }}
 {{- kv("提交日期", c.submission_date) }}
 {{- block("意见 / 建议", c.comment_text) }}
-{{- block("理由", c.rationale) }}
-{{- block("起草组回复", c.response) }}
-{{- block("后续跟进", c.follow_up) }}
-{{- history(c.status_history) }}
+
+**Comment Status History**
+
+| Effective Date | Previous Status | Status | Response | Follow-up | Supporting Reference | Recorded By |
+| --- | --- | --- | --- | --- | --- | --- |
+{% for h in c.status_history | reverse %}
+| {{ h.effective_date }} | {{ h.previous_value or "" }} | {{ h.new_value }} | {{ (h.response or "") | md_inline }} | {{ (h.follow_up or "") | md_inline }} | {{ (h.supporting_reference or "") | md_inline }} | {{ h.recorded_by }} |
+{% endfor %}
 {%- endfor %}
 {%- endif %}
 {%- if st.actions %}

@@ -1,5 +1,5 @@
 App.ready(async () => {
-  const { esc, dash, get, tag, stageMini, stageLabel, emptyRow } = App;
+  const { esc, dash, get, tag, stageMini, stageLabel, emptyRow, t } = App;
   const M = App.meta;
 
   const state = { page: 1, size: 25, total: 0, archived: false };
@@ -13,12 +13,12 @@ App.ready(async () => {
   }
   // 阶段下拉用编码取值、名称展示：库里存编码，界面只负责显示
   const stageSelect = document.getElementById("f-stage");
-  stageSelect.innerHTML = '<option value="">全部阶段</option>' +
-    M.stages.map((s) => `<option value="${esc(s.code)}">${esc(s.label)}</option>`).join("");
+  stageSelect.innerHTML = `<option value="">${t("全部阶段", "All stages")}</option>` +
+    M.stages.map((s) => `<option value="${esc(s.code)}">${esc(stageLabel(s.code))}</option>`).join("");
   stageSelect.onchange = () => { state.page = 1; load(); };
-  fillSelect("f-risk", M.risk_levels, "全部风险");
-  fillSelect("f-type", M.standard_types, "全部类别");
-  fillSelect("f-owner", (App.lookups.person || []).map((p) => p.value), "全部负责人");
+  fillSelect("f-risk", M.risk_levels, t("全部风险", "All risks"));
+  fillSelect("f-type", M.standard_types, t("全部类别", "All types"));
+  fillSelect("f-owner", (App.lookups.person || []).map((p) => p.value), t("全部负责人", "All owners"));
 
   let timer;
   document.getElementById("f-q").oninput = () => {
@@ -54,20 +54,20 @@ App.ready(async () => {
     body.innerHTML = data.items.length
       ? data.items.map((s) => `
         <tr class="row-click" data-id="${s.id}">
-          <td data-label="标准"><div class="standard-identity"><span class="cell-main">${esc(s.std_no)}</span>${s.std_type ? `<span class="tag standard-type">${esc(s.std_type)}</span>` : ""}</div>
+          <td data-label="${t("标准", "Standard")}"><div class="standard-identity"><span class="cell-main">${esc(s.std_no)}</span>${s.std_type ? `<span class="tag standard-type">${esc(s.std_type)}</span>` : ""}</div>
               <div class="cell-sub">${esc(s.name_cn)}</div></td>
-          <td data-label="当前阶段"><div class="standard-stage">${stageMini(s.stage_code)}<span class="tag info">${esc(stageLabel(s.stage_code))}</span></div></td>
-          <td data-label="归口">${dash(s.tc_wg)}</td>
-          <td data-label="风险">${tag(s.risk_level)}</td>
-          <td data-label="负责人">${dash(s.mb_owner)}</td>
-          <td data-label="影响领域" class="cell-sub">${dash(s.impact_areas)}</td>
-          <td data-label="草案" class="num">${s.draft_count}</td>
-          <td data-label="意见" class="num">${s.comment_count}</td>
-          <td data-label="在办" class="num"><span class="${s.open_action_count ? "count-alert" : ""}">${s.open_action_count}</span></td>
-          <td data-label="实施日期" class="num">${dash(s.effective_date)}</td>
+          <td data-label="${t("当前阶段", "Current Stage")}"><div class="standard-stage">${stageMini(s.stage_code)}<span class="tag info">${esc(stageLabel(s.stage_code))}</span></div></td>
+          <td data-label="${t("归口", "TC / WG")}">${dash(s.tc_wg)}</td>
+          <td data-label="${t("风险", "Risk")}">${tag(s.risk_level)}</td>
+          <td data-label="${t("负责人", "MB Owner")}">${dash(s.mb_owner)}</td>
+          <td data-label="${t("影响领域", "Impact Area")}" class="cell-sub">${dash(s.impact_areas)}</td>
+          <td data-label="${t("草案", "Drafts")}" class="num">${s.draft_count}</td>
+          <td data-label="${t("意见", "Opinions")}" class="num">${s.comment_count}</td>
+          <td data-label="${t("在办", "Open Actions")}" class="num"><span class="${s.open_action_count ? "count-alert" : ""}">${s.open_action_count}</span></td>
+          <td data-label="${t("实施日期", "Effective Date")}" class="num">${dash(s.effective_date)}</td>
         </tr>`).join("")
-      : emptyRow(10, state.archived ? "归档里没有匹配的标准" : "没有匹配的标准",
-                 state.archived ? "取消勾选即可回到正常列表" : "换个搜索词，或点右上角「新建标准」建档");
+      : emptyRow(10, state.archived ? ["归档里没有匹配的标准", "No matching archived standards"] : ["没有匹配的标准", "No matching standards"],
+                 state.archived ? ["取消勾选即可回到正常列表", "Untick the box to return to the normal list"] : ["换个搜索词，或点右上角「新建标准」建档", "Try another search, or create one with New Standard"]);
 
     body.querySelectorAll("tr[data-id]").forEach((tr) => {
       tr.onclick = () => openDetail(Number(tr.dataset.id));
@@ -75,9 +75,9 @@ App.ready(async () => {
 
     const pages = Math.max(1, Math.ceil(state.total / state.size));
     document.getElementById("pager").innerHTML = `
-      <span>共 ${state.total} 条 · 第 ${state.page}/${pages} 页</span>
-      <button class="btn btn-outline-secondary btn-sm" ${state.page <= 1 ? "disabled" : ""} data-prev>上一页</button>
-      <button class="btn btn-outline-secondary btn-sm" ${state.page >= pages ? "disabled" : ""} data-next>下一页</button>`;
+      <span>${window.App.uiText(`共 ${state.total} 条 · 第 ${state.page}/${pages} 页`, `${state.total} records · Page ${state.page}/${pages}`)}</span>
+      <button class="btn btn-outline-secondary btn-sm" ${state.page <= 1 ? "disabled" : ""} data-prev>${window.App.uiText("上一页", "Previous")}</button>
+      <button class="btn btn-outline-secondary btn-sm" ${state.page >= pages ? "disabled" : ""} data-next>${window.App.uiText("下一页", "Next")}</button>`;
     const pager = document.getElementById("pager");
     const prev = pager.querySelector("[data-prev]");
     const next = pager.querySelector("[data-next]");

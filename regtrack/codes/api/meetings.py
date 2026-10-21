@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 
 import db
 import lookups_service
+import stages
 from common import (
     ApiError, check_date, check_enum, clean, paginate, payload_of, require,
     stamp_create, stamp_update,
@@ -139,6 +140,7 @@ def create():
 @bp.put("/<int:meeting_id>")
 def update(meeting_id):
     _get(meeting_id)
+    affected = [s["id"] for s in _standards(meeting_id)]
     payload = payload_of(request)
     data = clean(payload, FIELDS)
     _validate({**_get(meeting_id), **data})
@@ -146,6 +148,8 @@ def update(meeting_id):
     db.update("meeting", meeting_id, stamp_update(data))
     lookups_service.ensure_values("organization", [data.get("organizer")])
     _replace_standards(meeting_id, standard_ids, _wants_drop_notes(payload))
+    for sid in affected:
+        stages.recompute(sid)
     db.commit()
     return jsonify(detail_payload(meeting_id))
 
@@ -153,7 +157,10 @@ def update(meeting_id):
 @bp.delete("/<int:meeting_id>")
 def remove(meeting_id):
     _get(meeting_id)
+    affected = [s["id"] for s in _standards(meeting_id)]
     db.delete("meeting", meeting_id)
+    for sid in affected:
+        stages.recompute(sid)
     db.commit()
     return jsonify(ok=True)
 
@@ -257,5 +264,6 @@ def detach_standard(meeting_id, standard_id):
         raise ApiError(DROP_NOTE_WARNING, field="note", detail=f"涉及：{link['std_no']}")
     db.execute("DELETE FROM meeting_standard WHERE meeting_id = ? AND standard_id = ?",
                (meeting_id, standard_id))
+    stages.recompute(standard_id)
     db.commit()
     return jsonify(_standards(meeting_id))

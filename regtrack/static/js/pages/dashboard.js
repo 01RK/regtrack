@@ -1,7 +1,7 @@
 /* 总览：「登记概览」与「标准生命周期回顾」两个标签页。
    当前标签与所选标准写入网址（?tab=lifecycle&std=4），刷新或分享后回到同一视图。 */
 App.ready(async () => {
-  const { esc, dash, get, tag, statusTag, overdue, emptyRow } = App;
+  const { esc, dash, get, tag, statusTag, overdue, emptyRow, t } = App;
 
   /* ------------------------------------------------------ 网址状态 */
   const params = new URLSearchParams(location.search);
@@ -52,13 +52,13 @@ App.ready(async () => {
 
   function renderStats(c) {
     document.getElementById("stats").innerHTML = [
-      ["标准主档", c.standards, "/standards", ""],
-      ["草案版本", c.drafts, "/drafts", ""],
-      ["草案章节", c.clauses, "/drafts", ""],
-      ["工作组会议", c.meetings, "/meetings", ""],
-      ["正式意见", c.comments, "/comments", ""],
-      ["在办事项", c.open_actions, "/actions?open=1", "flagged"],
-      ["已归档标准", c.archived_standards, "/standards", ""],
+      [t("标准主档", "Standards"), c.standards, "/standards", ""],
+      [t("草案版本", "Draft versions"), c.drafts, "/drafts", ""],
+      [t("草案章节", "Draft chapters"), c.clauses, "/drafts", ""],
+      [t("工作组会议", "WG meetings"), c.meetings, "/meetings", ""],
+      [t("正式意见", "Opinions"), c.comments, "/comments", ""],
+      [t("在办事项", "Open actions"), c.open_actions, "/actions?open=1", "flagged"],
+      [t("已归档标准", "Archived standards"), c.archived_standards, "/standards", ""],
     ].map(([label, n, href, cls]) =>
       `<a class="stat ${cls}" href="${href}">
          <div class="n">${n}</div><div class="l">${esc(label)}</div></a>`).join("");
@@ -67,8 +67,8 @@ App.ready(async () => {
   function renderCharts(d) {
     Charts.bars(document.getElementById("chart-stage"), d.by_stage.map((r) => {
       const i = App.stageIndex(r.code);
-      return { label: r.name, value: r.c, color: i < 0 ? "#9aa6b4" : STAGE_COLORS[i % STAGE_COLORS.length] };
-    }), { note: `共 ${d.counts.standards} 项在办标准，按当前阶段分布` });
+      return { label: App.stageLabel(r.code), value: r.c, color: i < 0 ? "#9aa6b4" : STAGE_COLORS[i % STAGE_COLORS.length] };
+    }), { note: t(`共 ${d.counts.standards} 项在办标准，按当前阶段分布`, `${d.counts.standards} active standards by current stage`) });
 
     const status = countOf(d.comment_status);
     const groups = Lifecycle.COMMENT_GROUPS.map((g) => ({
@@ -81,9 +81,9 @@ App.ready(async () => {
     const decided = accepted.value + partial.value + rejected.value;
     const rate = decided ? Math.round(((accepted.value + partial.value) / decided) * 100) : null;
     Charts.donut(document.getElementById("chart-comment"), groups, {
-      centerLabel: "条意见",
-      note: rate === null ? "尚无已答复的意见"
-        : `已答复 ${decided} 条，采纳率（含部分采纳）<b>${rate}%</b>`,
+      centerLabel: t("条意见", "opinions"),
+      note: rate === null ? t("尚无已答复的意见", "No answered opinions yet")
+        : t(`已答复 ${decided} 条，采纳率（含部分采纳）<b>${rate}%</b>`, `${decided} answered; acceptance rate (incl. partial) <b>${rate}%</b>`),
     });
   }
 
@@ -97,33 +97,33 @@ App.ready(async () => {
           <td>${a.std_no ? `<div>${esc(a.std_no)}</div><div class="cell-sub">${esc(a.name_cn)}</div>` : "—"}</td>
           <td>${statusTag(a.current_status)}</td>
           <td>${tag(a.priority)}</td>
-          <td class="num">${overdue(a.due_date) ? `<span class="tag high">${esc(a.due_date)} 已逾期</span>` : dash(a.due_date)}</td>
+          <td class="num">${overdue(a.due_date) ? `<span class="tag high">${esc(a.due_date)} ${t("已逾期", "overdue")}</span>` : dash(a.due_date)}</td>
         </tr>`).join("")
-      : emptyRow(7, filters.due.person ? `${filters.due.person} 名下没有带截止日期的在办事项` : "没有带截止日期的在办事项",
-                 "在事项里填写截止日期后会出现在这里；也可以把登记人切到「不限」");
+      : emptyRow(7, filters.due.person ? [`${filters.due.person} 名下没有带截止日期的在办事项`, `No open actions with a due date for ${filters.due.person}`] : ["没有带截止日期的在办事项", "No open actions with a due date"],
+                 ["在事项里填写截止日期后会出现在这里；也可以把登记人切到「不限」", "Actions appear here once a due date is set; you can also set Recorded By to Any"]);
     bindRows("#due-body", loadDue);
   }
 
   /* ------------------------------------ 今年已参加的工作组会议 */
   function renderMeetings(data) {
-    document.getElementById("meeting-hint").textContent = data.total > data.items.length
-      ? `共 ${data.total} 场，按日期倒序显示最近 ${data.items.length} 场`
-      : `共 ${data.total} 场 · 参会人员里写了这个人，或由这个人登记的会议`;
+    document.getElementById("meeting-hint").innerHTML = data.total > data.items.length
+      ? App.uiText(`共 ${data.total} 场，按日期倒序显示最近 ${data.items.length} 场`, `${data.total} meetings; showing the latest ${data.items.length}`)
+      : App.uiText(`共 ${data.total} 场 · 参会人员里写了这个人，或由这个人登记的会议`, `${data.total} meetings · listed as a participant or recorded by this person`);
     document.getElementById("meeting-body").innerHTML = data.items.length
       ? data.items.map((m) => `
         <tr class="row-click" data-open="meeting:${m.id}">
           <td class="num">${esc(m.meeting_no)}</td>
           <td><div class="cell-main">${esc(m.title)}</div>
-              ${m.participants ? `<div class="cell-sub">参会：${esc(m.participants)}</div>` : ""}</td>
+              ${m.participants ? `<div class="cell-sub">${t("参会：", "Participants: ")}${esc(m.participants)}</div>` : ""}</td>
           <td class="num">${esc(m.meeting_date)}</td>
           <td>${esc(m.meeting_type)}</td>
           <td>${dash(m.organizer)}</td>
           <td>${m.standard_count
                 ? `<div class="cell-sub">${esc(m.standards)}</div>`
-                : '<span class="cell-sub">未挂标准</span>'}</td>
+                : `<span class="cell-sub">${window.App.uiText("未挂标准", "None")}</span>`}</td>
           <td>${dash(m.created_by)}</td>
         </tr>`).join("")
-      : emptyRow(7, "这段时间里没有相关会议", "换个参会人或把时间范围放宽试试");
+      : emptyRow(7, ["这段时间里没有相关会议", "No meetings in this period"], ["换个参会人或把时间范围放宽试试", "Try another participant or a wider date range"]);
     bindRows("#meeting-body", loadMeetings);
   }
 
@@ -140,7 +140,7 @@ App.ready(async () => {
   function fillPeople(id, people, selected) {
     const el = document.getElementById(id);
     const options = people.includes(selected) || !selected ? people : [selected, ...people];
-    el.innerHTML = [`<option value="">不限</option>`].concat(
+    el.innerHTML = [`<option value="">${t("不限", "Any")}</option>`].concat(
       options.map((p) => `<option value="${esc(p)}"${p === selected ? " selected" : ""}>${esc(p)}</option>`)).join("");
   }
 

@@ -12,7 +12,9 @@ import sqlite3
 from flask import Blueprint, jsonify, request, send_file
 
 import db
+import comment_model
 import lookups_service
+import stages
 from common import ApiError, payload_of, sanitize, today
 from constants import LOOKUP_CATEGORIES
 
@@ -36,7 +38,8 @@ REF_COLUMNS = {
     "action_item": {"standard_id": "standard", "meeting_id": "meeting", "draft_id": "draft"},
     "feedback_recipient": {"action_item_id": "action_item"},
     "comment": {"standard_id": "standard", "draft_id": "draft",
-                "source_recipient_id": "feedback_recipient"},
+                "before_draft_id": "draft", "after_draft_id": "draft",
+                "source_annotation_id": "draft_annotation", "source_recipient_id": "feedback_recipient"},
     "standard_impact_area": {"standard_id": "standard"},
     "standard_stage_history": {"standard_id": "standard"},
     "meeting_standard": {"meeting_id": "meeting", "standard_id": "standard"},
@@ -48,7 +51,7 @@ REF_COLUMNS = {
     "recipient_status_history": {"feedback_recipient_id": "feedback_recipient"},
     "comment_status_history": {"comment_id": "comment"},
 }
-PARENT_TABLES = ("draft_import", "draft_chapter", "standard", "meeting", "draft", "action_item", "feedback_recipient", "comment")
+PARENT_TABLES = ("draft_annotation", "draft_import", "draft_chapter", "standard", "meeting", "draft", "action_item", "feedback_recipient", "comment")
 
 
 def _table_rows(table, where="", params=()):
@@ -197,10 +200,6 @@ IMPORT_PLAN = (
          serial=("item_no", "AI", "created_at")),
     Spec("feedback_recipient", fks={"action_item_id": "action_item"},
          required=("action_item_id",)),
-    Spec("comment",
-         fks={"standard_id": "standard", "draft_id": "draft",
-              "source_recipient_id": "feedback_recipient"},
-         required=("standard_id",), serial=("comment_no", "CM", "created_at")),
     Spec("standard_impact_area", fks={"standard_id": "standard"},
          required=("standard_id",), keyless=True),
     Spec("standard_stage_history", fks={"standard_id": "standard"},
@@ -212,6 +211,11 @@ IMPORT_PLAN = (
     Spec("draft_chapter_image", fks={"draft_id": "draft", "chapter_id": "draft_chapter"},
          required=("draft_id", "chapter_id")),
     Spec("draft_annotation", fks={"draft_id": "draft", "chapter_id": "draft_chapter"}, required=("draft_id",)),
+    Spec("comment",
+         fks={"standard_id": "standard", "draft_id": "draft",
+              "before_draft_id": "draft", "after_draft_id": "draft",
+              "source_annotation_id": "draft_annotation", "source_recipient_id": "feedback_recipient"},
+         required=("standard_id",), serial=("comment_no", "CM", "created_at")),
     Spec("action_status_history", fks={"action_item_id": "action_item"},
          required=("action_item_id",)),
     Spec("recipient_status_history", fks={"feedback_recipient_id": "feedback_recipient"},
@@ -370,6 +374,9 @@ def import_data():
                 if data is None:
                     _note(stat, "引用的父记录不在数据包里")
                     continue
+                if spec.table == "comment":
+                    comment_model.bind_annotation(data)
+                    comment_model.validate(data)
                 if spec.keyless:
                     marks = ",".join("?" * len(data))
                     cur = conn.execute(
@@ -399,6 +406,8 @@ def import_data():
                     continue
                 idmap[spec.table][row.get("id")] = cur.lastrowid
                 stat["inserted"] += 1
+        for sid in set(idmap["standard"].values()):
+            stages.recompute(sid)
         conn.commit()
     except ApiError:
         conn.rollback()

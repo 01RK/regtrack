@@ -1,30 +1,56 @@
 {% extends "base.html" %}
-{% block title %}草案详情 · 法规跟踪系统{% endblock %}
+{% macro compose(scope, heading, placeholder, rows) %}
+<form id="{{ scope }}-form" class="annotation-compose">
+  <div class="annotation-compose-head">
+    <label for="{{ scope }}-content">{{ heading }}</label>
+    <select id="{{ scope }}-type" class="form-select form-select-sm" aria-label="{{ t('批注类型', 'Annotation type') }}" required></select>
+  </div>
+  <textarea id="{{ scope }}-content" class="form-control" rows="{{ rows }}" required placeholder="{{ placeholder }}"></textarea>
+  <div class="annotation-compose-footer">
+    <label class="follow-up-toggle" title="{{ t('需要回复或后续行动时勾选', 'Tick when a response or further action is needed') }}">
+      <input class="form-check-input" type="checkbox" id="{{ scope }}-follow-up">
+      <span>{{ L('Follow-up required', '需要后续跟进') }}</span>
+    </label>
+    <button class="btn btn-primary btn-sm" type="submit">{{ U('保存批注', 'Save annotation') }}</button>
+  </div>
+</form>
+{% endmacro %}
+{% block title %}{{ t('草案详情', 'Draft Detail') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
 {% block eyebrow %}{% endblock %}
-{% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/drafts" aria-label="返回草案版本管理">← 返回</a><span id="draft-heading">草案详情</span></span>{% endblock %}
-{% block actions %}<button class="btn btn-outline-secondary btn-sm" id="edit-draft">编辑元数据</button><a class="btn btn-primary btn-sm" href="/drafts/import?draft_id={{ draft_id }}">导入章节 Excel</a>{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='vendor/katex/katex.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='20261008-annotation-flow-export') }}">{% endblock %}
+{% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/drafts" aria-label="{{ t('返回草案版本管理', 'Back to draft versions') }}">← {{ t('返回', 'Back') }}</a><span id="draft-heading">{{ U('草案详情', 'Draft Detail') }}</span></span>{% endblock %}
+{% block actions %}<button class="btn btn-outline-secondary btn-sm" id="edit-draft">{{ U('编辑元数据', 'Edit metadata') }}</button><a class="btn btn-primary btn-sm" href="/drafts/import?draft_id={{ draft_id }}">{{ U('导入草案原文', 'Import Draft Text') }}</a>{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='vendor/katex/katex.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='v20-fix2.13-zoom') }}">{% endblock %}
 {% block content %}
 <div id="draft-page" data-id="{{ draft_id }}">
   <div id="draft-context" class="draft-context"></div>
-  <div class="draft-view-tabs" role="tablist" aria-label="草案详情">
-    <button class="active" data-view="overview" role="tab" aria-selected="true">草案概览</button>
-    <button data-view="reader" role="tab" aria-selected="false">章节阅读 <span id="chapter-count"></span></button>
+  <div class="draft-view-tabs" role="tablist" aria-label="{{ t('草案详情', 'Draft detail') }}">
+    <button class="active" data-view="overview" role="tab" aria-selected="true">{{ U('草案概览', 'Overview') }}</button>
+    <button data-view="reader" role="tab" aria-selected="false">{{ U('章节阅读', 'Chapter Reader') }} <span id="chapter-count"></span></button>
   </div>
   <div id="draft-error" class="text-danger" role="alert"></div>
   <section id="view-overview" class="draft-overview" role="tabpanel">
-    <div class="panel"><div class="panel-head"><h2>草案元数据</h2></div><div class="panel-body"><dl id="draft-metadata" class="detail-grid"></dl></div></div>
-    <div class="panel"><div class="panel-head"><h2>整份草案批注</h2></div><div class="panel-body"><div id="whole-annotations"></div><form id="whole-form"><div class="annotation-compose-head"><label for="whole-content">新增整份草案批注</label><select id="whole-type" class="form-select form-select-sm" aria-label="批注类型" required></select></div><textarea id="whole-content" class="form-control" rows="4" required placeholder="针对这份草案的总体意见"></textarea><button class="btn btn-primary btn-sm mt-2">保存批注</button></form></div></div>
+    <div class="panel"><div class="panel-head"><h2>{{ U('草案元数据', 'Draft Metadata') }}</h2></div><div class="panel-body"><dl id="draft-metadata" class="detail-grid"></dl></div></div>
+    <div class="panel annotation-panel">
+      <div class="panel-head"><h2>{{ U('整份草案批注', 'Whole-draft Annotations') }}</h2><span class="annotation-count" id="whole-count"></span></div>
+      <div class="panel-body">
+        <div id="whole-annotations" class="annotation-list"></div>
+        {{ compose('whole', t('新增整份草案批注', 'New whole-draft annotation'), t('针对这份草案的总体意见', 'Overall comment on this draft'), 4) }}
+      </div>
+    </div>
   </section>
   <section id="view-reader" role="tabpanel" hidden>
-    <div id="reader-empty" class="panel p-5 text-center" hidden><h2 class="h5">这份草案还没有章节</h2><p class="text-muted">导入章节 Excel 后即可阅读与批注。</p><a class="btn btn-primary" href="/drafts/import?draft_id={{ draft_id }}">导入章节 Excel</a></div>
+    <div id="reader-empty" class="panel p-5 text-center" hidden><h2 class="h5">{{ U('这份草案还没有章节', 'This draft has no chapters yet') }}</h2><p class="text-muted">{{ t('导入草案原文后即可阅读与批注。', 'Import the draft text to read and annotate it.') }}</p><a class="btn btn-primary" href="/drafts/import?draft_id={{ draft_id }}">{{ U('导入草案原文', 'Import Draft Text') }}</a></div>
     <div class="draft-workspace" id="reader-workspace">
-      <aside class="reader-column chapter-directory"><header><h2>章节目录</h2><input id="chapter-search" class="form-control form-control-sm" placeholder="搜索编号或标题" aria-label="搜索章节目录"></header><nav id="chapter-tree" class="reader-scroll" aria-label="章节目录"></nav></aside>
-      <article class="reader-column chapter-paper"><div class="reader-language" role="group" aria-label="阅读语言"><button type="button" data-language="cn" class="active" aria-pressed="true">简体中文</button><button type="button" data-language="en" aria-pressed="false">English</button></div><div class="reader-scroll" id="chapter-paper"></div></article>
-      <aside class="reader-column chapter-notes"><header><h2>当前章节批注 <span id="annotation-clause"></span></h2><button type="button" id="add-chapter-annotation" class="btn btn-outline-primary btn-sm" aria-controls="chapter-form">新增批注</button></header><div id="chapter-notes-scroll" class="reader-scroll chapter-notes-body"><div id="chapter-annotations"></div><form id="chapter-form"><div class="annotation-compose-head"><label for="chapter-content">新增章节批注</label><select id="chapter-type" class="form-select form-select-sm" aria-label="批注类型" required></select></div><textarea id="chapter-content" class="form-control" rows="3" required placeholder="仅针对当前章节"></textarea><button class="btn btn-primary btn-sm mt-2">保存批注</button></form></div></aside>
+      <aside class="reader-column chapter-directory"><header><h2>{{ U('章节目录', 'Contents') }}</h2><input id="chapter-search" class="form-control form-control-sm" placeholder="{{ t('搜索编号或标题', 'Search number or title') }}" aria-label="{{ t('搜索章节目录', 'Search contents') }}"></header><nav id="chapter-tree" class="reader-scroll" aria-label="{{ t('章节目录', 'Contents') }}"></nav></aside>
+      <article class="reader-column chapter-paper"><div class="reader-language" role="group" aria-label="{{ t('阅读语言', 'Reading language') }}"><button type="button" data-language="cn" class="active" aria-pressed="true">简体中文</button><button type="button" data-language="en" aria-pressed="false">English</button></div><div class="reader-scroll" id="chapter-paper"></div></article>
+      <aside class="reader-column chapter-notes">
+        <header><h2>{{ U('当前章节批注', 'Chapter Annotations') }}</h2><span class="annotation-count" id="chapter-count-notes"></span></header>
+        <div id="chapter-notes-scroll" class="reader-scroll chapter-notes-body"><div id="chapter-annotations" class="annotation-list"></div></div>
+        {{ compose('chapter', t('新增章节批注', 'New annotation'), t('仅针对当前章节', 'For the current chapter only'), 3) }}
+      </aside>
     </div>
   </section>
 </div>
-<dialog id="illustration-viewer" class="illustration-viewer" aria-label="查看附图"><button type="button" id="close-illustration" aria-label="关闭附图">×</button><img id="illustration-large" alt=""><p id="illustration-caption"></p></dialog>
+<dialog id="illustration-viewer" class="illustration-viewer" aria-label="{{ t('查看附图', 'View illustration') }}"><button type="button" id="close-illustration" aria-label="{{ t('关闭附图', 'Close illustration') }}">×</button><img id="illustration-large" alt=""><p id="illustration-caption"></p></dialog>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='vendor/marked.umd.js') }}"></script><script src="{{ url_for('static', filename='vendor/purify.min.js') }}"></script><script src="{{ url_for('static', filename='vendor/katex/katex.min.js') }}"></script><script src="{{ url_for('static', filename='js/pages/draft-detail.js', v='20261008-annotation-flow-export') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='vendor/marked.umd.js') }}"></script><script src="{{ url_for('static', filename='vendor/purify.min.js') }}"></script><script src="{{ url_for('static', filename='vendor/katex/katex.min.js') }}"></script><script src="{{ url_for('static', filename='js/pages/draft-detail.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}

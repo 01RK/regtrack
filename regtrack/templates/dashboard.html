@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-{% block title %}总览 · 法规跟踪系统{% endblock %}
-{% block eyebrow %}Dashboard{% endblock %}
-{% block heading %}总览{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v='20261002-lifecycle-inline') }}">{% endblock %}
+{% block title %}{{ t('总览', 'Dashboard') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block eyebrow %}{{ U('Dashboard', 'Overview') }}{% endblock %}
+{% block heading %}{{ U('总览', 'Dashboard') }}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v='v20-fix2.13-zoom') }}">{% endblock %}
 {% block heading_nav %}
 <ul class="nav dash-tabs" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link" type="button" role="tab" data-bs-toggle="tab"
-            data-bs-target="#pane-overview" data-tab="overview">登记概览<span class="en">Overview</span></button>
+            data-bs-target="#pane-overview" data-tab="overview">{{ U('登记概览', 'Overview') }}<span class="en"{% if lang == 'en' %} aria-hidden="true"{% endif %}>Overview</span></button>
   </li>
   <li class="nav-item" role="presentation">
     <button class="nav-link" type="button" role="tab" data-bs-toggle="tab"
-            data-bs-target="#pane-lifecycle" data-tab="lifecycle">标准生命周期回顾<span class="en">Lifecycle Review</span></button>
+            data-bs-target="#pane-lifecycle" data-tab="lifecycle">{{ U('标准生命周期回顾', 'Lifecycle Review') }}<span class="en"{% if lang == 'en' %} aria-hidden="true"{% endif %}>Lifecycle Review</span></button>
   </li>
 </ul>
 {% endblock %}
@@ -23,56 +23,56 @@
 
     <div class="chart-grid">
       <div class="panel">
-        <div class="panel-head"><h2>标准阶段分布</h2><span class="hint">按当前阶段统计 · 未进入的阶段显示为 0</span></div>
-        <div class="panel-body" id="chart-stage"><div class="loading">载入中…</div></div>
+        <div class="panel-head"><h2>{{ U('标准阶段分布', 'Standards by Stage') }}</h2><span class="hint">{{ U('按当前阶段统计 · 未进入的阶段显示为 0', 'By current stage · stages not reached show 0') }}</span></div>
+        <div class="panel-body" id="chart-stage"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><h2>意见采纳情况</h2><span class="hint">悬停图例查看状态明细</span></div>
-        <div class="panel-body" id="chart-comment"><div class="loading">载入中…</div></div>
+        <div class="panel-head"><h2>{{ U('意见采纳情况', 'Opinion Outcomes') }}</h2><span class="hint">{{ U('悬停图例查看状态明细', 'Hover the legend for status details') }}</span></div>
+        <div class="panel-body" id="chart-comment"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></div>
       </div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2>在办事项 · 按截止日期</h2>
-        <span class="hint">取 Submission Due Date / Due Date / Target Date 中已填写的一项</span>
+        <h2>{{ U('在办事项 · 按截止日期', 'Open Actions by Due Date') }}</h2>
+        <span class="hint">{{ U('取 Submission Due Date / Due Date / Target Date 中已填写的一项', 'Uses whichever of Submission Due Date / Due Date / Target Date is filled in') }}</span>
         <div class="board-filters ms-auto">
-          <label for="due-person">登记人</label>
+          <label for="due-person">{{ L('Recorded By', '登记人') }}</label>
           <select id="due-person" class="form-select form-select-sm"></select>
         </div>
       </div>
       <div class="panel-body tight table-wrap">
         <table class="table">
           <thead><tr>
-            <th>事项号</th><th>类型</th><th>标题</th><th>关联标准</th>
-            <th>状态</th><th>优先级</th><th>截止</th>
+            <th>{{ L('Action No.', '事项号') }}</th><th>{{ L('Type', '类型') }}</th><th>{{ L('Title', '标题') }}</th><th>{{ L('Related Standard', '关联标准') }}</th>
+            <th>{{ L('Status', '状态') }}</th><th>{{ L('Priority', '优先级') }}</th><th>{{ L('Due Date', '截止') }}</th>
           </tr></thead>
-          <tbody id="due-body"><tr><td colspan="7"><div class="loading">载入中…</div></td></tr></tbody>
+          <tbody id="due-body"><tr><td colspan="7"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
         </table>
       </div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2>今年已参加的工作组会议</h2>
-        <span class="hint" id="meeting-hint">参会人员里写了这个人，或由这个人登记的会议</span>
+        <h2>{{ U('今年已参加的工作组会议', 'WG Meetings Attended This Year') }}</h2>
+        <span class="hint" id="meeting-hint"></span>
         <div class="board-filters ms-auto">
-          <label for="meeting-person">参会人</label>
+          <label for="meeting-person">{{ L('Participant', '参会人') }}</label>
           <select id="meeting-person" class="form-select form-select-sm"></select>
-          <label for="meeting-from">从</label>
+          <label for="meeting-from">{{ L('From', '从') }}</label>
           <input type="date" id="meeting-from" class="form-control form-control-sm">
-          <label for="meeting-to">到</label>
+          <label for="meeting-to">{{ L('To', '到') }}</label>
           <input type="date" id="meeting-to" class="form-control form-control-sm">
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="meeting-reset">今年</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="meeting-reset">{{ U('今年', 'This year') }}</button>
         </div>
       </div>
       <div class="panel-body tight table-wrap">
         <table class="table">
           <thead><tr>
-            <th>会议号</th><th>会议名称</th><th>日期</th><th>类型</th>
-            <th>组织方</th><th>涉及标准</th><th>登记人</th>
+            <th>{{ L('Meeting No.', '会议号') }}</th><th>{{ L('Meeting Title', '会议名称') }}</th><th>{{ L('Date', '日期') }}</th><th>{{ L('Type', '类型') }}</th>
+            <th>{{ L('Organizer', '组织方') }}</th><th>{{ L('Related Standards', '涉及标准') }}</th><th>{{ L('Recorded By', '登记人') }}</th>
           </tr></thead>
-          <tbody id="meeting-body"><tr><td colspan="7"><div class="loading">载入中…</div></td></tr></tbody>
+          <tbody id="meeting-body"><tr><td colspan="7"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -84,14 +84,14 @@
         <div class="lc-picker"><select id="lc-standard"></select></div>
         <div class="lc-actions">
           <button type="button" class="lc-btn" id="lc-profile" disabled>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z M9.5 1.5V5H13 M6 8.5h5 M6 11h5"/></svg>标准主档
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z M9.5 1.5V5H13 M6 8.5h5 M6 11h5"/></svg>{{ U('标准主档', 'Standard Profile') }}
           </button>
           <button type="button" class="lc-btn" id="lc-fullscreen" aria-pressed="false">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5H2.5V6 M10 2.5h3.5V6 M6 13.5H2.5V10 M10 13.5h3.5V10"/></svg><span>沉浸查看</span>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5H2.5V6 M10 2.5h3.5V6 M6 13.5H2.5V10 M10 13.5h3.5V10"/></svg><span>{{ U('沉浸查看', 'Immersive view') }}</span>
           </button>
           <a class="lc-btn primary disabled" id="lc-export" href="#" download
-             title="导出该标准全部历史信息（含草案章节与事项）">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8 M4.5 6.5 8 10l3.5-3.5 M2.5 12.5v1.5h11v-1.5"/></svg>导出 Markdown
+             title="{{ t('导出该标准全部历史信息（含草案章节与事项）', 'Export the full history of this standard, including draft chapters and actions') }}">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8 M4.5 6.5 8 10l3.5-3.5 M2.5 12.5v1.5h11v-1.5"/></svg>{{ U('导出 Markdown', 'Export Markdown') }}
           </a>
         </div>
       </div>
@@ -102,7 +102,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/charts.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/lifecycle.js', v='20261002-lifecycle-inline') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/dashboard.js', v='20260923-v18') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/lifecycle.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/dashboard.js', v='v20-fix2.13-zoom') }}"></script>
 {% endblock %}

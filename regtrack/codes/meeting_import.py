@@ -9,6 +9,7 @@ import lookups_service
 import stages
 import status
 from meeting_actions import review_actions, validate_action_selection
+from constants import MEETING_STAGE_CODES, STAGE_ORDER
 from common import ApiError, check_date, sanitize, stamp_create, stamp_update, today
 
 MEETING_FIELDS = ('title', 'meeting_date', 'key_discussions', 'overall_conclusion', 'organizer')
@@ -43,12 +44,15 @@ def validate(raw):
         raise ApiError('Meeting Date 必须使用 YYYY-MM-DD 格式')
     result = {'meeting': meeting}
     for key, fields, required in (
-        ('standards', ('key', 'name_cn', 'std_no', 'note'), ('key', 'name_cn', 'note')),
-        ('actions', ('title', 'description', 'standard_key', 'owner', 'due_date'), ('title', 'description')),
+        ('standards', ('key', 'name_cn', 'std_no', 'note', 'current_stage'), ('key', 'name_cn', 'note', 'current_stage')),
+        ('actions', ('title', 'description', 'standard_key', 'stakeholder', 'due_date'), ('title', 'description')),
     ):
         if not isinstance(raw[key], list) or len(raw[key]) > 300:
             raise ApiError(f'{key} 必须是数组，最多 300 条')
         result[key] = [texts(row, fields, required, f'{key}[{i + 1}]') for i, row in enumerate(raw[key])]
+    for standard in result['standards']:
+        if standard['current_stage'] not in MEETING_STAGE_CODES:
+            raise ApiError('Current Stage 必须为：' + '、'.join(MEETING_STAGE_CODES))
     keys = [s['key'] for s in result['standards']]
     if any(',' in key for key in keys):
         raise ApiError('Standard Key 不能包含逗号')
@@ -91,7 +95,7 @@ def preview(package):
             score = SequenceMatcher(None, normalized(meeting['title']), normalized(m['title']), autojunk=False).ratio()
             recommended[m['id']] = dict(m, same_day=True, similar_title=False,
                                        similarity=round(score*100, 1), exact=m['title']==meeting['title'])
-    standards = db.query('SELECT id, std_no, name_cn, archived_at FROM standard')
+    standards = db.query('SELECT id, std_no, name_cn, stage_code, archived_at FROM standard')
     return dict(package=package,
                 meetings=sorted(recommended.values(), key=lambda m: (not m['same_day'], not m['exact'], -m['similarity'], m['id'])),
                 standards=[dict(key=s['key'], candidates=candidates(s['name_cn'], standards, 'name_cn'))
@@ -138,14 +142,16 @@ def commit_import(package, decision):
                 data['organizer'] = meeting['organizer']
             db.update('meeting', meeting_id, stamp_update(data))
         lookups_service.ensure_values('organization', [meeting['organizer']])
+        confirmed_meeting = db.query_one('SELECT * FROM meeting WHERE id=?', (meeting_id,))
         mapped, used = {}, set()
-        counts = {'created_standards': 0, 'skipped_standards': 0, 'created_actions': 0, 'deleted_actions': 0, 'omitted_actions': 0, 'excluded_actions': 0}
+        counts = {'created_standards': 0, 'advanced_standards': 0, 'skipped_standards': 0, 'created_actions': 0, 'deleted_actions': 0, 'omitted_actions': 0, 'excluded_actions': 0}
         for source, match in zip(package['standards'], available['standards']):
             choice = choices[source['key']]
             if not isinstance(choice, dict):
                 raise ApiError('标准确认格式不正确')
             mode = choice.get('mode')
             sid = None
+            stage_code = MEETING_STAGE_CODES[source['current_stage']]
             if mode == 'existing':
                 sid = choice.get('id')
                 selected = next((s for s in match['candidates'] if type(sid) is int and s['id'] == sid), None)
@@ -158,8 +164,8 @@ def commit_import(package, decision):
                 if fields['std_no'] and 'XXXX' not in fields['std_no'].upper() and db.query_one('SELECT id FROM standard WHERE std_no = ?', (fields['std_no'],)):
                     raise ApiError(f'标准号 {fields["std_no"]} 已存在，请核对名称和匹配选择')
                 fields['std_no'] = fields['std_no'] or None
-                sid = db.insert('standard', stamp_update(stamp_create(dict(fields, stage_code='PRE_RESEARCH'))))
-                stages.seed_initial(sid, 'PRE_RESEARCH', today())
+                sid = db.insert('standard', stamp_update(stamp_create(dict(fields, stage_code=stage_code))))
+
                 counts['created_standards'] += 1
             elif mode != 'skip':
                 raise ApiError(f'请决定是否追踪「{source["name_cn"]}」')
@@ -167,10 +173,15 @@ def commit_import(package, decision):
                 if sid in used:
                     raise ApiError('多个数据包标准匹配到同一主档，请先合并对应纪要')
                 used.add(sid)
+                before_stage = selected['stage_code'] if mode == 'existing' else stage_code
                 old = db.query_one('SELECT note FROM meeting_standard WHERE meeting_id=? AND standard_id=?', (meeting_id, sid))
                 note = merge_text(old['note'] if old else '', source['note'])
-                db.execute('INSERT INTO meeting_standard(meeting_id,standard_id,note) VALUES(?,?,?) '
-                           'ON CONFLICT(meeting_id,standard_id) DO UPDATE SET note=excluded.note', (meeting_id, sid, note))
+                db.execute('INSERT INTO meeting_standard(meeting_id,standard_id,note,imported_stage_code) VALUES(?,?,?,?) '
+                           'ON CONFLICT(meeting_id,standard_id) DO UPDATE SET note=excluded.note, '
+                           'imported_stage_code=excluded.imported_stage_code', (meeting_id, sid, note, stage_code))
+                after_stage = stages.record_from_meeting(sid, stage_code, confirmed_meeting)
+                if mode == 'existing' and STAGE_ORDER[after_stage] > STAGE_ORDER[before_stage]:
+                    counts['advanced_standards'] += 1
             else:
                 counts['skipped_standards'] += 1
             mapped[source['key']] = sid
@@ -191,10 +202,10 @@ def commit_import(package, decision):
             aid = db.insert('action_item', stamp_update(stamp_create(dict(
                 item_no=db.next_serial('action_item', 'item_no', 'AI', today()[:4]),
                 item_type='Others', current_status='Open', meeting_id=meeting_id, standard_id=sid,
-                title=action['title'], description=description, coordinator=action['owner'] or None,
+                title=action['title'], description=description, coordinator=action['stakeholder'] or None,
                 target_date=action['due_date'] or None))))
             status.seed_initial('action_item', aid, 'current_status', 'Open', today())
-            lookups_service.ensure_values('person', [action['owner']])
+            lookups_service.ensure_values('person', [action['stakeholder']])
             counts['created_actions'] += 1
         for old in action_review['existing_snapshot']:
             if old['id'] not in keep_existing:

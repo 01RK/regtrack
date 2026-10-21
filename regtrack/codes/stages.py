@@ -9,7 +9,7 @@
   · 阶段记录写入后不锁定：两类记录的生效日期、依据与说明都能更正，
     审计追溯靠 created_at / created_by 与 updated_at / updated_by 四个
     时间戳字段（界面同时展示），阶段本身不可改写——换阶段是另一条记录；
-  · 当前阶段永远由阶段记录计算得出（取已记录阶段中最靠后的一个），
+  · 当前阶段取最新日期会议纪要阶段与手动记录最高阶段的较大者，
     标准主档不能直接改写。
 """
 
@@ -57,12 +57,30 @@ def _decorate(row: dict) -> dict:
     return row
 
 
+def current_state(standard_id: int) -> tuple[str, str | None]:
+    """Latest meeting snapshots versus all manual stages; same-day snapshots use max rank."""
+    candidates = db.query(
+        "SELECT stage_code, effective_date FROM standard_stage_history "
+        "WHERE standard_id = ? AND is_manual = 1", (standard_id,))
+    meetings = db.query(
+        """SELECT ms.imported_stage_code AS stage_code, m.meeting_date AS effective_date
+             FROM meeting_standard ms JOIN meeting m ON m.id = ms.meeting_id
+            WHERE ms.standard_id = ? AND ms.imported_stage_code IS NOT NULL
+              AND m.meeting_date = (
+                  SELECT MAX(m2.meeting_date) FROM meeting_standard ms2
+                  JOIN meeting m2 ON m2.id = ms2.meeting_id
+                  WHERE ms2.standard_id = ? AND ms2.imported_stage_code IS NOT NULL)""",
+        (standard_id, standard_id))
+    candidates.extend(meetings)
+    # No remaining source after unlinking all imported meetings means not yet researched.
+    if not candidates:
+        return "PRE_RESEARCH", None
+    winner = max(candidates, key=lambda row: (STAGE_ORDER[row["stage_code"]], row["effective_date"]))
+    return winner["stage_code"], winner["effective_date"]
+
+
 def current_code(standard_id: int) -> str:
-    """当前阶段 = 已记录阶段中最靠后的一个。"""
-    rows = db.query(
-        "SELECT stage_code FROM standard_stage_history WHERE standard_id = ?",
-        (standard_id,))
-    return max((r["stage_code"] for r in rows), key=lambda c: STAGE_ORDER[c])
+    return current_state(standard_id)[0]
 
 
 def recompute(standard_id: int) -> str:
@@ -72,7 +90,7 @@ def recompute(standard_id: int) -> str:
 
 
 def timeline(standard_id: int, stage_code: str) -> list[dict]:
-    """完整九段时间轴：每一段要么已有记录，要么标出可补录 / 可推进。"""
+    """完整十段时间轴：每一段要么已有记录，要么标出可补录 / 可推进。"""
     by_code = {r["stage_code"]: r for r in records(standard_id)}
     current_rank = STAGE_ORDER[stage_code]
     out = []
@@ -82,7 +100,7 @@ def timeline(standard_id: int, stage_code: str) -> list[dict]:
         if record:
             state = "current" if index == current_rank else "done"
         else:
-            state = "missing" if index < current_rank else "future"
+            state = "current" if index == current_rank else "missing" if index < current_rank else "future"
         out.append({
             "code": code,
             "label": stage["cn"],
@@ -98,12 +116,13 @@ def timeline(standard_id: int, stage_code: str) -> list[dict]:
     return out
 
 
-def _insert(standard_id: int, data: dict, record_type: str) -> int:
+def _insert(standard_id: int, data: dict, record_type: str, *, is_manual: bool = True) -> int:
     stamp = now()
     return db.insert("standard_stage_history", {
         "standard_id": standard_id,
         "stage_code": data["stage_code"],
         "record_type": record_type,
+        "is_manual": int(is_manual),
         "effective_date": data["effective_date"],
         "note": data.get("note"),
         "reference": data.get("reference"),
@@ -139,7 +158,7 @@ def add(standard_id: int, stage_code: str, payload: dict) -> dict:
     existing = db.query_one(
         "SELECT * FROM standard_stage_history WHERE standard_id = ? AND stage_code = ?",
         (standard_id, stage_code))
-    if existing:
+    if existing and existing["is_manual"]:
         raise ApiError(
             f"「{label(stage_code)}」阶段已有记录，已填写的阶段信息不可重复填写",
             field="stage_code",
@@ -153,20 +172,23 @@ def add(standard_id: int, stage_code: str, payload: dict) -> dict:
 
     if STAGE_ORDER[stage_code] > STAGE_ORDER[current]:
         record_type = STAGE_ADVANCE
-        anchor = db.query_one(
-            "SELECT effective_date FROM standard_stage_history "
-            "WHERE standard_id = ? AND stage_code = ?", (standard_id, current))
-        if data["effective_date"] < anchor["effective_date"]:
+        _, anchor_date = current_state(standard_id)
+        if anchor_date and data["effective_date"] < anchor_date:
             raise ApiError(
                 f"正常推进的生效日期不能早于当前阶段「{label(current)}」的 "
-                f"{anchor['effective_date']}",
+                f"{anchor_date}",
                 field="effective_date",
                 detail="如果要记录更早发生的阶段，请选择当前阶段之前的阶段进行补录")
     else:
         # 历史补录：真实发生时间可能早于、也可能晚于相邻阶段，不做顺序限制。
         record_type = STAGE_BACKFILL
 
-    record_id = _insert(standard_id, data, record_type)
+    if existing:
+        record_id = existing["id"]
+        db.update("standard_stage_history", record_id, dict(data, is_manual=1,
+            record_type=record_type, updated_at=now(), updated_by=current_user()))
+    else:
+        record_id = _insert(standard_id, data, record_type)
     recompute(standard_id)
     db.commit()
     return one(record_id)
@@ -192,9 +214,11 @@ def edit(standard_id: int, record_id: int, payload: dict) -> dict:
     }
     require(data, [("effective_date", "Effective Date 生效日期")])
     check_date(data, "effective_date", "Effective Date 生效日期")
+    data["is_manual"] = 1
     data["updated_at"] = now()
     data["updated_by"] = current_user()
     db.update("standard_stage_history", record_id, data)
+    recompute(standard_id)
     db.commit()
     return one(record_id)
 
@@ -202,3 +226,19 @@ def edit(standard_id: int, record_id: int, payload: dict) -> dict:
 def one(record_id: int) -> dict:
     return _decorate(
         db.query_one("SELECT * FROM standard_stage_history WHERE id = ?", (record_id,)))
+
+
+
+def record_from_meeting(standard_id: int, stage_code: str, meeting: dict) -> str:
+    """Keep a stage audit entry; current state comes from dated meeting snapshots."""
+    existing = db.query_one(
+        "SELECT id FROM standard_stage_history WHERE standard_id = ? AND stage_code = ?",
+        (standard_id, stage_code))
+    if not existing:
+        _insert(standard_id, {
+            "stage_code": stage_code, "effective_date": meeting["meeting_date"],
+            "note": f"会议纪要导入：{meeting['title']}", "reference": meeting["title"],
+        }, STAGE_ADVANCE, is_manual=False)
+    code = recompute(standard_id)
+    db.update("standard", standard_id, {"updated_at": now(), "updated_by": current_user()})
+    return code

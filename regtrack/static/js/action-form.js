@@ -4,7 +4,7 @@
 (function () {
   "use strict";
 
-  const { esc, post, put, ok } = window.App;
+  const { esc, post, put, ok, t, label } = window.App;
 
   const TYPE_LABEL = {
     "Survey Feedback": "问卷 / 意见上达",
@@ -14,37 +14,41 @@
     Others: "其他",
   };
 
+  /** 事项类型显示：中文界面附中文说明，英文界面只显示类型名。 */
+  const typeText = (type) => t(`${type} · ${TYPE_LABEL[type]}`, type);
+  const typeSection = (type) => ({ section: t(`${type} 特有字段`, `${type} fields`) });
+
   function typeFields(type, M) {
     switch (type) {
       case "Survey Feedback":
         return [
-          { section: "① Survey Feedback 特有字段" },
-          { name: "requesting_body", label: "Requesting Body", cn: "提出要求的工作组 / 机构", type: "lookup", category: "organization", required: true, col: 4 },
+          typeSection(type),
+          { name: "requesting_body", label: "Requesting Body", cn: "提出要求的机构", type: "lookup", category: "organization", required: true, col: 4 },
           { name: "submission_due_date", label: "Submission Due Date", cn: "上达截止日期", type: "date", required: true, col: 4 },
           { name: "submission_channel", label: "Submission Channel", cn: "上达渠道", type: "fixed", options: M.submission_channels, col: 4 },
         ];
       case "Lobby with Drafter":
         return [
-          { section: "③ Lobby with Drafter 特有字段" },
+          typeSection(type),
           { name: "drafter_counterpart", label: "Drafter / Counterpart", cn: "起草人 / 对口机构", type: "text", required: true, col: 6 },
-          { name: "target_position", label: "Target Position", cn: "我方希望传达的立场", type: "textarea", rows: 3, required: true, col: 12 },
+          { name: "target_position", label: "Target Position", cn: "目标立场", type: "textarea", rows: 3, required: true, col: 12 },
           { name: "actual_lobby_time", label: "Actual Lobby Time", cn: "实际沟通时间", type: "date", col: 4 },
           { name: "lobby_method", label: "Method", cn: "沟通方式", type: "fixed", options: M.lobby_methods, col: 4 },
           { name: "outcome", label: "Outcome", cn: "沟通结果", type: "textarea", rows: 3, col: 12 },
         ];
       case "Compliance Check":
         return [
-          { section: "④ Compliance Check 特有字段" },
+          typeSection(type),
           { name: "check_owner", label: "Responsible Person / Team", cn: "核查负责人 / 团队", type: "lookup", category: "person", required: true, col: 4 },
-          { name: "check_due_date", label: "Due Date", cn: "核查截止日期", type: "date", required: true, col: 4 },
+          { name: "check_due_date", label: "Due Date", cn: "截止日期", type: "date", required: true, col: 4 },
           { name: "actual_check_time", label: "Actual Check Time", cn: "实际完成时间", type: "date", col: 4 },
           { name: "check_result", label: "Check Result", cn: "核查结论", type: "fixed", options: M.check_results, col: 4,
-            help: "事项置为 Completed / Closed 前必须填写。" },
-          { name: "gap_description", label: "Gap Description", cn: "差距具体在哪", type: "textarea", rows: 3, col: 12 },
+            help: t("事项置为 Completed / Closed 前必须填写。", "Required before the action is set to Completed / Closed.") },
+          { name: "gap_description", label: "Gap Description", cn: "差距说明", type: "textarea", rows: 3, col: 12 },
         ];
       case "Others":
         return [
-          { section: "⑤ Others 特有字段" },
+          typeSection(type),
           { name: "coordinator", label: "Coordinator", cn: "协调人", type: "lookup", category: "person", required: true, col: 6 },
           { name: "target_date", label: "Target Date", cn: "目标完成日期", type: "date", col: 6 },
         ];
@@ -56,38 +60,40 @@
   function spec(vals, isNew, locked, typeLocked) {
     const M = window.App.meta;
     const type = vals.item_type || "Survey Feedback";
-    const head = [{ section: "顶层共有字段" }];
+    const head = [{ section: t("通用字段", "Common fields") }];
 
     head.push((isNew && !typeLocked)
-      ? { name: "item_type", label: "Item Type", cn: "事项类型（决定下方字段）", type: "fixed", options: M.action_types, required: true, col: 4 }
-      : { name: "item_type", label: "Item Type", cn: "事项类型", type: "auto", submit: true, col: 4, display: `${type} · ${TYPE_LABEL[type]}` });
+      ? { name: "item_type", label: "Item Type", cn: "事项类型", type: "fixed", options: M.action_types, required: true, col: 4,
+          help: t("类型决定下方字段。", "The type decides the fields below.") }
+      : { name: "item_type", label: "Item Type", cn: "事项类型", type: "auto", submit: true, col: 4, display: typeText(type) });
 
     head.push(locked && locked.standard
       ? { name: "standard_id", label: "Related Standard", cn: "关联标准", type: "auto", submit: true, col: 8, display: locked.standard }
-      : { name: "standard_id", label: "Related Standard", cn: type === "Others" ? "关联标准（Others 可空）" : "关联标准", type: "standard", required: type !== "Others", col: 8 });
+      : { name: "standard_id", label: "Related Standard", cn: "关联标准", type: "standard", required: type !== "Others", col: 8,
+          help: type === "Others" ? t("Others 类事项可不关联标准。", "Optional for Others.") : "" });
 
     head.push(locked && locked.meeting
       ? { name: "meeting_id", label: "Related Meeting", cn: "关联会议", type: "auto", submit: true, col: 6, display: locked.meeting }
       : { name: "meeting_id", label: "Related Meeting", cn: "关联会议", type: "meeting", col: 6 });
 
-    head.push({ name: "draft_id", label: "Related Draft", cn: "关联草案（按标准过滤）", type: "draft", dependsOn: "standard_id", col: 6 });
+    head.push({ name: "draft_id", label: "Related Draft", cn: "关联草案", type: "draft", dependsOn: "standard_id", col: 6 });
     head.push(
       { name: "title", label: "Title", cn: "事项标题", type: "text", required: true, col: 12 },
-      { name: "description", label: "Description", cn: "要解决什么问题", type: "textarea", rows: 3, required: true, col: 12 },
-      { name: "related_clause", label: "Related Clause", cn: "关联条款号（可多填）", type: "text", col: 4, placeholder: "5.2.2, 5.4.1" },
+      { name: "description", label: "Description", cn: "描述", type: "textarea", rows: 3, required: true, col: 12 },
+      { name: "related_clause", label: "Related Clause", cn: "关联条款", type: "text", col: 4, placeholder: "5.2.2, 5.4.1" },
       { name: "priority", label: "Priority", cn: "优先级", type: "fixed", options: M.priorities, col: 4 });
 
     head.push(isNew
       ? { name: "current_status", label: "Current Status", cn: "当前状态", type: "fixed", options: M.action_statuses, required: true, col: 4 }
       : { name: "current_status", label: "Current Status", cn: "当前状态", type: "auto", col: 4, display: vals.current_status,
-          help: "状态通过「状态历史」推进。" });
+          help: t("状态通过「更新状态」推进。", "Change it with Update status.") });
 
     return head
       .concat(typeFields(type, M))
       .concat([
-        { section: "收尾" },
-        { name: "final_summary", label: "Final Summary", cn: "完成 / 关闭时的结论", type: "textarea", rows: 2, col: 12 },
-        { name: "supporting_ref", label: "Supporting Reference", cn: "支撑材料位置", type: "text", col: 12 },
+        { section: t("收尾", "Closing") },
+        { name: "final_summary", label: "Final Summary", cn: "结论", type: "textarea", rows: 2, col: 12 },
+        { name: "supporting_ref", label: "Supporting Reference", cn: "支撑材料", type: "text", col: 12 },
       ]);
   }
 
@@ -102,22 +108,22 @@
     function draw() {
       panel.innerHTML = `
         <div class="panel-head">
-          <h2>② 反馈对象 · Feedback Recipients</h2>
-          <span class="hint">至少 1 个；Team 与 Person 至少填一个</span>
-          <button class="btn btn-outline-secondary btn-sm ms-auto" data-add>+ 添加反馈对象</button>
+          <h2>${window.App.uiText("反馈对象", "Feedback Recipients")}</h2>
+          <span class="hint">${window.App.uiText("至少 1 个；Team 与 Person 至少填一个", "At least one; fill in Team or Person")}</span>
+          <button class="btn btn-outline-secondary btn-sm ms-auto" data-add>${window.App.uiText("+ 添加反馈对象", "+ Add recipient")}</button>
         </div>
         <div class="panel-body tight table-wrap">
           <table class="table">
-            <thead><tr><th>Team</th><th>Person</th><th>回复状态</th><th>要求回复日期</th><th></th></tr></thead>
+            <thead><tr><th>${label("Team", "团队")}</th><th>${label("Person", "人员")}</th><th>${label("Response Status", "回复状态")}</th><th>${label("Due Date", "要求回复日期")}</th><th></th></tr></thead>
             <tbody>${rows.length ? rows.map((r, i) => `
               <tr>
                 <td>${esc(r.respondent_team || "—")}</td>
                 <td>${esc(r.respondent_person || "—")}</td>
                 <td>${esc(r.response_status)}</td>
                 <td class="num">${esc(r.response_due_date || "—")}</td>
-                <td><button class="btn-link-quiet" data-rm="${i}">移除</button></td>
+                <td><button class="btn-link-quiet" data-rm="${i}">${window.App.uiText("移除", "Remove")}</button></td>
               </tr>`).join("")
-              : '<tr><td colspan="5"><div class="empty">还没有反馈对象，点右上角添加</div></td></tr>'}
+              : `<tr><td colspan="5"><div class="empty">${t("还没有反馈对象，点右上角添加", "No recipients yet. Add one at the top right.")}</div></td></tr>`}
             </tbody>
           </table>
         </div>`;
@@ -129,7 +135,7 @@
 
     function addRow() {
       Forms.formModal({
-        title: "添加反馈对象",
+        title: t("添加反馈对象", "Add Recipient"),
         subtitle: "Subform · Feedback Recipients",
         size: "md",
         fields: [
@@ -139,10 +145,10 @@
           { name: "response_due_date", label: "Response Due Date", cn: "要求回复日期", type: "date", col: 6 },
         ],
         values: { response_status: "Open" },
-        submitText: "添加",
+        submitText: t("添加", "Add"),
         async onSubmit(payload, m) {
           if (!payload.respondent_team && !payload.respondent_person) {
-            throw new Error("Team 与 Person 至少填一个");
+            throw new Error(t("Team 与 Person 至少填一个", "Fill in at least Team or Person"));
           }
           rows.push(payload);
           await m.close();
@@ -164,13 +170,13 @@
     const recipients = [];
 
     Forms.formModal({
-      title: isNew ? "新建事项" : `编辑 ${values.item_no}`,
-      subtitle: "Action Item · 事项",
+      title: isNew ? t("新建事项", "New Action") : `${t("编辑", "Edit")} ${values.item_no}`,
+      subtitle: t("Action Item · 事项", "Action Item"),
       size: "xl",
       fields: (v) => spec(v, isNew, cfg.locked, cfg.typeLocked),
       values,
       rebuildOn: isNew && !cfg.typeLocked ? ["item_type"] : [],
-      submitText: isNew ? "创建事项" : "保存修改",
+      submitText: isNew ? t("创建事项", "Create action") : t("保存修改", "Save changes"),
       after(bodyEl, form, vals) {
         if (isNew && vals.item_type === "Collect Comments") recipientEditor(bodyEl, recipients);
       },
@@ -184,10 +190,10 @@
         if (isNew) {
           if (payload.item_type === "Collect Comments") payload.recipients = recipients;
           saved = await post("/api/actions", payload);
-          ok(`已创建事项 ${saved.item_no}`);
+          ok(t(`已创建事项 ${saved.item_no}`, `Created ${saved.item_no}`));
         } else {
           saved = await put(`/api/actions/${values.id}`, payload);
-          ok("已保存");
+          ok(t("已保存", "Saved"));
         }
         await m.close();
         if (cfg.onSaved) await cfg.onSaved(saved);
@@ -195,5 +201,5 @@
     });
   }
 
-  window.ActionForm = { open, spec, TYPE_LABEL };
+  window.ActionForm = { open, spec, typeText };
 })();

@@ -27,7 +27,7 @@ def _lifecycle_stages(standard: dict) -> list[dict]:
         timeline.append({
             "code": row["stage_code"],
             "name": row["stage_label"],
-            "state": "done" if following else "current",
+            "state": "current" if row["stage_code"] == standard["stage_code"] else "done",
             "start": row["effective_date"],
             "end": following["effective_date"] if following else None,
             "note": row["note"],
@@ -46,7 +46,7 @@ def _lifecycle_stages(standard: dict) -> list[dict]:
     if "PRE_RESEARCH" not in recorded:
         timeline.insert(0, {
             "code": "PRE_RESEARCH", "name": stages.label("PRE_RESEARCH"),
-            "state": "unrecorded", "start": None, "end": None, "note": None,
+            "state": "current" if standard["stage_code"] == "PRE_RESEARCH" else "unrecorded", "start": None, "end": None, "note": None,
             "record_type": None, "record_type_label": None,
             "created_at": None, "created_by": None,
             "updated_at": None, "updated_by": None, "modified": False,
@@ -73,7 +73,7 @@ def _stage_for(timeline: list[dict], day: str, preferred: str | None = None) -> 
             return stage
     hit = reached[0]  # 早于第一条阶段记录的日期归入第一个阶段
     for stage in reached:
-        if stage["start"] <= day:
+        if stage["start"] is not None and stage["start"] <= day:
             hit = stage
     return hit
 
@@ -115,14 +115,17 @@ def payload(standard_id: int, full: bool) -> dict:
         stage["drafts"].append(draft)
 
     comments = db.query(
-        """SELECT c.*, d.version_name, d.sub_version_no
+        """SELECT c.*, d.version_name, d.sub_version_no,
+             bd.version_name AS before_version_name, bd.sub_version_no AS before_sub_version_no,
+             ad.version_name AS after_version_name, ad.sub_version_no AS after_sub_version_no
              FROM comment c LEFT JOIN draft d ON d.id = c.draft_id
+             LEFT JOIN draft bd ON bd.id=c.before_draft_id LEFT JOIN draft ad ON ad.id=c.after_draft_id
             WHERE c.standard_id = ?
             ORDER BY COALESCE(c.submission_date, substr(c.created_at, 1, 10)), c.id""",
         (standard_id,))
     for comment in comments:
         day = comment["submission_date"] or comment["created_at"][:10]
-        stage = draft_stage.get(comment["draft_id"]) or _stage_for(timeline, day)
+        stage = draft_stage.get(comment["after_draft_id"] if comment["source_kind"] == "comparison" else comment["draft_id"]) or _stage_for(timeline, day)
         if full:
             comment["status_history"] = status.history("comment", comment["id"], "status")
         stage["comments"].append(comment)
