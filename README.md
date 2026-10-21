@@ -1,4 +1,4 @@
-# RegTrack 法规跟踪系统
+# RegTrack 法规跟踪系统 v0.21.0
 
 RegTrack 是一个本地运行的法规与标准跟踪工具，使用 Python、Flask 和 SQLite 构建。它帮助个人或团队集中管理标准生命周期、草案版本、工作组会议、意见和后续事项。数据保存在本机 SQLite 数据库中。
 
@@ -7,10 +7,13 @@ RegTrack 是一个本地运行的法规与标准跟踪工具，使用 Python、F
 - 管理标准主档及从预研、立项到实施、废止的阶段历史
 - 管理草案版本，导入 Excel 章节并阅读中英文正文、公式及图片
 - 保存和编辑章节或整份草案批注，替换导入时确认批注冲突与保留范围
+保存批注即自动生成意见，内容与类型随编辑同步。默认 Draft；勾选“是否需要后续跟进”后为 Submitted。
 - 记录工作组会议及会议关联的标准
 - 跟踪意见、事项、状态变化和反馈对象
 - 查看标准生命周期回顾并导出 Markdown
 - 按标准分组检索相关记录，并支持数据导入与导出
+- 切换中英文界面，并在当前标签页恢复列表展开状态
+- 使用 Excel 导入、导出草案意见；导入校验全部通过后才写入
 
 ## 环境要求
 
@@ -60,13 +63,24 @@ python codes/package.py
 
 ## 开发数据
 
+源码保留 `regtrack/sql/schema.sql`、`regtrack/sql/seed.sql` 和 `regtrack/codes/init_db.py`。
+需要演示数据时，在首次运行 `run.py` **之前**，进入 `regtrack/` 并运行：
+
+```bash
+python codes/init_db.py
+python codes/run.py
+```
+
+初始化后默认数据库为 `regtrack/data/regtrack-v20-fix2.8c.db`。若之前已启动过应用，数据库已经存在，
+初始化脚本会拒绝覆盖；可按下文使用 `--db` 创建另一份演示库，或备份后用 `--force` 重建。
+
 默认启动使用空数据库。开发时如需装入初始化记录，可在 `regtrack/` 目录执行：
 
 ```bash
 python codes/init_db.py
 ```
 
-`sql/seed.sql` 包含 7 项标准、32 份草案版本、13 场内部会议、20 项事项、21 条反馈对象和 11 条意见。2 项处于实施阶段，其他分别处于起草、征求意见、送审、报批和发布阶段；每项均有连续阶段历史。编号与名称取公开目录，阶段进度与内部工作记录按业务场景编写。来源与数量见 [初始化数据来源索引](regtrack/sql/seed-sources.md)。`--force` 会重建数据库并删除当前本地数据；使用前请备份。
+`sql/seed.sql` 包含 6 项标准、23 份草案版本、4 场工作组会议、15 项事项和 15 条意见，供本地演示使用。来源与场景说明见 [初始化数据说明](regtrack/sql/seed-sources.md)。`--force` 会重建数据库并删除当前本地数据；使用前请备份。
 
 保留当前数据库、单独查看初始化记录时，可执行：
 
@@ -81,7 +95,7 @@ python codes/run.py --db data/regtrack-lifecycle-20261003.db --port 5088
 python codes/init_db.py --force
 ```
 
-该命令会**删除目标数据库文件后重新建库，并默认灌入 `sql/seed.sql` 中的初始化记录**。目标路径默认为 `regtrack/data/regtrack-v0.19-fix3.db`；如需指定其他文件，可使用 `--db`：
+该命令会**删除目标数据库文件后重新建库，并默认灌入 `sql/seed.sql` 中的初始化记录**。目标路径默认为 `regtrack/data/regtrack-v20-fix2.8c.db`；如需指定其他文件，可使用 `--db`：
 
 ```powershell
 python codes/init_db.py --db data/demo.db --force

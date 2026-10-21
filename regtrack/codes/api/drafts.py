@@ -13,6 +13,7 @@ from draft_import import read_upload
 
 import db
 import grouped
+import opinion_service
 import lookups_service
 from common import (
     ApiError, check_date, check_enum, clean, payload_of, require,
@@ -75,7 +76,7 @@ def list_drafts():
           FROM draft d
           JOIN standard s ON s.id = d.standard_id
           {clause}
-    """, params)
+    """, params, max_group_size=10)
 
 
 @bp.get("/options")
@@ -92,7 +93,9 @@ def options():
 
 def annotations(draft_id: int) -> list[dict]:
     """当前章节及整份草案的批注，阅读页面与生命周期导出共用。"""
-    return db.query("""SELECT a.*, c.clause_no, c.title_cn
+    return db.query("""SELECT a.*, c.clause_no, c.title_cn,
+        (SELECT id FROM comment cm WHERE cm.source_annotation_id=a.id) AS formal_comment_id,
+        (SELECT needs_follow_up FROM comment cm WHERE cm.source_annotation_id=a.id) AS needs_follow_up
         FROM draft_annotation a LEFT JOIN draft_chapter c ON c.id = a.chapter_id
         WHERE a.draft_id = ? AND (a.chapter_id IS NULL OR EXISTS
           (SELECT 1 FROM v_current_draft_chapter cc WHERE cc.id = a.chapter_id))
@@ -109,7 +112,7 @@ def detail(draft_id):
     draft["imports"] = db.query("SELECT * FROM draft_import WHERE draft_id = ? ORDER BY id DESC", (draft_id,))
     draft["annotations"] = annotations(draft_id)
     draft["linked_comments"] = db.query("""SELECT id, comment_no, clause_no, status, comment_text, updated_at
-        FROM comment WHERE draft_id = ? ORDER BY id""", (draft_id,))
+        FROM comment WHERE source_kind='single' AND draft_id = ? ORDER BY id""", (draft_id,))
     return jsonify(draft)
 
 
@@ -142,6 +145,8 @@ def update(draft_id):
     if data.get("standard_id") and int(data["standard_id"]) != _get(draft_id)["standard_id"]:
         if db.query_one("SELECT id FROM draft_import WHERE draft_id = ? LIMIT 1", (draft_id,)):
             raise ApiError("已有章节的草案不能更换所属标准")
+        if db.query_one("SELECT id FROM comment WHERE draft_id=? OR before_draft_id=? OR after_draft_id=?", (draft_id, draft_id, draft_id)):
+            raise ApiError("已有正式意见关联的草案不能更换所属标准")
     db.update("draft", draft_id, stamp_update(data))
     lookups_service.ensure_values("organization", [data.get("issued_by")])
     db.commit()
@@ -234,7 +239,7 @@ def import_file():
             WHERE a.draft_id = ? AND c.import_batch_id = ? ORDER BY c.sequence""",
             (draft_id, latest))
         linked_comments = db.query("""SELECT id, comment_no, clause_no, status, comment_text, updated_at
-            FROM comment WHERE draft_id = ? ORDER BY id""", (draft_id,))
+            FROM comment WHERE source_kind='single' AND draft_id = ? ORDER BY id""", (draft_id,))
         if latest is not None and (annotation_snapshot != {
                 str(a["id"]): {key: a[key] for key in ("content", "annotation_type", "updated_at")}
                 for a in old_annotations}
@@ -293,6 +298,8 @@ def import_file():
                 if comment["clause_no"] and comment["clause_no"].strip() not in new_chapters:
                     db.delete("comment", comment["id"])
         db.execute("DELETE FROM draft_import WHERE draft_id = ? AND id <> ?", (draft_id, batch_id))
+        for annotation in annotations(draft_id):
+            opinion_service.sync_annotation(annotation["id"], annotation["needs_follow_up"] or 0)
         db.update("draft", draft_id, stamp_update({}))
         db.commit()
     except Exception:
@@ -305,6 +312,7 @@ def import_file():
 def add_annotation(draft_id):
     _get(draft_id)
     data = payload_of(request)
+    flag = opinion_service.follow_up_value(data)
     check_enum(data, "annotation_type", ANNOTATION_TYPES, "批注类型", required=True)
     content = data.get("content")
     if not isinstance(content, str) or not content.strip():
@@ -320,8 +328,9 @@ def add_annotation(draft_id):
         "created_at": now(), "created_by": current_user(),
         "updated_at": now(), "updated_by": current_user(),
     })
+    opinion_service.sync_annotation(annotation_id, flag)
     db.commit()
-    return jsonify(db.query_one("SELECT * FROM draft_annotation WHERE id = ?", (annotation_id,))), 201
+    return jsonify(next(a for a in annotations(draft_id) if a["id"] == annotation_id)), 201
 
 
 @bp.put("/<int:draft_id>/annotations/<int:annotation_id>")
@@ -333,6 +342,7 @@ def update_annotation(draft_id, annotation_id):
     if not annotation:
         raise ApiError("批注不存在", 404)
     data = payload_of(request)
+    flag = opinion_service.follow_up_value(data)
     check_enum(data, "annotation_type", ANNOTATION_TYPES, "批注类型", required=True)
     content = data.get("content")
     if not isinstance(content, str) or not content.strip():
@@ -345,5 +355,21 @@ def update_annotation(draft_id, annotation_id):
         "content": content.strip(), "annotation_type": data["annotation_type"],
         "updated_at": now(), "updated_by": current_user(),
     })
+    opinion_service.sync_annotation(annotation_id, flag)
     db.commit()
-    return jsonify(db.query_one("SELECT * FROM draft_annotation WHERE id = ?", (annotation_id,)))
+    return jsonify(next(a for a in annotations(draft_id) if a["id"] == annotation_id))
+
+
+@bp.delete("/<int:draft_id>/annotations/<int:annotation_id>")
+def remove_annotation(draft_id, annotation_id):
+    _get(draft_id)
+    annotation = db.query_one(
+        "SELECT created_by FROM draft_annotation WHERE id = ? AND draft_id = ?",
+        (annotation_id, draft_id))
+    if not annotation:
+        raise ApiError("批注不存在", 404)
+    if annotation["created_by"] != current_user():
+        raise ApiError("仅允许操作人删除自己创建的批注", 403)
+    db.delete("draft_annotation", annotation_id)
+    db.commit()
+    return jsonify(ok=True)

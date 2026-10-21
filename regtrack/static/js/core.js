@@ -4,6 +4,12 @@
 
   const USER_KEY = "regtrack.user";
 
+  /* ------------------------------------------------------------ 语言
+     中文界面：字段以英文为主、中文小字；按钮与说明文字用中文。
+     英文界面：全部界面文字用英文。业务数据保持原文。 */
+  const LANG = document.documentElement.lang === "en" ? "en" : "zh";
+  const t = (zh, en) => (LANG === "en" ? en : zh);
+
   const App = {
     meta: null,
     lookups: null,
@@ -25,7 +31,8 @@
       res = await fetch(path, opt);
     } catch (e) {
       // 浏览器只会给出 "Failed to fetch"，这里换成用户能据以行动的说明。
-      const err = new Error(`无法连接到本地服务（${path}），请确认 RegTrack 仍在运行后重试`);
+      const err = new Error(t(`无法连接到本地服务（${path}），请确认 RegTrack 仍在运行后重试`,
+        `Cannot reach the local service (${path}). Make sure RegTrack is still running and try again.`));
       err.cause = e;
       throw err;
     }
@@ -36,9 +43,11 @@
     if (!res.ok) {
       // 后端所有失败都回 JSON；万一拿到的是 HTML，就把原文片段带出来定位。
       const reason = (data && data.error)
-        || (text ? `服务端返回了非预期内容：${text.slice(0, 160)}` : `请求失败（${res.status}）`);
+        || (text ? t(`服务端返回了非预期内容：${text.slice(0, 160)}`, `Unexpected server response: ${text.slice(0, 160)}`)
+                 : t(`请求失败（${res.status}）`, `Request failed (${res.status})`));
       const detail = data && data.detail ? `（${data.detail}）` : "";
       const err = new Error(reason + detail);
+      err.reason = reason;
       err.field = data && data.field;
       err.detail = data && data.detail;
       err.status = res.status;
@@ -83,6 +92,15 @@
     }[c]));
   }
 
+  /** 字段名：英文为主；中文界面在其后附中文小字。 */
+  function label(en, zh) {
+    return esc(en) + (zh ? `<small class="cn-sub"${LANG === "en" ? ' aria-hidden="true"' : ""}>${esc(zh)}</small>` : "");
+  }
+
+  function uiText(zh, en) {
+    return `<span class="ui-text"><span${LANG === "en" ? ' aria-hidden="true"' : ""}>${esc(zh)}</span><span${LANG === "zh" ? ' aria-hidden="true"' : ""}>${esc(en)}</span></span>`;
+  }
+
   const dash = (v) => (v === null || v === undefined || v === "" ? "—" : esc(v));
 
   function clip(v, n = 90) {
@@ -123,7 +141,7 @@
   const stageList = () => (App.meta ? App.meta.stages : []);
   const stageLabel = (code) => {
     const hit = stageList().find((s) => s.code === code);
-    return hit ? hit.label : (code || "");
+    return hit ? t(hit.label, hit.en) : (code || "");
   };
   const stageIndex = (code) => stageList().findIndex((s) => s.code === code);
   const isTerminalStage = (code) => !!App.meta && code === App.meta.terminal_stage;
@@ -148,12 +166,12 @@
       if (isTerminalStage(s.code)) c = isTerminalStage(code) ? "dead" : "";
       else if (n < i) c = "done";
       else if (n === i) c = "current";
-      return `<div class="step ${c}"><span class="idx">${String(n + 1).padStart(2, "0")}</span>${esc(s.label)}</div>`;
+      return `<div class="step ${c}"><span class="idx">${String(n + 1).padStart(2, "0")}</span>${esc(stageLabel(s.code))}</div>`;
     }).join("") + "</div>";
   }
 
-  function emptyRow(cols, title, hint) {
-    return `<tr><td colspan="${cols}"><div class="empty"><b>${esc(title)}</b>${esc(hint || "")}</div></td></tr>`;
+  function emptyRow(cols, title, hint = ["", ""]) {
+    return `<tr><td colspan="${cols}"><div class="empty"><b>${uiText(...title)}</b>${uiText(...hint)}</div></td></tr>`;
   }
 
   /* ------------------------------------------------------------ 模态 */
@@ -207,7 +225,7 @@
         ensureModalGuard();
         const now = Date.now();
         if (now - lastBackHint > 1800) {
-          toast("请使用弹窗内的返回、取消或点击背景关闭");
+          toast(t("请使用弹窗内的返回、取消或点击背景关闭", "Use Back, Cancel or click outside the dialog to close it"));
           lastBackHint = now;
         }
         return;
@@ -295,9 +313,9 @@
       <div class="modal fade" id="${id}" tabindex="-1">
         <div class="modal-dialog modal-${size} modal-dialog-scrollable">
           <div class="modal-content">
-            <div class="modal-header modal-drag-handle" title="按住此处拖动窗口">
+            <div class="modal-header modal-drag-handle" title="${t("按住此处拖动窗口", "Drag here to move the window")}">
               ${back ? `<button type="button" class="modal-back" data-back
-                          title="返回 ${esc(back)}">返回</button>` : ""}
+                          title="${t("返回", "Back to")} ${esc(back)}">${window.App.uiText("返回", "Back")}</button>` : ""}
               <div class="modal-title">
                 ${subtitle ? `<span class="sub">${esc(subtitle)}</span>` : ""}${esc(title)}
               </div>
@@ -339,6 +357,10 @@
       const index = modalLayers.indexOf(entry);
       if (index >= 0) modalLayers.splice(index, 1);
       lockBackgroundScroll();
+      const previous = modalLayers[modalLayers.length - 1];
+      if (previous) {
+        previous.modal._focustrap.activate();
+      }
 
       if (!canUseHistory() || modalLayers.length
           || !window.history.state || !window.history.state[MODAL_GUARD]) {
@@ -350,6 +372,10 @@
         window.history.back();
       }
     });
+    // Bootstrap 默认只支持单层弹窗。新层动画开始前暂停下层焦点捕获，
+    // 避免它把焦点抢到第一个可搜索下拉框；新层沿用库自身的焦点管理。
+    const previous = modalLayers[modalLayers.length - 2];
+    if (previous) previous.modal._focustrap.deactivate();
     modal.show();
     return { el, modal, body: bodyEl, footer: footEl,
              close: () => { modal.hide(); return closed; }, closed };
@@ -362,11 +388,11 @@
     return new Promise((resolve) => {
       let decided = false;
       const m = openModal({
-        title: "确认操作",
+        title: t("确认操作", "Confirm"),
         size: "sm",
         body: `<div style="font-size:13.5px">${esc(message)}</div>`,
-        footer: `<button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                 <button class="btn btn-danger btn-sm" data-yes>确认</button>`,
+        footer: `<button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">${window.App.uiText("取消", "Cancel")}</button>
+                 <button class="btn btn-danger btn-sm" data-yes>${window.App.uiText("确认", "Confirm")}</button>`,
         onHidden: () => { if (!decided) resolve(false); },
       });
       m.footer.querySelector("[data-yes]").onclick = async () => {
@@ -396,7 +422,7 @@
       App.user = people[0];
       localStorage.setItem(USER_KEY, App.user);
     }
-    if (sel) sel.textContent = App.user || "未署名";
+    if (sel) sel.textContent = App.user || t("未署名", "Unsigned");
   }
 
   async function refreshLookups() {
@@ -407,13 +433,14 @@
   function ready(fn) {
     boot()
       .then(fn)
-      .catch((e) => fail("初始化失败：" + e.message));
+      .catch((e) => fail(t("初始化失败：", "Initialization failed: ") + e.message));
   }
 
   window.App = Object.assign(App, {
+    lang: LANG, t, label,
     REPOSITION,
     api, get, post, put, del, qs,
-    toast, ok, fail, esc, dash, clip, tag, statusTag, overdue, today,
+    toast, ok, fail, esc, dash, clip, tag, statusTag, overdue, today, uiText,
     stageMini, stageRail, stageLabel, stageIndex, stageList, isTerminalStage,
     refreshLookups, emptyRow, openModal, confirmDialog, confirmAsync, ready,
   });

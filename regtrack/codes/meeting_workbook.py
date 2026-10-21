@@ -10,10 +10,10 @@ from meeting_import import validate
 SHEETS = {
     'Meeting': (('Meeting Title', 'Meeting Date', 'Key Discussions', 'Overall Conclusion', 'Organizer'),
                 ('title', 'meeting_date', 'key_discussions', 'overall_conclusion', 'organizer')),
-    'Standards': (('Standard Key', 'Standard Name', 'Standard No.', 'Minutes'),
-                  ('key', 'name_cn', 'std_no', 'note')),
-    'Actions': (('Action Title', 'Description', 'Standard Keys', 'Owner', 'Due Date'),
-                ('title', 'description', 'standard_key', 'owner', 'due_date')),
+    'Standards': (('Standard Key', 'Standard Name', 'Standard No.', 'Minutes', 'Current Stage'),
+                  ('key', 'name_cn', 'std_no', 'note', 'current_stage')),
+    'Actions': (('Action Title', 'Description', 'Standard Keys', 'Stakeholder', 'Due Date'),
+                ('title', 'description', 'standard_key', 'stakeholder', 'due_date')),
 }
 
 

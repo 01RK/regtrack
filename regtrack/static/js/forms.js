@@ -2,10 +2,11 @@
 (function () {
   "use strict";
 
-  const { esc, dash, get, post, ok, fail, openModal, statusTag, today } = window.App;
+  const { esc, dash, get, post, ok, fail, openModal, statusTag, today, t, label: fieldLabel } = window.App;
 
   /* ---------------------------------------------------------- 生成表单 */
   function buildForm(host, spec, values = {}) {
+    const automaticText = t("系统自动", "Automatic");
     const v = values || {};
     const controls = {};   // name -> {type, el, ts}
     // 重建表单前先销毁旧下拉框：面板挂在 body 上，不会随 innerHTML 一起消失。
@@ -26,7 +27,7 @@
       const wrap = document.createElement("div");
       wrap.className = "f-" + (f.col || 6);
       const label = f.label
-        ? `<label class="form-label" for="fld-${f.name}">${esc(f.label)}${f.required ? '<span class="req">*</span>' : ""}${f.cn ? `<span class="en">${esc(f.cn)}</span>` : ""}</label>`
+        ? `<label class="form-label" for="fld-${f.name}">${fieldLabel(f.label, f.cn)}${f.required ? '<span class="req">*</span>' : ""}</label>`
         : "";
       const help = f.help ? `<div class="form-text">${esc(f.help)}</div>` : "";
       const val = v[f.name];
@@ -34,10 +35,13 @@
       let control = "";
       switch (f.type) {
         case "auto":
-          control = `<div class="auto-field">${dash(f.display !== undefined ? f.display : val)}<em>系统自动</em></div>`;
+          control = `<div class="auto-field" id="fld-${f.name}">${dash(f.display !== undefined ? f.display : val)}<em>${esc(automaticText)}</em></div>`;
           break;
         case "textarea":
           control = `<textarea class="form-control" id="fld-${f.name}" rows="${f.rows || 3}" placeholder="${esc(f.placeholder || "")}">${esc(val || "")}</textarea>`;
+          break;
+        case "checkbox":
+          control = `<div class="follow-up-control form-check"><input class="form-check-input" type="checkbox" id="fld-${f.name}" ${val ? "checked" : ""}><label class="form-check-label" for="fld-${f.name}">${fieldLabel(f.label, f.cn)}</label></div>`;
           break;
         case "date":
           control = `<input type="date" class="form-control" id="fld-${f.name}" value="${esc(val || "")}">`;
@@ -53,7 +57,7 @@
         default:
           control = `<input type="text" class="form-control" id="fld-${f.name}" value="${esc(val === null || val === undefined ? "" : val)}" placeholder="${esc(f.placeholder || "")}">`;
       }
-      wrap.innerHTML = label + control + help;
+      wrap.innerHTML = (f.type === "checkbox" ? "" : label) + control + help;
       grid.appendChild(wrap);
 
       const el = wrap.querySelector(`#fld-${CSS.escape(f.name)}`);
@@ -95,12 +99,14 @@
       value(name) {
         const c = controls[name];
         if (!c) return undefined;
+        if (c.spec.type === "auto") return v[name];
         if (c.ts) {
           const raw = c.ts.getValue();
           if (Array.isArray(raw)) return raw;
           return raw === "" ? null : raw;
         }
         if (!c.el) return undefined;
+        if (c.el.type === "checkbox") return c.el.checked;
         const s = c.el.value.trim();
         return s === "" ? null : s;
       },
@@ -134,14 +140,14 @@
   function formModal(cfg) {
     const {
       title, subtitle, fields, values = {}, size = "lg",
-      submitText = "保存", onSubmit, rebuildOn = [], extraFooter = "", after = null,
+      submitText = t("保存", "Save"), onSubmit, rebuildOn = [], extraFooter = "", after = null, cancelText = t("取消", "Cancel"),
     } = cfg;
 
     let form;
     const bodyEl = document.createElement("div");
     const m = openModal({
       title, subtitle, size, body: bodyEl,
-      footer: `${extraFooter}<button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+      footer: `${extraFooter}<button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">${esc(cancelText)}</button>
                <button class="btn btn-primary btn-sm" data-save>${esc(submitText)}</button>`,
     });
 
@@ -179,7 +185,7 @@
 
   /* ------------------------- 通用状态 / 阶段历史（文档 §6 的统一实现） */
   function historyList(rows) {
-    if (!rows.length) return '<div class="empty">还没有记录</div>';
+    if (!rows.length) return `<div class="empty">${t("还没有记录", "No records yet")}</div>`;
     return '<div class="timeline">' + rows.map((r) => `
       <div class="ev">
         <div class="head">
@@ -187,9 +193,9 @@
           ${statusTag(r.new_value)}
           <span class="date num">${esc(r.effective_date)}</span>
         </div>
-        <div class="meta">记录于 ${esc(r.recorded_at)} · 记录人 ${esc(r.recorded_by)}</div>
+        <div class="meta">${t("记录于", "Recorded")} ${esc(r.recorded_at)} · ${t("记录人", "by")} ${esc(r.recorded_by)}</div>
         ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
-        ${r.reference ? `<div class="meta">依据：${esc(r.reference)}</div>` : ""}
+        ${r.reference ? `<div class="meta">${t("依据：", "Reference: ")}${esc(r.reference)}</div>` : ""}
       </div>`).join("") + "</div>";
   }
 
@@ -199,14 +205,14 @@
    */
   function statusModal(cfg) {
     const bodyEl = document.createElement("div");
-    bodyEl.innerHTML = '<div class="loading">载入历史…</div>';
+    bodyEl.innerHTML = `<div class="loading">${t("载入历史…", "Loading history…")}</div>`;
     const m = openModal({
       title: cfg.title,
       subtitle: cfg.subtitle,
       size: "lg",
       body: bodyEl,
-      footer: `<button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
-               <button class="btn btn-primary btn-sm" data-save>新增一条变更</button>`,
+      footer: `<button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">${window.App.uiText("关闭", "Close")}</button>
+               <button class="btn btn-primary btn-sm" data-save>${window.App.uiText("新增一条变更", "Add change")}</button>`,
     });
 
     let form;
@@ -214,12 +220,12 @@
       const rows = await get(cfg.url);
       bodyEl.innerHTML = `
         <div class="panel" style="margin-bottom:14px">
-          <div class="panel-head"><h2>历史记录</h2><span class="hint">共 ${rows.length} 条 · 只读</span></div>
+          <div class="panel-head"><h2>${window.App.uiText("历史记录", "History")}</h2><span class="hint">${t(`共 ${rows.length} 条 · 只读`, `${rows.length} records · read-only`)}</span></div>
           <div class="panel-body">${historyList(rows)}</div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h2>新增一条</h2>
-            <span class="hint">当前值：${esc(cfg.current || "—")} · 上一值 / 记录时间 / 记录人由系统写入</span>
+          <div class="panel-head"><h2>${window.App.uiText("新增一条", "New record")}</h2>
+            <span class="hint">${t("当前值：", "Current: ")}${esc(cfg.current || "—")} · ${t("上一值 / 记录时间 / 记录人由系统写入", "previous value, time and recorder are filled in automatically")}</span>
           </div>
           <div class="panel-body"><div data-form></div></div>
         </div>`;
@@ -230,13 +236,13 @@
         { name: "effective_date", label: "Effective Date", cn: "生效日期", type: "date", required: true, col: 6 },
       ];
       if (cfg.showReference !== false) {
-        spec.push({ name: "reference", label: "Supporting Reference", cn: "依据链接 / 路径", type: "text", col: 12, placeholder: "https:// 或 \\\\共享盘\\路径" });
+        spec.push({ name: "reference", label: "Supporting Reference", cn: "依据链接 / 路径", type: "text", col: 12, placeholder: t("https:// 或 \\\\共享盘\\路径", "https:// or \\\\share\\path") });
       }
-      spec.push({ name: "note", label: "Note", cn: "补充说明", type: "textarea", rows: 2, col: 12 });
+      spec.push({ name: "note", label: "Note", cn: "备注", type: "textarea", rows: 2, col: 12 });
       form = buildForm(bodyEl.querySelector("[data-form]"), spec, { effective_date: today() });
     }
 
-    refresh().catch((e) => { bodyEl.innerHTML = `<div class="empty"><b>载入失败</b>${esc(e.message)}</div>`; });
+    refresh().catch((e) => { bodyEl.innerHTML = `<div class="empty"><b>${t("载入失败", "Failed to load")}</b>${esc(e.message)}</div>`; });
 
     const btn = m.footer.querySelector("[data-save]");
     btn.onclick = async () => {
@@ -244,7 +250,7 @@
       try {
         const payload = form.read();
         await post(cfg.url, payload);
-        ok("已记录状态变更");
+        ok(t("已记录状态变更", "Status change recorded"));
         cfg.current = payload.new_value;
         if (cfg.onDone) await cfg.onDone(payload.new_value);
         await m.close();

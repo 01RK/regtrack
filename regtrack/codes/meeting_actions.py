@@ -29,7 +29,7 @@ def review_actions(package, decision):
     tracked = {key for key, c in choices.items() if c['mode'] != 'skip'}
     snapshot = existing_actions(decision.get('meeting_id'))
     rows = [dict(key=f'existing:{a["id"]}', origin='existing', title=a['title'],
-                 description=a['description'] or '', owner=a['coordinator'] or '',
+                 description=a['description'] or '', stakeholder=a['coordinator'] or '',
                  due_date=a['target_date'] or a['submission_due_date'] or a['check_due_date'] or '',
                  standard_names=a['name_cn'] or '会议事项', item_no=a['item_no'],
                  current_status=a['current_status'], recipient_count=a['recipient_count'],

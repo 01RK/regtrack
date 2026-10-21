@@ -1,6 +1,7 @@
 (() => {
   const root = document.documentElement;
   const key = "regtrack.sidebar-collapsed";
+  const english = root.lang === "en";
   // 在页面绘制前恢复布局，避免跨页面时侧栏闪现。
   try {
     root.classList.toggle("sidebar-collapsed", localStorage.getItem(key) === "true");
@@ -13,7 +14,9 @@
       const collapsed = root.classList.contains("sidebar-collapsed");
       navigation.hidden = collapsed;
       button.setAttribute("aria-expanded", String(!collapsed));
-      const label = collapsed ? "展开导航" : "收起导航";
+      const label = collapsed
+        ? (english ? "Expand navigation" : "展开导航")
+        : (english ? "Collapse navigation" : "收起导航");
       button.setAttribute("aria-label", label);
       button.title = label;
     }
@@ -23,5 +26,22 @@
       render();
     });
     render();
+
+    const detailsKey = `regtrack.details:${location.pathname}`;
+    const details = [...document.querySelectorAll("details")];
+    const savedDetails = JSON.parse(sessionStorage.getItem(detailsKey) || "null");
+    if (savedDetails) details.forEach((panel, index) => { panel.open = savedDetails[index]; });
+    details.forEach((panel) => panel.addEventListener("toggle", () => {
+      sessionStorage.setItem(detailsKey, JSON.stringify(details.map((item) => item.open)));
+    }));
+
+    // 界面语言由服务端按 Cookie 渲染，切换后整页重载，页面与弹窗保持同一语言。
+    document.querySelectorAll("[data-lang]").forEach((option) => {
+      option.addEventListener("click", () => {
+        if (option.getAttribute("aria-pressed") === "true") return;
+        document.cookie = `regtrack_lang=${option.dataset.lang}; path=/; max-age=31536000; SameSite=Lax`;
+        location.reload();
+      });
+    });
   });
 })();

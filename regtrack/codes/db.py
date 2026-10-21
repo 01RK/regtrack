@@ -109,7 +109,7 @@ def init_db(db_path: Path, with_seed: bool = True) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
-    if with_seed and SEED_PATH.exists():
+    if with_seed:
         conn.executescript(SEED_PATH.read_text(encoding="utf-8"))
     conn.commit()
     conn.close()

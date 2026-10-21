@@ -56,7 +56,7 @@ python codes/init_db.py --empty    # 建空库，不灌初始化记录（上线�
 
 ```
 regtrack/
-├── codes/                  全部 Python 代码（应用、接口、工具和测试）
+├── codes/                  全部 Python 代码（应用、接口和工具）
 │   ├── app.py              应用工厂、页面路由与统一错误处理
 │   ├── paths.py            资源目录与数据目录解析（兼顾 PyInstaller）
 │   ├── constants.py        固定值唯一定义源（含阶段编码表）
@@ -71,7 +71,6 @@ regtrack/
 │   ├── run.py              启动入口
 │   ├── init_db.py          数据库初始化入口
 │   ├── fetch_vendor.py     前端依赖下载入口
-│   └── test_api.py         接口冒烟测试
 ├── templates/              页面骨架
 ├── static/                 样式与前端脚本
 ├── sql/                    数据库 SQL
@@ -113,7 +112,7 @@ regtrack/
   以后改名称或加语言都不动数据。阶段顺序即列表顺序。
 - **阶段记录分推进与补录两类**。目标阶段在当前阶段之后为 `ADVANCE`（日期不得早于
   当前阶段），在当前阶段之前且尚未填写为 `BACKFILL`（可填真实发生时间，不受顺序限制）。
-  当前阶段永远取「已记录阶段中最靠后的一个」，因此补录不会改变当前阶段。
+  当前阶段取最新日期会议纪要阶段与手动阶段最高值的较大者。`standard_stage_history.is_manual` 标识手动依据，`meeting_standard.imported_stage_code` 保存会议阶段快照。
 - **阶段记录不锁定**。两类记录的 `effective_date`、`reference`、`note` 都可以更正
   （`PUT /<id>/stages/<record_id>`），`stage_code` 不接受改写——换阶段等于另一条记录。
   每次修改刷新 `updated_at` / `updated_by`，`created_at` / `created_by` 保持首次记录的值；
@@ -157,10 +156,9 @@ regtrack/
 前端通过 `/api/meta` 拿到全部取值渲染下拉框。**改固定值要同时改这两处**，
 然后 `python codes/init_db.py --force` 重建库。
 
-上达渠道（邮件 / 系统平台 / 会议 / 函件）是固定值，**不是字典**：
-`constants.SUBMISSION_CHANNELS` 定义，`action_item` 与 `comment` 两张表都有 CHECK 约束，
-两个接口各做一次 `check_enum`，前端用 `type: "fixed"` 取 `/api/meta` 的下发值。
-早先前端误把它接到了机构字典上，机构名因此被写进渠道字段——加下拉时注意区分这两类。
+事项的上达渠道（邮件 / 系统平台 / 会议 / 函件）仍由 `constants.SUBMISSION_CHANNELS` 定义。意见矩阵不再使用这些渠道：`comment.source_kind` 为 single 或 comparison，`submission_channel` 是 SQLite 生成列，分别生成“单版本意见批注”或“多版本比对意见批注”，API 不接受手动写入。`comment.comment_type` 与草案批注共用四种类型。单版使用 draft_id / clause_no；比对使用 before_draft_id / before_clause_no 与 after_draft_id / after_clause_no。Topic、Rationale 已删除，不设迁移或兼容路径。
+
+草案批注通过 `source_annotation_id` 留存来源；同一批注至多生成一条正式意见。草案批注上下文由服务端绑定，客户端不能切换其来源、标准、草案或条款。正式意见内容可独立编辑。删除来源批注后保留正式意见快照并清空指针；删除草案会级联删除引用的意见。交换导出包括两份草案与来源批注，导入顺序先批注后意见，生成列不会写入。
 
 开放列表（影响领域、人员、团队、机构、TC/WG）不属于固定值，放在 `lookup_value` 表，
 在「字典维护」页增删改。**下拉框里现场输入的新值不会单独发请求**：前端只在本地登记，
@@ -178,7 +176,7 @@ regtrack/
 
 | 前缀 | 主要端点 |
 | --- | --- |
-| `/api` | `GET /meta` 固定值（含阶段编码与显示名）；`GET /dashboard` 总览统计（阶段分布按阶段编码顺序输出九项，含 0 条的）；`GET /dashboard/due-actions`、`GET /dashboard/meetings` 两块清单单独取数，供筛选器局部刷新 |
+| `/api` | `GET /meta` 固定值（含阶段编码与显示名）；`GET /dashboard` 总览统计（阶段分布按阶段编码顺序输出十项，含 0 条的）；`GET /dashboard/due-actions`、`GET /dashboard/meetings` 两块清单单独取数，供筛选器局部刷新 |
 | `/api/standards` | 列表（`?archived=1` 查归档）/ 详情 / 新建 / 修改；`DELETE /<id>` 归档、`POST /<id>/restore` 恢复；`GET /options` 下拉数据；`GET,POST /<id>/stages` 阶段时间轴与推进 / 补录、`PUT /<id>/stages/<record_id>` 修改阶段记录；`GET /<id>/lifecycle`；`GET /<id>/lifecycle.md` |
 | `/api/drafts` | 列表 / 详情 / 增删改；`GET /options`；`POST /imports/read`、`POST /imports`、`POST /<id>/annotations` |
 | `/api/transfer` | `GET /users` 登记人清单；`GET /export?user=` 按登记人导出自包含数据包；`POST /inspect` 导入前预检（包里有什么、本机有哪些操作人）；`POST /import` 确认登记人（`as_user`）后写入；字典的单独导入导出 |
@@ -270,7 +268,7 @@ regtrack/
 - **`Fields.standard`** 在下拉框底部固定提供快速建档入口；`Fields.quickCreateStandard`
   负责建档并自动回选。
 - **`Stages.*`（stage-manager.js）** 是阶段管理的唯一前端实现：`timelineHtml` 画出
-  九段可点击时间轴，`openForm` 是「推进 / 补录阶段」入口（选当前阶段之前的阶段即切到
+  十段可点击时间轴，`openForm` 是「推进 / 补录阶段」入口（选当前阶段之前的阶段即切到
   补录模式并在弹窗顶部给出审计提示），`openDetail` 是点某一段后的详情——可补录的给
   「补录该阶段」，已填写的记录一律给「修改」，详情与列表都展示创建 / 最近修改两个时间。
   已填写的阶段在下拉里灰显，
@@ -305,39 +303,21 @@ regtrack/
 - 页面脚本只负责过滤条、列表与分页；新建按钮调用 `Records.*Form`，
   行点击调用 `Records.open`。
 - **`GroupedList.create`（grouped-list.js）** 统一生成标准标题行并维护展开状态。
-  初次进入和筛选变化后全部展开；普通刷新保留当前收起状态；组标题是原生按钮，支持键盘操作
+  草案列表传入 `defaultCollapsed: true`，初次进入、筛选变化及首次翻到新页时默认收起，每页最多 10 个标准组；其他列表默认展开。普通刷新保留当前收起状态；组标题是原生按钮，支持键盘操作
   和 `aria-expanded`。列表分页必须继续使用后端返回的标准组，不能在前端对记录页临时分组。
 - `?id=` 深链仍保留，用于收藏或外部链接直达某条记录的明细。
 
-## 7. 测试
+## 7. 开发验证
+
+使用独立数据库验证修改，避免改动日常使用的数据：
 
 ```bash
-python -m unittest discover -s codes -p "test_api.py" -v
+python codes/init_db.py --db data/dev-check.db
+python codes/run.py --db data/dev-check.db --port 5099 --no-browser
 ```
 
-56 条用例覆盖 5 个主入口的增删改查、子表、必填与固定值校验、编号连续性、
-阶段推进与历史补录、阶段记录的可改与时间戳留痕、字典字段首次录入自动新增、
-归档与恢复、状态历史的上一值记录、会议派生事项、
-反馈对象生成意见、五类事项建档与类型缺失报错、上达渠道固定值、
-粘贴文本的清洗、总览两块清单的按人与按时间筛选、数据包的自包含导出与重新编号导入、
-会议涉及标准的批注与取消挂载确认、请求头编码往返，
-以及若干前端契约（弹窗层级、只读字段的 `submit`、导航固定与滚动锁）。
-用临时库跑，不碰 `data/regtrack-v0.19-fix3.db`。
-
-启动装配检查（在 Node 里用极简 DOM 桩跑一遍 `core.js` 的 `boot()`，
-验证请求头、`/api/meta`、`/api/lookups`、操作人下拉都正常；
-另外用同一套桩装配一遍事项表单，确认类型锁定时 `item_type` 仍会提交，
-走一次阶段记录的修改确认创建时间不被改写，
-再跑一遍总览两块清单的默认值与筛选、粘贴文本的清洗，
-以及「导出 → 预检 → 确认登记人 → 导入」这条完整链路）：
-
-```bash
-python codes/run.py --port 5099 --no-browser    # 另开一个窗口
-node ../boot_check.mjs 5099
-```
-
-`tests/browser_check.mjs` 是可选的完整页面渲染检查，需要本机装 Playwright，
-不装不影响上面两项。
+启动后检查相关页面与接口，并确认浏览器控制台没有脚本错误。
+临时测试脚本、测试结果和界面截图不随源码发布。
 
 ### 关于「当前操作人」请求头
 
@@ -358,3 +338,11 @@ HTTP 头只允许 ISO-8859-1，中文姓名直接放进 `X-User` 会让浏览器
 | 加 / 改一个生命周期阶段 | `codes/constants.py` 的 `STAGES` + `sql/schema.sql` 两处 CHECK，重建库；前端无需改动 |
 | 改主题配色 | `static/css/app.css` 顶部的 CSS 变量 |
 | 换编号规则 | `codes/db.py` 的 `next_serial` |
+
+
+## 9. 界面语言与意见交换
+
+- `codes/i18n.py`：界面语言（Cookie `regtrack_lang`，`zh` / `en`），模板函数 `t(zh, en)`、`L(en, zh)`；前端 `App.t`、`App.label`、`App.stageLabel` 按 `<html lang>` 选择文字。表单字段声明中 `label` 为英文名，`cn` 为中文小字。
+- `codes/comment_workbook.py`：意见交换 Excel 五列定义、导出/模板生成与导入逐行校验。
+- `codes/api/comment_exchange.py`：`/api/comments/exchange/{template,export,import}`；导入在一个 `BEGIN IMMEDIATE` 事务内经由草案批注生成单版本意见（复用 `opinion_service.sync_annotation` 与 `comment_history.append`）。
+- 页面：`templates/comment_import.html`、`comment_export.html` 与 `static/js/pages/comment-{import,export}.js`；`Fields.standardDraft` 提供「标准 → 草案版本」联动选择。

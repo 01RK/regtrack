@@ -20,21 +20,24 @@ STAGES = [
      "note": "标准制定第 2 阶段 · 计划下达"},
     {"code": "DRAFTING", "cn": "起草", "en": "Drafting",
      "note": "标准制定第 3 阶段 · 工作组草案"},
-    {"code": "COMMENT_DRAFT", "cn": "征求意见稿", "en": "Draft for Comments",
+    {"code": "COMMENT_DRAFT", "cn": "征求意见", "en": "Draft for Comments",
      "note": "标准制定第 4 阶段 · 公开征求意见"},
-    {"code": "REVIEW_DRAFT", "cn": "送审稿", "en": "Draft for Review",
+    {"code": "REVIEW_DRAFT", "cn": "审查", "en": "Draft for Review",
      "note": "标准制定第 5 阶段 · 分标委审查"},
-    {"code": "APPROVAL_DRAFT", "cn": "报批稿", "en": "Draft for Approval",
+    {"code": "APPROVAL_DRAFT", "cn": "报批", "en": "Draft for Approval",
      "note": "标准制定第 6 阶段 · 报批待发布"},
     {"code": "RELEASED", "cn": "发布", "en": "Released",
      "note": "标准制定第 7 阶段 · 公告发布"},
     {"code": "IMPLEMENTED", "cn": "实施", "en": "In Force",
      "note": "标准制定第 8 阶段 · 正式实施"},
+    {"code": "REEXAMINATION", "cn": "复审", "en": "Reexamination",
+     "note": "标准制定第 9 阶段 · 定期复审"},
     {"code": "ABOLISHED", "cn": "废止", "en": "Abolished",
-     "note": "标准制定第 9 阶段 · 作废或被代替"},
+     "note": "标准制定第 10 阶段 · 作废或被代替"},
 ]
 
 STAGE_CODES = [s["code"] for s in STAGES]
+MEETING_STAGE_CODES = {s["cn"]: s["code"] for s in STAGES if s["code"] != "IMPLEMENTED"}
 STAGE_ORDER = {code: index for index, code in enumerate(STAGE_CODES)}
 STAGE_LABELS = {s["code"]: s["cn"] for s in STAGES}
 FIRST_STAGE = STAGE_CODES[0]
@@ -65,6 +68,8 @@ COMMENT_STATUSES = [
     "Draft", "Submitted", "Accepted", "Partially Accepted",
     "Rejected", "Pending", "Withdrawn",
 ]
+
+COMMENT_SOURCES = {"single": "Single-draft annotation", "comparison": "Draft comparison annotation"}
 
 ANNOTATION_TYPES = ["Interpretation", "Comment", "Question", "Recommendation"]
 
@@ -169,6 +174,7 @@ def meta_payload() -> dict:
         "meeting_types": MEETING_TYPES,
         "comment_statuses": COMMENT_STATUSES,
         "annotation_types": ANNOTATION_TYPES,
+        "comment_sources": COMMENT_SOURCES,
         "submission_channels": SUBMISSION_CHANNELS,
         "action_types": ACTION_TYPES,
         "action_statuses": ACTION_STATUSES,

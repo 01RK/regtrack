@@ -1,20 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ 'en' if lang == 'en' else 'zh-CN' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}法规跟踪系统{% endblock %}</title>
+<title>{% block title %}{{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.bootstrap5.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='20261002-drag-order') }}">
-<script src="{{ url_for('static', filename='js/shell.js', v='20261002-rail-toggle') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='v20-fix2.13-zoom') }}">
+<script src="{{ url_for('static', filename='js/shell.js', v='v20-fix2.13-zoom') }}"></script>
 {% block styles %}{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css', v='v20-fix2.13-zoom') }}">
 </head>
 <body data-page="{{ active }}">
 <div class="shell">
-  <nav class="rail" id="main-navigation" aria-label="主导航">
+  <nav class="rail" id="main-navigation" aria-label="{{ t('主导航', 'Main navigation') }}">
     <div class="rail-brand">
       <b>法规跟踪系统</b>
+      <div class="lang-switch" role="group" aria-label="{{ t('界面语言', 'Interface language') }}">
+        <button type="button" data-lang="zh" aria-pressed="{{ 'true' if lang == 'zh' else 'false' }}" title="中文界面">中</button>
+        <button type="button" data-lang="en" aria-pressed="{{ 'true' if lang == 'en' else 'false' }}" title="English interface">EN</button>
+      </div>
       <span>Regulation Tracking</span>
     </div>
     <div class="rail-nav">
@@ -26,12 +31,12 @@
       {% endfor %}
     </div>
     <div class="rail-foot">
-      <label for="current-user">当前操作人</label>
-      <div id="current-user" class="current-user-display">未署名</div>
-      <div style="margin-top:8px">如需切换，请进入「设置」→「切换操作人」。</div>
+      <label for="current-user">{{ L('Operator', '当前操作人') }}</label>
+      <div id="current-user" class="current-user-display">{{ t('未署名', 'Unsigned') }}</div>
+      <div style="margin-top:8px">{{ t('如需切换，请进入「设置」→「切换操作人」。', 'To switch, go to Settings → Switch Operator.') }}</div>
     </div>
   </nav>
-  <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="收起导航" title="收起导航" aria-controls="main-navigation" aria-expanded="true">
+  <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="{{ t('收起导航', 'Collapse navigation') }}" title="{{ t('收起导航', 'Collapse navigation') }}" aria-controls="main-navigation" aria-expanded="true">
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 5-5 5 5 5"/></svg>
   </button>
 
@@ -53,13 +58,17 @@
 
 <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/core.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/grouped-list.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/fields.js', v='20261009-action-review') }}"></script>
-<script src="{{ url_for('static', filename='js/forms.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/action-form.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/stage-manager.js', v='20260923-v18') }}"></script>
-<script src="{{ url_for('static', filename='js/records.js', v='20261009-action-review') }}"></script>
+<script src="{{ url_for('static', filename='js/core.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/responsive.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/meeting-standards.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/grouped-list.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/fields.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/forms.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/action-form.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/stage-manager.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/comment-view.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/opinion-history.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/records.js', v='v20-fix2.13-zoom') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

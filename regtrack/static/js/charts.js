@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  const { esc } = window.App;
+  const { esc, t } = window.App;
 
   const total = (items) => items.reduce((sum, it) => sum + it.value, 0);
   const pct = (v, sum) => (sum ? Math.round((v / sum) * 1000) / 10 : 0);
@@ -14,7 +14,7 @@
   function frame(host, svg, items, note) {
     const sum = total(items);
     if (!sum) {
-      host.innerHTML = '<div class="empty">暂无数据</div>';
+      host.innerHTML = `<div class="empty">${t("暂无数据", "No data")}</div>`;
       return null;
     }
     host.innerHTML = `
@@ -58,7 +58,7 @@
   function bars(host, items, { note } = {}) {
     const sum = total(items);
     if (!sum) {
-      host.innerHTML = '<div class="empty">暂无数据</div>';
+      host.innerHTML = `<div class="empty">${t("暂无数据", "No data")}</div>`;
       return;
     }
     // 柱长按最大值归一，最长的那根占满轨道，彼此之间的差别才看得出来
@@ -104,7 +104,7 @@
       return arc;
     }).join("");
     const svg = `
-      <svg class="donut" viewBox="0 0 ${S} ${S}" role="img" aria-label="意见采纳情况">
+      <svg class="donut" viewBox="0 0 ${S} ${S}" role="img" aria-label="${t("意见采纳情况", "Opinion outcomes")}">
         <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="${width}"/>
         <g transform="rotate(-90 ${c} ${c})">${arcs}</g>
         <text class="donut-total" x="${c}" y="${c + 4}">${sum}</text>

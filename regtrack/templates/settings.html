@@ -1,39 +1,39 @@
 {% extends "base.html" %}
-{% block title %}设置 · 法规跟踪系统{% endblock %}
-{% block eyebrow %}Settings{% endblock %}
-{% block heading %}设置{% endblock %}
+{% block title %}{{ t('设置', 'Settings') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block eyebrow %}{{ U('Settings', 'System') }}{% endblock %}
+{% block heading %}{{ U('设置', 'Settings') }}{% endblock %}
 
 {% block content %}
 <div class="settings-layout">
-  <aside class="settings-menu" aria-label="设置板块">
-    <button class="settings-menu-item" data-setting-tab="operator"><span>◎</span><span><b>切换操作人</b><small>确认当前登记账户</small></span></button>
-    <button class="settings-menu-item active" data-setting-tab="transfer"><span>↔</span><span><b>操作人数据交换</b><small>导入与导出个人登记数据</small></span></button>
-    <button class="settings-menu-item" data-setting-tab="lookups"><span>☷</span><span><b>字典维护</b><small>管理系统下拉选项</small></span></button>
+  <aside class="settings-menu" aria-label="{{ t('设置板块', 'Settings sections') }}">
+    <button class="settings-menu-item" data-setting-tab="operator"><span>◎</span><span><b>{{ t('切换操作人', 'Switch Operator') }}</b><small>{{ U('确认当前登记账户', 'Confirm who is recording') }}</small></span></button>
+    <button class="settings-menu-item active" data-setting-tab="transfer"><span>↔</span><span><b>{{ t('操作人数据交换', 'Operator Data Exchange') }}</b><small>{{ U('导入与导出个人登记数据', 'Import and export personal records') }}</small></span></button>
+    <button class="settings-menu-item" data-setting-tab="lookups"><span>☷</span><span><b>{{ t('字典维护', 'Dictionaries') }}</b><small>{{ U('管理系统下拉选项', 'Manage drop-down options') }}</small></span></button>
   </aside>
   <div class="settings-main">
     <section class="settings-section" data-setting-section="operator">
-      <div class="settings-section-head"><div><h2>切换操作人</h2><p>切换后，新建和修改记录会使用新的登记人署名。</p></div></div>
+      <div class="settings-section-head"><div><h2>{{ U('切换操作人', 'Switch Operator') }}</h2><p>{{ t('切换后，新建和修改记录会使用新的登记人署名。', 'New and edited records will be signed with the selected operator.') }}</p></div></div>
       <div class="settings-card operator-card">
-        <label class="form-label" for="operator-user">选择操作人</label>
-        <div class="row g-2 align-items-center"><div class="col-md-7"><select id="operator-user" class="form-select"></select></div><div class="col-md-auto"><button id="operator-confirm" class="btn btn-primary">确认切换</button></div></div>
-        <div class="settings-note">当前操作人：<b id="operator-current">未署名</b></div>
+        <label class="form-label" for="operator-user">{{ L('Operator', '操作人') }}</label>
+        <div class="row g-2 align-items-center"><div class="col-md-7"><select id="operator-user" class="form-select"></select></div><div class="col-md-auto"><button id="operator-confirm" class="btn btn-primary">{{ U('确认切换', 'Switch') }}</button></div></div>
+        <div class="settings-note">{{ t('当前操作人：', 'Current operator: ') }}<b id="operator-current">{{ t('未署名', 'Unsigned') }}</b></div>
       </div>
     </section>
     <section class="settings-section active" data-setting-section="transfer">
-      <div class="settings-section-head"><div><h2>操作人数据交换</h2><p>按登记人交换业务记录，适合在不同同事的单机版本之间传递数据。</p></div></div>
+      <div class="settings-section-head"><div><h2>{{ U('操作人数据交换', 'Operator Data Exchange') }}</h2><p>{{ t('按登记人交换业务记录，适合在不同同事的单机版本之间传递数据。', 'Exchange records by operator, for moving data between colleagues’ local copies.') }}</p></div></div>
       <div class="settings-card">
         <div class="row g-2 align-items-end">
-          <div class="col-md-5"><label class="form-label">登记人</label><select id="transfer-user" class="form-select"></select></div>
-          <div class="col-md-7 btn-row"><button id="export-user" class="btn btn-primary">导出该登记人数据</button><label class="btn btn-outline-secondary mb-0">导入数据包<input id="import-user" type="file" accept=".json,application/json" hidden></label></div>
+          <div class="col-md-5"><label class="form-label" for="transfer-user">{{ L('Recorded By', '登记人') }}</label><select id="transfer-user" class="form-select"></select></div>
+          <div class="col-md-7 btn-row"><button id="export-user" class="btn btn-primary">{{ U('导出该登记人数据', 'Export this operator’s data') }}</button><label class="btn btn-outline-secondary mb-0">{{ U('导入数据包', 'Import data package') }}<input id="import-user" type="file" accept=".json,application/json" hidden></label></div>
         </div>
-        <div class="settings-note">选好文件后会先弹出确认框：核对数据包里有多少记录、这批数据记到哪位操作人名下（可选现有操作人，也可当场新增），确认后才写入。导入时重新编号并按标准编号、草案版本、字典值等自动合并，不会覆盖本机记录。</div>
+        <div class="settings-note">{{ t('选好文件后会先弹出确认框：核对数据包里有多少记录、这批数据记到哪位操作人名下（可选现有操作人，也可当场新增），确认后才写入。导入时重新编号并按标准编号、草案版本、字典值等自动合并，不会覆盖本机记录。', 'After you choose a file, a confirmation shows how many records it contains and which operator they will be assigned to (an existing one or a new one). Nothing is written until you confirm. Records are renumbered and merged by standard number, draft version and dictionary values; local records are never overwritten.') }}</div>
       </div>
     </section>
     <section class="settings-section" data-setting-section="lookups">
-      <div class="settings-section-head"><div><h2>字典维护</h2><p>维护影响领域、人员、团队、机构、TC/WG 及标准制定阶段等下拉选项。</p></div></div>
+      <div class="settings-section-head"><div><h2>{{ U('字典维护', 'Dictionaries') }}</h2><p>{{ t('维护影响领域、人员、团队、机构、TC/WG 等下拉选项。', 'Maintain drop-down options such as impact areas, people, teams, organizations and TC/WG.') }}</p></div></div>
       <div class="lookup-workspace">
-        <nav id="lookup-categories" class="lookup-categories" aria-label="字典分类"></nav>
-        <div id="cats" class="lookup-content"><div class="loading">载入中…</div></div>
+        <nav id="lookup-categories" class="lookup-categories" aria-label="{{ t('字典分类', 'Dictionary categories') }}"></nav>
+        <div id="cats" class="lookup-content"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></div>
       </div>
     </section>
   </div>
@@ -42,5 +42,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/sortable.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/settings.js', v='20261002-drag-order') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/settings.js', v='v20-fix2.13-zoom') }}"></script>
 {% endblock %}

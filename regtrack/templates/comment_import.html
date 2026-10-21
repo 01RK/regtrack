@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ t('导入意见', 'Import Opinions') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/comments">← {{ t('返回', 'Back') }}</a><span>{{ U('导入意见', 'Import Opinions') }}</span></span>{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='v20-fix2.13-zoom') }}">{% endblock %}
+{% block content %}
+<div class="draft-import-flow exchange-flow">
+  <section class="panel">
+    <div class="panel-head"><span class="step-number">1</span><h2>{{ U('准备意见 Excel', 'Prepare the opinion Excel') }}</h2></div>
+    <div class="panel-body">
+      <details class="import-guide" open>
+        <summary>{{ t('使用方法', 'How to use') }}</summary>
+        <ol>
+          <li>{{ t('下载', 'Download the') }}<a href="/api/comments/exchange/template" download>{{ U('意见导入模板', 'opinion import template') }}</a>{{ U('，或使用「导出意见」得到的文件。', ', or use a file from Export Opinions.') }}</li>
+          <li>{{ t('每行填写一条意见，保留第 1 行的五个固定字段及顺序：', 'Enter one opinion per row and keep the five fixed headers in row 1:') }}</li>
+        </ol>
+        <table class="table exchange-columns">
+          <thead><tr><th>{{ L('Column', '字段') }}</th><th>{{ L('On import', '导入时') }}</th></tr></thead>
+          <tbody>
+            <tr><td>序号</td><td>{{ t('仅用于排序，不读取。', 'For sorting only; not read.') }}</td></tr>
+            <tr><td>章条编号</td><td>{{ t('与所选草案当前章节的编号匹配，意见挂到该章节；留空即整份草案意见。编号不存在时整份文件不导入。', 'Matched against the current chapter numbers of the selected draft; the opinion is attached to that chapter. Leave blank for a whole-draft opinion. If any number does not exist, nothing is imported.') }}</td></tr>
+            <tr><td>章节内容</td><td>{{ t('仅供对照阅读，不读取、不覆盖。', 'For reference only; not read or overwritten.') }}</td></tr>
+            <tr><td>意见内容（包括理由或依据）</td><td>{{ t('必填，写入意见内容，提交人为当前操作人。', 'Required. Saved as the opinion text, submitted by the current operator.') }}</td></tr>
+            <tr><td>意见状态</td><td>{{ t('必填，只能从下拉列表选择：', 'Required. Choose from the drop-down list only:') }} <span id="status-values"></span>{{ U('。Draft 表示无需跟进；Submitted 表示需要跟进；其余状态按今天的日期记入意见状态历史。', '. Draft means no follow-up; Submitted means follow-up required; any other status is recorded in the status history with today’s date.') }}</td></tr>
+          </tbody>
+        </table>
+        <p class="form-text mb-0">{{ t('导入的均为单版本意见批注，同时出现在草案阅读页和意见矩阵中。与该草案已有意见的章条编号及内容完全相同的行会被跳过。', 'All imported rows become single-draft opinions and appear in both the draft reader and the Comment Matrix. Rows whose clause number and text match an existing opinion of the draft are skipped.') }}</p>
+      </details>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><span class="step-number">2</span><h2>{{ U('选择目标标准和草案版本', 'Select the target standard and draft version') }}</h2></div>
+    <div class="panel-body">
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label" for="exchange-standard">{{ L('Standard', '标准') }}</label><select id="exchange-standard"></select></div>
+        <div class="col-md-6"><label class="form-label" for="exchange-draft">{{ L('Draft Version', '草案版本') }}</label><select id="exchange-draft"></select></div>
+      </div>
+      <p id="exchange-summary" class="exchange-summary" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><span class="step-number">3</span><h2>{{ U('上传并导入', 'Upload and import') }}</h2></div>
+    <div class="panel-body">
+      <label for="opinion-file" class="form-label">{{ L('Opinion Excel', '意见 Excel') }}</label>
+      <input class="form-control" id="opinion-file" type="file" accept=".xlsx">
+      <p class="form-text">{{ t('支持 .xlsx，最多 1000 条意见。任何一行有误时整份文件不写入。', '.xlsx only, up to 1,000 opinions. If any row is invalid, nothing is written.') }}</p>
+      <div class="import-actions"><span class="text-muted">{{ U('导入前会再次确认目标草案。', 'You will confirm the target draft before importing.') }}</span><button id="import-file" class="btn btn-primary" type="button" disabled>{{ U('导入意见', 'Import opinions') }}</button></div>
+      <div id="import-error" class="exchange-error" role="alert" hidden></div>
+      <div id="import-result" class="exchange-result" role="status" hidden></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/comment-import.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}

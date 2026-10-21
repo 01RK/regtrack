@@ -8,6 +8,7 @@ from flask import Flask, jsonify, render_template, request
 
 import api
 import db
+import i18n
 import lifecycle
 import paths
 from common import ApiError
@@ -42,6 +43,7 @@ def create_app(database: str | Path = DEFAULT_DB) -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
     app.json.ensure_ascii = False
     app.teardown_appcontext(db.close_db)
+    i18n.register(app)
 
     for blueprint in api.BLUEPRINTS:
         app.register_blueprint(blueprint)
@@ -55,6 +57,14 @@ def create_app(database: str | Path = DEFAULT_DB) -> Flask:
     @app.get("/drafts/import")
     def draft_import_page():
         return render_template("draft_import.html", nav=NAV, active="drafts")
+
+    @app.get("/comments/import")
+    def comment_import_page():
+        return render_template("comment_import.html", nav=NAV, active="comments")
+
+    @app.get("/comments/export")
+    def comment_export_page():
+        return render_template("comment_export.html", nav=NAV, active="comments")
 
     @app.get("/meetings/import")
     def meeting_import_page():

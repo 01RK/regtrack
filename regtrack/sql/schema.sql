@@ -40,11 +40,11 @@ CREATE TABLE standard (
     std_no                TEXT,                         -- 正式编号或尚未编号的填写形式
     name_cn               TEXT NOT NULL,
     name_en               TEXT,
-    -- 当前阶段：由 standard_stage_history 计算得出，不允许直接编辑
+    -- 当前阶段：最新会议纪要阶段与手动阶段最高值取较大者，不允许直接编辑
     stage_code            TEXT NOT NULL
         CHECK (stage_code IN ('PRE_RESEARCH', 'PROJECT_APPROVAL', 'DRAFTING',
                               'COMMENT_DRAFT', 'REVIEW_DRAFT', 'APPROVAL_DRAFT',
-                              'RELEASED', 'IMPLEMENTED', 'ABOLISHED')),
+                              'RELEASED', 'IMPLEMENTED', 'REEXAMINATION', 'ABOLISHED')),
     std_type              TEXT
         CHECK (std_type IS NULL OR std_type IN ('GB', 'GB/T', '行业标准',
                                                 '团体标准', '地方标准', '其他')),
@@ -97,7 +97,8 @@ CREATE TABLE standard_stage_history (
     stage_code     TEXT NOT NULL
         CHECK (stage_code IN ('PRE_RESEARCH', 'PROJECT_APPROVAL', 'DRAFTING',
                               'COMMENT_DRAFT', 'REVIEW_DRAFT', 'APPROVAL_DRAFT',
-                              'RELEASED', 'IMPLEMENTED', 'ABOLISHED')),
+                              'RELEASED', 'IMPLEMENTED', 'REEXAMINATION', 'ABOLISHED')),
+    is_manual      INTEGER NOT NULL DEFAULT 1 CHECK (is_manual IN (0, 1)),
     record_type    TEXT NOT NULL CHECK (record_type IN ('ADVANCE', 'BACKFILL')),
     effective_date TEXT NOT NULL,
     note           TEXT,
@@ -229,6 +230,8 @@ CREATE TABLE meeting_standard (
     meeting_id  INTEGER NOT NULL REFERENCES meeting (id) ON DELETE CASCADE,
     standard_id INTEGER NOT NULL REFERENCES standard (id) ON DELETE CASCADE,
     note        TEXT,
+    imported_stage_code TEXT CHECK (imported_stage_code IN ('PRE_RESEARCH', 'PROJECT_APPROVAL', 'DRAFTING',
+        'COMMENT_DRAFT', 'REVIEW_DRAFT', 'APPROVAL_DRAFT', 'RELEASED', 'IMPLEMENTED', 'REEXAMINATION', 'ABOLISHED')),
     PRIMARY KEY (meeting_id, standard_id)
 );
 -- 从标准侧反查会议（标准明细的「会议」页签、生命周期回顾）
@@ -357,30 +360,35 @@ CREATE INDEX ix_recipient_status_history_parent
 -- 6. Comment Matrix 意见矩阵
 -- ---------------------------------------------------------------------
 CREATE TABLE comment (
-    id                  INTEGER PRIMARY KEY,
-    comment_no          TEXT NOT NULL UNIQUE,   -- 系统自动 CM-YYYY-NNN
-    standard_id         INTEGER NOT NULL REFERENCES standard (id) ON DELETE CASCADE,
-    draft_id            INTEGER REFERENCES draft (id) ON DELETE SET NULL,
-    clause_no           TEXT,
-    topic               TEXT,
-    comment_text        TEXT NOT NULL,
-    rationale           TEXT NOT NULL,
-    status              TEXT NOT NULL
-        CHECK (status IN ('Draft', 'Submitted', 'Accepted', 'Partially Accepted',
-                          'Rejected', 'Pending', 'Withdrawn')),
-    submitted_by        TEXT NOT NULL,
-    submission_channel  TEXT
-        CHECK (submission_channel IS NULL
-               OR submission_channel IN ('邮件', '系统平台', '会议', '函件')),
-    submission_date     TEXT,
-    response            TEXT,
-    follow_up           TEXT,
-    -- 由 Action Item「Collect Comments」的反馈对象一键生成时留痕
-    source_recipient_id INTEGER REFERENCES feedback_recipient (id) ON DELETE SET NULL,
-    created_at          TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-    created_by          TEXT,
-    updated_at          TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-    updated_by          TEXT
+    id INTEGER PRIMARY KEY,
+    comment_no TEXT NOT NULL UNIQUE,
+    standard_id INTEGER NOT NULL REFERENCES standard(id) ON DELETE CASCADE,
+    source_kind TEXT NOT NULL CHECK (source_kind IN ('single', 'comparison')),
+    comment_type TEXT NOT NULL CHECK (comment_type IN ('Interpretation', 'Comment', 'Question', 'Recommendation')),
+    draft_id INTEGER REFERENCES draft(id) ON DELETE CASCADE,
+    clause_no TEXT,
+    before_draft_id INTEGER REFERENCES draft(id) ON DELETE CASCADE,
+    before_clause_no TEXT,
+    after_draft_id INTEGER REFERENCES draft(id) ON DELETE CASCADE,
+    after_clause_no TEXT,
+    comment_text TEXT NOT NULL,
+    needs_follow_up INTEGER NOT NULL DEFAULT 0 CHECK (needs_follow_up IN (0, 1)),
+    status TEXT NOT NULL DEFAULT 'Draft' CHECK (status IN ('Draft', 'Submitted', 'Accepted', 'Partially Accepted', 'Rejected', 'Pending', 'Withdrawn')),
+    submitted_by TEXT NOT NULL,
+    submission_channel TEXT GENERATED ALWAYS AS (
+        CASE source_kind WHEN 'single' THEN 'Single-draft annotation' ELSE 'Draft comparison annotation' END) VIRTUAL,
+    submission_date TEXT,
+    source_recipient_id INTEGER REFERENCES feedback_recipient(id) ON DELETE SET NULL,
+    source_annotation_id INTEGER UNIQUE REFERENCES draft_annotation(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    created_by TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_by TEXT,
+    CHECK ((source_kind = 'single' AND draft_id IS NOT NULL AND before_draft_id IS NULL AND before_clause_no IS NULL
+             AND after_draft_id IS NULL AND after_clause_no IS NULL)
+        OR (source_kind = 'comparison' AND draft_id IS NULL AND clause_no IS NULL
+             AND before_draft_id IS NOT NULL AND after_draft_id IS NOT NULL
+             AND before_draft_id <> after_draft_id AND source_annotation_id IS NULL))
 );
 CREATE INDEX ix_comment_standard ON comment (standard_id);
 CREATE INDEX ix_comment_group_created
@@ -400,8 +408,9 @@ CREATE TABLE comment_status_history (
                ('Draft', 'Submitted', 'Accepted', 'Partially Accepted',
                 'Rejected', 'Pending', 'Withdrawn')),
     effective_date TEXT NOT NULL,
-    note           TEXT,
-    reference      TEXT,
+    response TEXT,
+    follow_up TEXT,
+    supporting_reference TEXT,
     recorded_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     recorded_by    TEXT NOT NULL
 );

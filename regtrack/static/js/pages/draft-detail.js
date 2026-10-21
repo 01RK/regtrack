@@ -1,5 +1,5 @@
 App.ready(async () => {
-  const { get, post, put, esc, dash, tag, fail, ok, confirmAsync } = App;
+  const { get, post, put, del, esc, dash, tag, fail, ok, confirmAsync, t, label } = App;
   // Standards use a single ~ for numeric ranges; only paired ~~ marks deletion.
   marked.use({ tokenizer: { del(src) {
     const match = /^~~(?=\S)([\s\S]*?\S)~~/.exec(src);
@@ -14,7 +14,10 @@ App.ready(async () => {
   }
   let data, activeId = null;
   let language = localStorage.getItem("regtrack.reader.language") === "en" ? "en" : "cn";
-  let collapsed = new Set();
+  const collapsedKey = `regtrack.draft-tree-collapsed:${id}`;
+  const savedCollapsed = sessionStorage.getItem(collapsedKey);
+  let collapsed = new Set(JSON.parse(savedCollapsed || "[]").map(Number));
+  const saveCollapsed = () => sessionStorage.setItem(collapsedKey, JSON.stringify([...collapsed]));
   let chaptersById = new Map();
   let chaptersByNo = new Map();
   let childrenByNo = new Map();
@@ -22,7 +25,7 @@ App.ready(async () => {
     const previous = document.querySelector(".draft-view-tabs button.active")?.dataset.view;
     if (previous !== view) {
       const pending = previous === "reader" ? note : whole;
-      if (pending.value.trim() && !await confirmAsync("批注尚未保存，切换后将丢弃这段输入。继续切换？")) return;
+      if (pending.value.trim() && !await confirmAsync(t("批注尚未保存，切换后将丢弃这段输入。继续切换？", "The annotation has not been saved. Switching will discard it. Continue?"))) return;
       if (!await resolvePendingEditor()) return;
       pending.value = "";
     }
@@ -32,25 +35,35 @@ App.ready(async () => {
   }
   document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => showView(b.dataset.view));
   window.addEventListener("beforeunload", e => { if (whole.value.trim() || note.value.trim() || dirtyEditor()) { e.preventDefault(); e.returnValue = ""; } });
+  const followUpToggle = (inputAttrs, checked) => `<label class="follow-up-toggle" title="${t("需要回复或后续行动时勾选", "Tick when a response or further action is needed")}">
+      <input class="form-check-input" type="checkbox" ${inputAttrs} ${checked ? "checked" : ""}><span>${label("Follow-up required", "需要后续跟进")}</span></label>`;
   const annotation = a => `<article class="annotation-card" data-annotation-id="${a.id}">
     <div data-annotation-readonly>
-      <div class="annotation-head"><span class="annotation-author">${esc(a.created_by)}</span><button type="button" class="annotation-edit" data-annotation-edit aria-label="编辑批注" title="编辑批注"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15z"/></svg><span>编辑</span></button></div>
-      <div class="annotation-meta"><span class="annotation-type" data-type="${esc(a.annotation_type)}">${esc(a.annotation_type)}</span><time datetime="${esc(a.created_at.replace(" ", "T"))}">${esc(a.created_at.slice(0, 16))}</time></div>
+      <div class="annotation-head"><span class="annotation-author">${esc(a.created_by)}</span><time datetime="${esc(a.created_at.replace(" ", "T"))}">${esc(a.created_at.slice(0, 16))}</time></div>
+      <div class="annotation-meta"><span class="annotation-type" data-type="${esc(a.annotation_type)}">${esc(a.annotation_type)}</span>${a.needs_follow_up ? `<span class="annotation-flag">${window.App.uiText("需跟进", "Follow-up")}</span>` : ""}</div>
       <p class="annotation-text">${esc(a.content)}</p>
-      <details class="annotation-history"><summary>记录信息</summary><div>创建：${esc(a.created_at)} · ${esc(a.created_by)}<br>修改：${esc(a.updated_at)} · ${esc(a.updated_by)}</div></details>
+      <div class="annotation-footer">
+        <details class="annotation-history"><summary>${t("记录信息", "Record info")}</summary><div>${t("创建：", "Created: ")}${esc(a.created_at)} · ${esc(a.created_by)}<br>${t("修改：", "Updated: ")}${esc(a.updated_at)} · ${esc(a.updated_by)}</div></details>
+        <div class="annotation-actions">
+          <button type="button" class="annotation-action" data-annotation-formal>${window.App.uiText("查看意见", "View opinion")}</button>
+          <button type="button" class="annotation-action" data-annotation-edit>${window.App.uiText("编辑", "Edit")}</button>
+          ${a.created_by === (App.user || "未署名") ? `<button type="button" class="annotation-action danger" data-annotation-delete>${window.App.uiText("删除", "Delete")}</button>` : ""}
+        </div>
+      </div>
     </div>
     <form class="annotation-editor" data-annotation-editor hidden>
-      <div class="annotation-editor-head"><span>编辑批注</span><span class="annotation-editor-context">${esc(a.created_by)}</span></div>
-      <div class="annotation-type-field"><label for="annotation-type-${a.id}">类型</label><select id="annotation-type-${a.id}" class="form-select form-select-sm" required>${typeOptions(a.annotation_type)}</select></div>
-      <textarea class="form-control annotation-input" aria-label="批注内容" required>${esc(a.content)}</textarea>
-      <div class="annotation-edit-actions"><button type="button" class="annotation-cancel" data-annotation-cancel>取消</button><button type="submit" class="btn btn-primary btn-sm" disabled>保存修改</button></div>
+      <div class="annotation-editor-head"><span>${window.App.uiText("编辑批注", "Edit annotation")}</span><span class="annotation-editor-context">${esc(a.created_by)}</span></div>
+      <div class="annotation-type-field"><label for="annotation-type-${a.id}">${label("Type", "类型")}</label><select id="annotation-type-${a.id}" class="form-select form-select-sm" required>${typeOptions(a.annotation_type)}</select></div>
+      <textarea class="form-control annotation-input" aria-label="${t("批注内容", "Annotation text")}" required>${esc(a.content)}</textarea>
+      <div class="annotation-compose-footer">${followUpToggle("data-follow-up", a.needs_follow_up)}<div class="annotation-edit-actions"><button type="button" class="annotation-cancel" data-annotation-cancel>${window.App.uiText("取消", "Cancel")}</button><button type="submit" class="btn btn-primary btn-sm" disabled>${window.App.uiText("保存修改", "Save changes")}</button></div></div>
     </form>
   </article>`;
   function dirtyEditor() {
     return [...document.querySelectorAll("[data-annotation-editor]:not([hidden])")].find(editor => {
       const saved = data?.annotations.find(a => String(a.id) === editor.closest("[data-annotation-id]").dataset.annotationId);
       return saved && (editor.querySelector("textarea").value.trim() !== saved.content
-        || editor.querySelector("select").value !== saved.annotation_type);
+        || editor.querySelector("select").value !== saved.annotation_type
+        || Number(editor.querySelector("[data-follow-up]").checked) !== saved.needs_follow_up);
     });
   }
   function refreshAnnotationCard(card, item) {
@@ -65,9 +78,9 @@ App.ready(async () => {
     const proceed = await new Promise(resolve => {
       let chosen = false;
       const modal = App.openModal({
-        title: "批注尚未保存", size: "sm",
-        body: "这条批注已有未保存的修改。请先决定如何处理。",
-        footer: '<button class="btn btn-outline-secondary btn-sm" data-stay>继续编辑</button><button class="btn btn-outline-danger btn-sm" data-discard>放弃修改</button><button class="btn btn-primary btn-sm" data-save>保存并继续</button>',
+        title: t("批注尚未保存", "Unsaved annotation"), size: "sm",
+        body: t("这条批注已有未保存的修改。请先决定如何处理。", "This annotation has unsaved changes. Choose what to do first."),
+        footer: `<button class="btn btn-outline-secondary btn-sm" data-stay>${window.App.uiText("继续编辑", "Keep editing")}</button><button class="btn btn-outline-danger btn-sm" data-discard>${window.App.uiText("放弃修改", "Discard")}</button><button class="btn btn-primary btn-sm" data-save>${window.App.uiText("保存并继续", "Save and continue")}</button>`,
         onHidden: () => { if (!chosen) resolve(false); },
       });
       modal.footer.querySelector("[data-stay]").onclick = async () => { chosen = true; await modal.close(); resolve(false); };
@@ -76,13 +89,14 @@ App.ready(async () => {
         const saved = data.annotations.find(a => String(a.id) === card.dataset.annotationId);
         editor.querySelector("textarea").value = saved.content;
         editor.querySelector("select").value = saved.annotation_type;
+        editor.querySelector("[data-follow-up]").checked = !!saved.needs_follow_up;
         editor.hidden = true; card.classList.remove("is-editing"); card.querySelector("[data-annotation-readonly]").hidden = false;
         await modal.close(); resolve(true);
       };
       modal.footer.querySelector("[data-save]").onclick = async e => {
         e.currentTarget.disabled = true;
         try {
-          const saved = await put(`/api/drafts/${id}/annotations/${card.dataset.annotationId}`, { content: editor.querySelector("textarea").value, annotation_type: editor.querySelector("select").value });
+          const saved = await put(`/api/drafts/${id}/annotations/${card.dataset.annotationId}`, { content: editor.querySelector("textarea").value, annotation_type: editor.querySelector("select").value, needs_follow_up: editor.querySelector("[data-follow-up]").checked });
           const item = data.annotations.find(a => a.id === saved.id);
           Object.assign(item, saved); refreshAnnotationCard(card, item);
           chosen = true; await modal.close(); resolve(true);
@@ -93,16 +107,22 @@ App.ready(async () => {
   }
   function bindAnnotationEditors(root) {
     root.querySelectorAll("[data-annotation-id]").forEach(card => {
+      card.querySelector("[data-annotation-formal]").onclick = async () => {
+        try {
+          if (!await resolvePendingEditor()) return;
+          Records.open("comment", data.annotations.find(a => String(a.id) === card.dataset.annotationId).formal_comment_id);
+        } catch (error) {fail(error.message);}
+      };
       const readonly = card.querySelector("[data-annotation-readonly]"), editor = card.querySelector("[data-annotation-editor]");
       const input = editor.querySelector("textarea"), select = editor.querySelector("select");
       const save = editor.querySelector("button[type=submit]");
       function updateEditor() {
         const saved = data.annotations.find(a => String(a.id) === card.dataset.annotationId);
-        save.disabled = !input.value.trim() || (input.value.trim() === saved.content && select.value === saved.annotation_type);
+        save.disabled = !input.value.trim() || (input.value.trim() === saved.content && select.value === saved.annotation_type && Number(editor.querySelector("[data-follow-up]").checked) === saved.needs_follow_up);
         input.style.height = "auto";
         input.style.height = `${Math.min(280, Math.max(120, input.scrollHeight))}px`;
       }
-      input.oninput = updateEditor; select.onchange = updateEditor;
+      input.oninput = updateEditor; select.onchange = updateEditor; editor.querySelector("[data-follow-up]").onchange = updateEditor;
       card.querySelector("[data-annotation-edit]").onclick = async () => {
         if (!await resolvePendingEditor()) return;
         document.querySelectorAll("[data-annotation-editor]:not([hidden])").forEach(open => {
@@ -115,16 +135,29 @@ App.ready(async () => {
         const saved = data.annotations.find(a => String(a.id) === card.dataset.annotationId);
         editor.querySelector("textarea").value = saved.content;
         editor.querySelector("select").value = saved.annotation_type;
+        editor.querySelector("[data-follow-up]").checked = !!saved.needs_follow_up;
         editor.hidden = true; readonly.hidden = false; card.classList.remove("is-editing");
         card.querySelector("[data-annotation-edit]").focus();
+      };
+      const remove = card.querySelector("[data-annotation-delete]");
+      if (remove) remove.onclick = async () => {
+        if (!await confirmAsync(t("确定删除这条批注？删除后无法恢复。", "Delete this annotation? This cannot be undone."))) return;
+        remove.disabled = true;
+        try {
+          await del(`/api/drafts/${id}/annotations/${card.dataset.annotationId}`);
+          data.annotations = data.annotations.filter(a => String(a.id) !== card.dataset.annotationId);
+          card.remove();
+          renderCounts();
+          ok(t("批注已删除", "Annotation deleted"));
+        } catch (err) { fail(err.message); remove.disabled = false; }
       };
       editor.onsubmit = async e => {
         e.preventDefault(); const button = editor.querySelector("button[type=submit],button:not([type])"); button.disabled = true;
         try {
-          const saved = await put(`/api/drafts/${id}/annotations/${card.dataset.annotationId}`, { content: editor.querySelector("textarea").value, annotation_type: editor.querySelector("select").value });
+          const saved = await put(`/api/drafts/${id}/annotations/${card.dataset.annotationId}`, { content: editor.querySelector("textarea").value, annotation_type: editor.querySelector("select").value, needs_follow_up: editor.querySelector("[data-follow-up]").checked });
           const item = data.annotations.find(a => a.id === saved.id);
           Object.assign(item, saved);
-          refreshAnnotationCard(card, item); ok("批注已更新");
+          refreshAnnotationCard(card, item); ok(t("批注已更新", "Annotation updated"));
         }
         catch (e) { fail(e.message); } finally { updateEditor(); }
       };
@@ -169,18 +202,19 @@ App.ready(async () => {
       const hasChildren = childrenByNo.has(c.clause_no);
       const expanded = !collapsed.has(c.id);
       const toggle = hasChildren
-        ? `<button type="button" class="tree-toggle" data-tree-toggle="${c.id}" aria-label="${expanded ? "收起" : "展开"}${esc(displayNo(c))}下级条款" aria-expanded="${expanded}" ${query ? "disabled" : ""}><span class="tree-chevron" aria-hidden="true"></span></button>`
+        ? `<button type="button" class="tree-toggle" data-tree-toggle="${c.id}" aria-label="${expanded ? t("收起", "Collapse") : t("展开", "Expand")} ${esc(displayNo(c))}" aria-expanded="${expanded}" ${query ? "disabled" : ""}><span class="tree-chevron" aria-hidden="true"></span></button>`
         : '<span class="tree-spacer"></span>';
       return `<div class="tree-row" style="padding-left:${Math.min(c.level - 1, 8) * 15}px">${toggle}<button type="button" data-chapter="${c.id}" class="tree-entry ${c.id === activeId ? "active" : ""}" aria-current="${c.id === activeId}">${esc(treeLabel(c))}</button></div>`;
-    }).join("") || '<p class="text-muted p-2">没有匹配章节</p>';
+    }).join("") || `<p class="text-muted p-2">${t("没有匹配章节", "No matching chapters")}</p>`;
     document.querySelectorAll("[data-tree-toggle]").forEach(button => button.onclick = () => {
       const chapterId = Number(button.dataset.treeToggle);
       if (collapsed.has(chapterId)) collapsed.delete(chapterId); else collapsed.add(chapterId);
+      saveCollapsed();
       renderTree();
     });
     document.querySelectorAll("[data-chapter]").forEach(button => button.onclick = async () => {
       if (Number(button.dataset.chapter) === activeId) return;
-      if (note.value.trim() && !await confirmAsync("当前章节批注尚未保存，切换后将丢弃这段输入。继续切换？")) return;
+      if (note.value.trim() && !await confirmAsync(t("当前章节批注尚未保存，切换后将丢弃这段输入。继续切换？", "The chapter annotation has not been saved. Switching will discard it. Continue?"))) return;
       if (!await resolvePendingEditor()) return;
       note.value = "";
       activeId = Number(button.dataset.chapter);
@@ -224,7 +258,7 @@ App.ready(async () => {
     const illustrations = data.illustrations.filter(image => image.chapter_id === c.id);
     const imageHtml = illustrations.map((image, index) => {
       const url = `/api/drafts/${id}/chapters/${c.id}/illustrations/${image.id}`;
-      return `<button type="button" class="illustration-thumb" data-image="${image.id}" aria-label="放大查看附图 ${index + 1}"><img src="${url}" alt="${esc(c.illustration || `${displayNo(c)} 附图 ${index + 1}`)}" loading="lazy"><span>点击放大</span></button>`;
+      return `<button type="button" class="illustration-thumb" data-image="${image.id}" aria-label="${t("放大查看附图", "Enlarge illustration")} ${index + 1}"><img src="${url}" alt="${esc(c.illustration || `${displayNo(c)} ${t("附图", "Illustration")} ${index + 1}`)}" loading="lazy"><span>${window.App.uiText("点击放大", "Click to enlarge")}</span></button>`;
     }).join("");
     const illustrationHtml = c.illustration || imageHtml
       ? `<section class="chapter-illustrations"><h3>${language === "cn" ? "附图" : "Illustrations"}</h3>${c.illustration ? `<p>${esc(c.illustration)}</p>` : ""}<div class="illustration-grid">${imageHtml}</div></section>` : "";
@@ -238,16 +272,16 @@ App.ready(async () => {
       const viewer = document.getElementById("illustration-viewer");
       const large = document.getElementById("illustration-large");
       large.src = `/api/drafts/${id}/chapters/${c.id}/illustrations/${image.id}`;
-      large.alt = c.illustration || `${displayNo(c)} 附图`;
+      large.alt = c.illustration || `${displayNo(c)} ${t("附图", "Illustration")}`;
       document.getElementById("illustration-caption").textContent = c.illustration || displayNo(c);
       viewer.showModal();
     });
     paper.scrollTop = preserveScroll ? previousScroll : 0;
-    document.getElementById("annotation-clause").textContent = displayNo(c);
     if (preserveNotes) return;
     const notes = data.annotations.filter(a => a.chapter_id === c.id);
-    document.getElementById("chapter-annotations").innerHTML = notes.map(annotation).join("") || '<p class="text-muted small">此章节还没有批注。</p>';
+    document.getElementById("chapter-annotations").innerHTML = notes.map(annotation).join("");
     bindAnnotationEditors(document.getElementById("chapter-annotations"));
+    renderCounts();
     document.getElementById("chapter-notes-scroll").scrollTop = 0;
   }
   async function load() {
@@ -260,35 +294,40 @@ App.ready(async () => {
       if (!childrenByNo.has(chapter.parent_clause_no)) childrenByNo.set(chapter.parent_clause_no, []);
       childrenByNo.get(chapter.parent_clause_no).push(chapter);
     }
-    if (!collapsed.size) {
+    if (savedCollapsed === null) {
       for (const chapter of data.chapters) {
         if (childrenByNo.has(chapter.clause_no) && !chapter.title_cn?.trim() && !chapter.title_en?.trim()) {
           collapsed.add(chapter.id);
         }
       }
+      saveCollapsed();
     }
     document.getElementById("draft-heading").textContent = `${data.version_name} · ${data.sub_version_no}`;
-    document.title = `${data.version_name} · ${data.std_no} · 法规跟踪系统`;
+    document.title = `${data.version_name} · ${data.std_no} · ${t("法规跟踪系统", "Regulation Tracking")}`;
     document.getElementById("draft-context").textContent = `${data.std_no} · ${data.name_cn}`;
     document.getElementById("chapter-count").textContent = data.chapters.length;
     const latest = data.imports[0];
-    const fields = [["所属标准", `${data.std_no} · ${data.name_cn}`], ["草案版本", `${data.version_name} · ${data.sub_version_no}`], ["草案日期", data.draft_date], ["发布方", data.issued_by], ["总体影响", data.overall_impact], ["主要内容", data.main_summary], ["原文位置", data.file_link], ["备注", data.notes], ["来源文件", latest?.filename], ["文件中的标准", latest ? `${latest.source_standard_no} · ${latest.source_standard_name}` : ""], ["来源版本文字", latest?.source_version], ["最近导入", latest ? `${latest.created_at} · ${latest.created_by}` : "尚未导入"]];
-    document.getElementById("draft-metadata").innerHTML = fields.map(([key, value]) => `<dt>${key}</dt><dd style="white-space:pre-wrap;overflow-wrap:anywhere">${dash(value)}</dd>`).join("");
-    document.getElementById("whole-annotations").innerHTML = data.annotations.filter(a => !a.chapter_id).map(annotation).join("") || '<p class="text-muted">还没有整份草案批注。</p>';
+    const fields = [["Standard", "所属标准", `${data.std_no} · ${data.name_cn}`], ["Draft Version", "草案版本", `${data.version_name} · ${data.sub_version_no}`], ["Draft Date", "草案日期", data.draft_date], ["Issued By", "发布方", data.issued_by], ["Overall Impact", "总体影响", data.overall_impact], ["Main Summary", "主要内容", data.main_summary], ["Draft File / Link", "原文位置", data.file_link], ["Notes", "备注", data.notes], ["Source File", "来源文件", latest?.filename], ["Standard in File", "文件中的标准", latest ? `${latest.source_standard_no} · ${latest.source_standard_name}` : ""], ["Source Version Text", "来源版本文字", latest?.source_version], ["Last Import", "最近导入", latest ? `${latest.created_at} · ${latest.created_by}` : t("尚未导入", "Not imported yet")]];
+    document.getElementById("draft-metadata").innerHTML = fields.map(([en, zh, value]) => `<dt>${label(en, zh)}</dt><dd style="white-space:pre-wrap;overflow-wrap:anywhere">${dash(value)}</dd>`).join("");
+    document.getElementById("whole-annotations").innerHTML = data.annotations.filter(a => !a.chapter_id).map(annotation).join("");
     bindAnnotationEditors(document.getElementById("whole-annotations"));
+    renderCounts();
     document.getElementById("reader-empty").hidden = !!data.chapters.length;
     document.getElementById("reader-workspace").hidden = !data.chapters.length;
     if (!data.chapters.some(c => c.id === activeId)) activeId = data.chapters[0]?.id;
     renderTree(); renderChapter();
   }
-  document.getElementById("add-chapter-annotation").onclick = async () => {
-    if (!await resolvePendingEditor()) return;
-    document.querySelectorAll("[data-annotation-editor]:not([hidden])").forEach(editor => {
-      editor.querySelector("[data-annotation-cancel]").click();
-    });
-    document.getElementById("chapter-form").scrollIntoView({ block: "nearest" });
-    note.focus({ preventScroll: true });
-  };
+  /** 计数与空状态：列表为空时显示提示，标题旁显示条数。 */
+  function renderCounts() {
+    for (const [list, count] of [["whole-annotations", "whole-count"], ["chapter-annotations", "chapter-count-notes"]]) {
+      const host = document.getElementById(list);
+      const cards = host.querySelectorAll("[data-annotation-id]").length;
+      host.querySelector(".annotation-empty")?.remove();
+      if (!cards) host.insertAdjacentHTML("beforeend", `<p class="annotation-empty">${list === "whole-annotations"
+        ? t("还没有整份草案批注。", "No whole-draft annotations yet.") : t("此章节还没有批注。", "No annotations on this chapter yet.")}</p>`);
+      document.getElementById(count).textContent = cards ? t(`${cards} 条`, String(cards)) : "";
+    }
+  }
   document.getElementById("chapter-search").oninput = renderTree;
   document.querySelectorAll("[data-language]").forEach(button => {
     button.onclick = () => {
@@ -310,12 +349,13 @@ App.ready(async () => {
   document.getElementById("close-illustration").onclick = () => document.getElementById("illustration-viewer").close();
   for (const [formId, input, chapter] of [["whole-form", whole, false], ["chapter-form", note, true]]) {
     document.getElementById(formId).onsubmit = async e => {
-      e.preventDefault(); const button = e.currentTarget.querySelector("button"); button.disabled = true;
+      e.preventDefault(); const button = e.currentTarget.querySelector("button[type=submit]"); button.disabled = true;
       try {
         if (!await resolvePendingEditor()) return;
         await post(`/api/drafts/${id}/annotations`, { content: input.value, chapter_id: chapter ? activeId : null,
-          annotation_type: document.getElementById(chapter ? "chapter-type" : "whole-type").value });
-        input.value = ""; await load(); ok("批注已保存");
+          annotation_type: document.getElementById(chapter ? "chapter-type" : "whole-type").value,
+          needs_follow_up: document.getElementById(chapter ? "chapter-follow-up" : "whole-follow-up").checked });
+        input.value = ""; document.getElementById(chapter ? "chapter-follow-up" : "whole-follow-up").checked = false; await load(); ok(t("批注已保存", "Annotation saved"));
       }
       catch (e) { fail(e.message); } finally { button.disabled = false; }
     };
