@@ -91,26 +91,47 @@
   }
 
   /* ----------------------------------------------------------- 标准 */
+  /**
+   * 可搜索的标准下拉。opts.recommended：推荐匹配的标准（可带 name_similarity / similarity），
+   * 置顶为「推荐匹配」一组；其余标准在「全部标准」一组中，输入编号或名称即从服务端搜索。
+   */
   function standard(el, opts = {}) {
+    const recommendedIds = new Set((opts.recommended || []).map((s) => String(s.id)));
+    const grouped = !!opts.recommended;
+    const tag = (rows, group) => rows.map((s) => Object.assign({}, s, { group }));
+    const similarity = (d) => {
+      const value = d.name_similarity !== undefined ? Math.round(d.name_similarity * 100) : d.similarity;
+      return value === undefined ? "" : `<b class="opt-match">${t(`名称相似度 ${value}%`, `${value}% name match`)}</b>`;
+    };
     const ts = create(el, {
       valueField: "id",
       labelField: "std_no",
       searchField: ["std_no", "name_cn", "name_en"],
       preload: true,
       maxItems: opts.multiple ? null : 1,
-      options: opts.preload || [],
+      options: tag(opts.recommended || [], "recommended"),
+      optgroupField: grouped ? "group" : "optgroup",
+      optgroups: grouped ? [
+        { value: "recommended", label: t("推荐匹配", "Suggested matches") },
+        { value: "all", label: t("全部标准 · 输入编号或名称搜索", "All standards · type a number or name to search") },
+      ] : [],
+      lockOptgroupOrder: true,
       placeholder: opts.placeholder || t("按编号或名称搜索标准…", "Search standards by number or name…"),
       load(query, callback) {
-        get("/api/standards/options", { q: query }).then(callback).catch(() => callback());
+        get("/api/standards/options", { q: query })
+          .then((rows) => callback(rows.filter((s) => !recommendedIds.has(String(s.id))).map((s) => Object.assign(s, { group: "all" }))))
+          .catch(() => callback());
       },
       render: Object.assign({}, base.render, {
+        optgroup_header: (d, e) => `<div class="optgroup-header">${e(d.label)}</div>`,
         option: (d, e) => optionHtml(
-          `${e(d.std_no)} <span style="font-weight:400">${e(d.name_cn)}</span>`,
-          [`<b>${e(window.App.stageLabel(d.stage_code))}</b>`,
+          `${e(d.std_no || t("尚未编号", "No number yet"))} <span style="font-weight:400">${e(d.name_cn)}</span>`,
+          [similarity(d),
+           `<b>${e(window.App.stageLabel(d.stage_code))}</b>`,
            d.tc_wg ? e(d.tc_wg) : "",
            d.mb_owner ? t("负责人 ", "Owner ") + e(d.mb_owner) : "",
-           t(`草案 ${d.draft_count} 版`, `${d.draft_count} draft(s)`)]),
-        item: (d, e) => `<div>${e(d.std_no)} <span style="color:#7b8899">${e(d.name_cn)}</span></div>`,
+           d.draft_count === undefined ? "" : t(`草案 ${d.draft_count} 版`, `${d.draft_count} draft(s)`)]),
+        item: (d, e) => `<div>${e(d.std_no || t("尚未编号", "No number yet"))} <span style="color:#7b8899">${e(d.name_cn)}</span></div>`,
       }),
       onChange: opts.onChange,
     });

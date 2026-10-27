@@ -1,6 +1,6 @@
 # 前端依赖存放目录
 
-本目录存放 Bootstrap、Tom Select、Marked、DOMPurify、SortableJS 与 KaTeX 的静态文件，系统运行时不走 CDN。
+本目录存放 Bootstrap、Tom Select、Marked、DOMPurify、SortableJS、jsdiff 与 KaTeX 的静态文件，系统运行时不走 CDN。
 
 在项目根目录执行（需联网，只需一次）：
 
@@ -18,6 +18,7 @@ python codes/fetch_vendor.py
 | `tom-select.complete.min.js` | https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js |
 | `marked.umd.js` | https://cdn.jsdelivr.net/npm/marked@15.0.12/lib/marked.umd.js |
 | `purify.min.js` | https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js |
+| `diff.min.js`（jsdiff，标准比对的修订标记） | https://cdn.jsdelivr.net/npm/diff@4.0.4/dist/diff.min.js |
 | `sortable.min.js` | https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js |
 | `katex/katex.min.js`、`katex/katex.min.css`、`katex/fonts/*.woff2` | https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/ |
 

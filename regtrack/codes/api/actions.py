@@ -1,4 +1,11 @@
-"""5. Action Item 事项（4 类核心 + Others）+ ◆ Subform · Feedback Recipients。"""
+"""5. Action Item 事项（4 类核心 + Others）+ ◆ Subform · Feedback Recipients。
+
+Collect Comments（征集意见）事项只跟踪向谁征集、谁已回复，不生成正式意见。
+事项状态随反馈对象自动联动（sync_collect_status）：
+  · 全部反馈对象都不再是 Open（已回复 / 无意见 / 不适用）→ 自动置为 Completed；
+  · 已完成的事项又出现 Open 的反馈对象 → 自动恢复为 In Progress；
+  · 仍有 Open 的反馈对象时，不能手动置为 Completed。
+"""
 
 from flask import Blueprint, jsonify, request
 
@@ -35,38 +42,47 @@ TYPE_FIELDS = {
 RECIPIENT_FIELDS = ["respondent_team", "respondent_person", "response_status",
                     "response_due_date", "response_actual_date", "response_summary"]
 
-_SELECT = """
+DUE_DATE = db.coalesce("a.submission_due_date", "a.check_due_date", "a.target_date")
+
+# 事项及其标准、会议、草案（保留清晰的关联层次）
+_SELECT = f"""
 SELECT a.*, s.std_no, s.name_cn, s.stage_code,
        m.meeting_no, m.title AS meeting_title, m.meeting_date,
        d.version_name, d.sub_version_no,
-       COALESCE(a.submission_due_date, a.check_due_date, a.target_date) AS due_date,
+       {DUE_DATE} AS due_date,
        (SELECT COUNT(*) FROM feedback_recipient r WHERE r.action_item_id = a.id)
            AS recipient_count,
        (SELECT COUNT(*) FROM feedback_recipient r
-         WHERE r.action_item_id = a.id AND r.response_status = 'Responded')
+         WHERE r.action_item_id = a.id AND r.response_status <> 'Open')
            AS responded_count
-  FROM action_item a
-  LEFT JOIN standard s ON s.id = a.standard_id
-  LEFT JOIN meeting m ON m.id = a.meeting_id
+  FROM ((action_item a
+  LEFT JOIN standard s ON s.id = a.standard_id)
+  LEFT JOIN meeting m ON m.id = a.meeting_id)
   LEFT JOIN draft d ON d.id = a.draft_id
 """
 
 
 def _get(action_id: int) -> dict:
-    row = db.query_one(_SELECT + " WHERE a.id = ?", (action_id,))
+    row = db.query_one(_SELECT + " WHERE a.id = %s", (action_id,))
     if not row:
         raise ApiError("事项不存在", 404)
     return row
 
 
+def _recipients_for(action_ids: list[int]) -> dict[int, list[dict]]:
+    """多个事项的反馈对象一次查出（列表页不再逐项查询）。"""
+    found = {aid: [] for aid in action_ids}
+    if not action_ids:
+        return found
+    for row in db.query(
+            f"""SELECT * FROM feedback_recipient
+                 WHERE action_item_id IN ({db.marks(action_ids)}) ORDER BY id""", action_ids):
+        found[row["action_item_id"]].append(row)
+    return found
+
+
 def _recipients(action_id: int) -> list[dict]:
-    return db.query(
-        """SELECT r.*, (SELECT c.comment_no FROM comment c
-                         WHERE c.source_recipient_id = r.id LIMIT 1) AS generated_comment_no,
-                  (SELECT c.id FROM comment c
-                    WHERE c.source_recipient_id = r.id LIMIT 1) AS generated_comment_id
-             FROM feedback_recipient r
-            WHERE r.action_item_id = ? ORDER BY r.id""", (action_id,))
+    return _recipients_for([action_id])[action_id]
 
 
 def _allowed_fields(item_type: str) -> list[str]:
@@ -85,10 +101,10 @@ def _validate(data: dict) -> None:
         raise ApiError("「Related Standard」为必填项（仅 Others 类可空）",
                        field="standard_id")
     if data.get("standard_id") and not db.query_one(
-            "SELECT id FROM standard WHERE id = ?", (data["standard_id"],)):
+            "SELECT id FROM standard WHERE id = %s", (data["standard_id"],)):
         raise ApiError("所选标准不存在", field="standard_id")
     if data.get("draft_id"):
-        d = db.query_one("SELECT standard_id FROM draft WHERE id = ?", (data["draft_id"],))
+        d = db.query_one("SELECT standard_id FROM draft WHERE id = %s", (data["draft_id"],))
         if not d:
             raise ApiError("所选草案不存在", field="draft_id")
         if data.get("standard_id") and int(d["standard_id"]) != int(data["standard_id"]):
@@ -120,46 +136,38 @@ def list_actions():
     where, params = ["(a.standard_id IS NULL OR s.archived_at IS NULL)"], []
     q = (request.args.get("q") or "").strip()
     if q:
-        where.append("(a.item_no LIKE ? OR a.title LIKE ? OR a.description LIKE ?"
-                     " OR COALESCE(s.std_no,'') LIKE ? OR COALESCE(s.name_cn,'') LIKE ?)")
-        params += [f"%{q}%"] * 5
+        where.append("(a.item_no ILIKE %s OR a.title ILIKE %s OR a.description ILIKE %s"
+                     " OR s.std_no ILIKE %s OR s.name_cn ILIKE %s)")
+        params += [db.contains(q)] * 5
     for field, arg in (("a.item_type", "type"), ("a.current_status", "status"),
-                       ("a.priority", "priority"), ("a.standard_id", "standard_id"),
-                       ("a.meeting_id", "meeting_id")):
+                       ("a.priority", "priority")):
         val = (request.args.get(arg) or "").strip()
         if val:
-            where.append(f"{field} = ?")
+            where.append(f"{field} = %s")
+            params.append(val)
+    for field in ("standard_id", "meeting_id"):
+        val = request.args.get(field, type=int)
+        if val:
+            where.append(f"a.{field} = %s")
             params.append(val)
     if request.args.get("open_only") == "1":
-        marks = ", ".join("?" * len(ACTION_OPEN_STATUSES))
-        where.append(f"a.current_status IN ({marks})")
+        where.append(f"a.current_status IN ({db.marks(ACTION_OPEN_STATUSES)})")
         params += ACTION_OPEN_STATUSES
 
     clause = " WHERE " + " AND ".join(where)
-    item_sql = f"""
-        SELECT COALESCE(a.standard_id, 0) AS group_key, a.*,
-               COALESCE(s.std_no, '未关联标准') AS std_no,
-               COALESCE(s.name_cn, '仅 Others 类事项') AS name_cn,
-               s.stage_code, m.meeting_no, m.title AS meeting_title, m.meeting_date,
-               d.version_name, d.sub_version_no,
-               COALESCE(a.submission_due_date, a.check_due_date, a.target_date) AS due_date,
-               (SELECT COUNT(*) FROM feedback_recipient r WHERE r.action_item_id = a.id)
-                   AS recipient_count,
-               (SELECT COUNT(*) FROM feedback_recipient r
-                 WHERE r.action_item_id = a.id AND r.response_status = 'Responded')
-                   AS responded_count
-          FROM action_item a
-          LEFT JOIN standard s ON s.id = a.standard_id
-          LEFT JOIN meeting m ON m.id = a.meeting_id
-          LEFT JOIN draft d ON d.id = a.draft_id
-          {clause}
-    """
+    rows = db.query(_SELECT + clause, params)
+    for row in rows:
+        # 未关联标准的 Others 事项归为一组
+        if row["standard_id"] is None:
+            row.update(std_no="未关联标准", name_cn="仅 Others 类事项")
 
-    def enrich(row):
-        if row["item_type"] == "Collect Comments":
-            row["recipients"] = _recipients(row["id"])
+    def enrich(page_rows):
+        collect = [row for row in page_rows if row["item_type"] == "Collect Comments"]
+        recipients = _recipients_for([row["id"] for row in collect])
+        for row in collect:
+            row["recipients"] = recipients[row["id"]]
 
-    return grouped.response(item_sql, params, enrich)
+    return grouped.response(rows, enrich)
 
 
 @bp.get("/<int:action_id>")
@@ -193,8 +201,10 @@ def create():
 
     for r in payload.get("recipients") or []:
         _insert_recipient(action_id, r)
-    if item_type == "Collect Comments" and not _recipients(action_id):
-        raise ApiError("Collect Comments 事项至少需要 1 个反馈对象", field="recipients")
+    if item_type == "Collect Comments":
+        if not _recipients(action_id):
+            raise ApiError("Collect Comments 事项至少需要 1 个反馈对象", field="recipients")
+        sync_collect_status(action_id)
 
     db.commit()
     return jsonify(detail_payload(action_id)), 201
@@ -240,13 +250,38 @@ def add_status(action_id):
             and not action["check_result"]):
         raise ApiError("请先填写「Check Result」再把合规核查事项置为完成/关闭",
                        field="check_result")
+    if (action["item_type"] == "Collect Comments" and payload.get("new_value") == "Completed"
+            and _has_open_recipient(action_id)):
+        raise ApiError("还有反馈对象未回复（Open）。全部反馈对象回复后，事项会自动置为 Completed",
+                       field="new_value")
     row = status.add("action_item", action_id, "current_status", payload)
+    db.commit()
     return jsonify(history=row, action=detail_payload(action_id)), 201
 
 
 # --------------------------------------------------------------------- #
 # ◆ Subform · Feedback Recipients
 # --------------------------------------------------------------------- #
+FINISHED = ("Completed", "Closed", "Cancelled")
+
+
+def _has_open_recipient(action_id: int) -> bool:
+    return db.query_one("SELECT id FROM feedback_recipient WHERE action_item_id = %s AND response_status = 'Open'",
+                        (action_id,)) is not None
+
+
+def sync_collect_status(action_id: int) -> None:
+    """按反馈对象的回复情况联动征集意见事项的状态（在当前事务中，不提交）。"""
+    current = db.query_one("SELECT current_status FROM action_item WHERE id = %s", (action_id,))["current_status"]
+    if _has_open_recipient(action_id):
+        if current == "Completed":
+            status.add("action_item", action_id, "current_status", {
+                "new_value": "In Progress", "effective_date": today(),
+                "note": "有反馈对象尚未回复，自动恢复为进行中"})
+    elif current not in FINISHED:
+        status.add("action_item", action_id, "current_status", {
+            "new_value": "Completed", "effective_date": today(),
+            "note": "全部反馈对象均已回复（含无意见 / 不适用），自动完成"})
 def _validate_recipient(data: dict) -> None:
     if not (data.get("respondent_team") or data.get("respondent_person")):
         raise ApiError("「Respondent Team / Person」至少填写一个",
@@ -283,62 +318,42 @@ def create_recipient(action_id):
     if action["item_type"] != "Collect Comments":
         raise ApiError("只有 Collect Comments 类事项才能添加反馈对象")
     _insert_recipient(action_id, payload_of(request))
+    sync_collect_status(action_id)
     db.commit()
     return jsonify(_recipients(action_id)), 201
 
 
 @bp.put("/recipients/<int:recipient_id>")
 def update_recipient(recipient_id):
-    row = db.query_one("SELECT * FROM feedback_recipient WHERE id = ?", (recipient_id,))
+    row = db.query_one("SELECT * FROM feedback_recipient WHERE id = %s", (recipient_id,))
     if not row:
         raise ApiError("反馈对象不存在", 404)
     data = clean(payload_of(request), RECIPIENT_FIELDS)
     merged = {**row, **data}
     _validate_recipient(merged)
-    if data.get("response_status") and data["response_status"] != row["response_status"]:
+    lookups_service.ensure_values("team", [data.get("respondent_team")])
+    lookups_service.ensure_values("person", [data.get("respondent_person")])
+    new_status = data.pop("response_status", None)
+    db.update("feedback_recipient", recipient_id, data)
+    if new_status and new_status != row["response_status"]:
         status.add("feedback_recipient", recipient_id, "response_status", {
-            "new_value": data["response_status"],
-            "effective_date": data.get("response_actual_date") or today(),
+            "new_value": new_status,
+            "effective_date": merged.get("response_actual_date") or today(),
             "note": "在反馈对象行内更新",
         })
-        data.pop("response_status")
-    db.update("feedback_recipient", recipient_id, data)
+    sync_collect_status(row["action_item_id"])
     db.commit()
     return jsonify(_recipients(row["action_item_id"]))
 
 
 @bp.delete("/recipients/<int:recipient_id>")
 def remove_recipient(recipient_id):
-    row = db.query_one("SELECT * FROM feedback_recipient WHERE id = ?", (recipient_id,))
+    row = db.query_one("SELECT * FROM feedback_recipient WHERE id = %s", (recipient_id,))
     if not row:
         raise ApiError("反馈对象不存在", 404)
+    if len(_recipients(row["action_item_id"])) == 1:
+        raise ApiError("征集意见事项至少需要保留 1 个反馈对象；如不再征集，请把事项置为 Cancelled")
     db.delete("feedback_recipient", recipient_id)
+    sync_collect_status(row["action_item_id"])
     db.commit()
     return jsonify(_recipients(row["action_item_id"]))
-
-
-@bp.get("/recipients/<int:recipient_id>/comment-draft")
-def comment_draft(recipient_id):
-    """「+ 生成 Comment」的预填数据：把事项与反馈内容带进意见矩阵。"""
-    row = db.query_one(
-        """SELECT r.*, a.standard_id, a.draft_id, a.related_clause, a.title, a.item_no
-             FROM feedback_recipient r JOIN action_item a ON a.id = r.action_item_id
-            WHERE r.id = ?""", (recipient_id,))
-    if not row:
-        raise ApiError("反馈对象不存在", 404)
-    existing = db.query_one(
-        "SELECT id, comment_no FROM comment WHERE source_recipient_id = ?", (recipient_id,))
-    return jsonify({
-        "existing": existing,
-        "prefill": {
-            "standard_id": row["standard_id"],
-            "draft_id": row["draft_id"],
-            "clause_no": row["related_clause"],
-            "source_kind": "single",
-            "comment_type": "Comment",
-            "comment_text": row["response_summary"] or "",
-            "status": "Draft",
-            "submitted_by": row["respondent_person"] or row["respondent_team"] or "",
-            "source_recipient_id": recipient_id,
-        },
-    })

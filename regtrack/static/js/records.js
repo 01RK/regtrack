@@ -72,6 +72,7 @@
     const spec = [
       { section: t("身份", "Identity") },
       { name: "std_no", label: "Standard No.", cn: "标准编号", type: "text", col: 6, placeholder: t("如 GB 38031—2025，可留空", "e.g. GB 38031—2025; optional") },
+      { name: "plan_no", label: "Plan No.", cn: "计划号", type: "text", col: 6 },
       { name: "name_cn", label: "Standard Name CN", cn: "中文名称", type: "text", required: true, col: 6 },
       { name: "name_en", label: "Standard Name EN", cn: "英文名称", type: "text", col: 12 },
     ];
@@ -106,23 +107,21 @@
     ]);
   }
 
-  function standardForm(values, ctx = {}) {
-    const isNew = !values;
+  /** 新建标准主档（已有标准在明细的「概览」里就地编辑）。 */
+  function standardForm(ctx = {}) {
     Forms.formModal({
-      title: isNew ? t("新建标准主档", "New Standard Profile") : `${t("编辑", "Edit")} ${values.std_no}`,
+      title: t("新建标准主档", "New Standard Profile"),
       subtitle: "Standard Profile",
-      fields: standardSpec(isNew, values || {}),
-      values: values || { stage_code: M().stages[0].code, stage_effective_date: Forms.today() },
-      submitText: isNew ? t("建档", "Create") : t("保存修改", "Save changes"),
+      fields: standardSpec(true, {}),
+      values: { stage_code: M().stages[0].code, stage_effective_date: Forms.today() },
+      submitText: t("建档", "Create"),
       async onSubmit(payload, m) {
-        const saved = isNew
-          ? await post("/api/standards", payload)
-          : await put(`/api/standards/${values.id}`, payload);
-        ok(isNew ? t(`已建档 ${saved.std_no}`, `Created ${saved.std_no}`) : t("已保存", "Saved"));
+        const saved = await post("/api/standards", payload);
+        ok(t(`已建档 ${saved.std_no || saved.name_cn}`, `Created ${saved.std_no || saved.name_cn}`));
         await window.App.refreshLookups();
         await m.close();
         if (ctx.onChanged) await ctx.onChanged();
-        if (isNew) open("standard", saved.id, { trail: trailOf(ctx), onChanged: ctx.onChanged });
+        open("standard", saved.id, { trail: trailOf(ctx), onChanged: ctx.onChanged });
       },
     });
   }
@@ -131,10 +130,11 @@
     let s = await get(`/api/standards/${id}`);
     const body = document.createElement("div");
     const dlg = shell(ctx, {
-      title: `${s.std_no} ${s.name_cn}`,
+      title: `${s.std_no || s.plan_no || ""} ${s.name_cn}`,
       subtitle: t("Standard Profile · 标准主档", "Standard Profile"),
       body,
-      footer: `<button class="btn btn-outline-secondary btn-sm" data-archive></button>
+      footer: `<button class="btn btn-outline-danger btn-sm" data-delete>${window.App.uiText("删除", "Delete")}</button>
+               <button class="btn btn-outline-secondary btn-sm" data-archive></button>
                <div class="ms-auto btn-row">
                  <button class="btn btn-outline-secondary btn-sm" data-stage>${window.App.uiText("推进 / 补录阶段", "Advance / Backfill Stage")}</button>
                  <button class="btn btn-outline-secondary btn-sm" data-edit>${window.App.uiText("编辑", "Edit")}</button>
@@ -155,7 +155,7 @@
     // 阶段推进 / 补录与阶段详情共用同一套上下文
     const stageCtx = () => ({
       standardId: s.id,
-      title: `${s.std_no} ${s.name_cn}`,
+      title: `${s.std_no || s.plan_no || ""} ${s.name_cn}`,
       stage: window.App.stageLabel(s.stage_code),
       timeline: s.stage_timeline,
       onDone: refresh,
@@ -176,7 +176,9 @@
           ${tabBtn("ac", t("事项", "Actions"), s.actions.length)}
         </ul>
         <div class="tab-content" style="padding-top:14px">
-          <div class="tab-pane fade" id="p-ov">${overview(s)}</div>
+          <div class="tab-pane fade" id="p-ov">
+            <section class="panel" style="margin-top:16px;padding:16px"><h3 class="h6">${t("阶段文件", "Stage files")}</h3>
+            <div class="btn-row" style="flex-wrap:wrap">${[...M().stages.map(x=>({code:x.code,name:x.label,en:x.en})),{code:"OTHER",name:"其他",en:"Other"}].map(x=>`<a class="btn btn-outline-secondary btn-sm" href="/file-manager?scope=standard&owner_id=${s.id}&stage=${encodeURIComponent(x.code)}">${esc(t(x.name,x.en))}</a>`).join("")}</div></section><div data-inline-host></div></div>
           <div class="tab-pane fade" id="p-st">${Stages.historyHtml(s.stage_history)}</div>
           <div class="tab-pane fade" id="p-dr">${draftTable(s.drafts)}</div>
           <div class="tab-pane fade" id="p-mt">${meetingTable(s.meetings)}</div>
@@ -195,28 +197,26 @@
         }));
       });
       bindLinks(body, ctx, s.std_no, refresh);
+      editor = InlineEdit.mount({
+        host: body.querySelector("[data-inline-host]"), modal: dlg,
+        title: t("标准主档", "Standard profile"),
+        spec: standardSpec(false, s), values: s,
+        extra: [["Created", "创建", `${s.created_by || "—"} · ${s.created_at}`],
+                ["Last Updated", "最近修改", `${s.updated_by || "—"} · ${s.updated_at}`]],
+        async save(payload) {
+          await put(`/api/standards/${s.id}`, payload);
+          await window.App.refreshLookups();
+          await refresh();
+        },
+      });
     }
+    let editor;
 
     const tabBtn = (key, label, count) =>
       `<li class="nav-item" role="presentation">
          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#p-${key}" type="button">${esc(label)}
            ${count !== "" ? `<span class="cnt">${count}</span>` : ""}
          </button></li>`;
-
-    const overview = (r) => kv([
-      ["Standard No.", "标准编号", r.std_no], ["Standard Name CN", "中文名称", r.name_cn],
-      ["Standard Name EN", "英文名称", r.name_en], ["Current Stage", "当前阶段", `${window.App.stageLabel(r.stage_code)}（${r.stage_code}）`],
-      ["Standard Type", "标准类别", r.std_type], ["TC / WG", "归口技委会", r.tc_wg],
-      ["Responsible Authority", "主管机构", r.responsible_authority],
-      ["Leading Organization", "牵头起草单位", r.leading_org],
-      ["Current Risk Level", "风险等级", r.risk_level], ["MB Owner", "内部负责人", r.mb_owner],
-      ["Main Impact Area", "影响领域", (r.impact_area_list || []).join("、")],
-      ["Planned Release Date", "预计发布日期", r.planned_release_date],
-      ["Actual Release Date", "实际发布日期", r.actual_release_date],
-      ["Effective Date", "实施日期", r.effective_date], ["Scope", "适用范围", r.scope],
-      ["Created", "创建", `${r.created_by || "—"} · ${r.created_at}`],
-      ["Last Updated", "最近修改", `${r.updated_by || "—"} · ${r.updated_at}`],
-    ]);
 
     const draftTable = (rows) => table(
       [["Version", "版本"], ["Sub-Version", "子版本"], ["Draft Date", "草案日期"], ["Overall Impact", "总体影响"], ["Chapters", "章节"], ["Issued By", "发布方"], ""],
@@ -267,7 +267,8 @@
     render("#p-ov");
 
     dlg.footer.querySelector("[data-edit]").onclick = () => {
-      standardForm(s, { trail: trailOf(ctx), onChanged: refresh });
+      bootstrap.Tab.getOrCreateInstance(body.querySelector('[data-bs-target="#p-ov"]')).show();
+      editor.edit();
     };
     dlg.footer.querySelector("[data-stage]").onclick = () => {
       Stages.openForm(stageCtx());
@@ -289,13 +290,63 @@
           `Archive ${s.std_no}? It will be hidden from normal lists; the profile, stage history and all linked records are kept and can be restored at any time.`),
         async () => {
           try {
-            await del(`/api/standards/${s.id}`);
+            await post(`/api/standards/${s.id}/archive`);
             ok(t("已归档", "Archived"));
             await refresh();
           } catch (e) { fail(e.message); }
         });
     };
+    dlg.footer.querySelector("[data-delete]").onclick = () => deleteStandard(s, async () => {
+      await dlg.close();
+      if (ctx.onChanged) await ctx.onChanged();
+    });
+    Object.assign(dlg, { label: s.std_no || s.name_cn, refresh });
     return dlg;
+  }
+
+  /**
+   * 永久删除标准：先列出将删除的记录数量，再要求输入标准号（无编号时输入名称）确认。
+   * 会议保留，只解除挂载。
+   */
+  async function deleteStandard(s, onDeleted) {
+    const scope = await get(`/api/standards/${s.id}/deletion`);
+    const word = s.std_no || s.name_cn;
+    const item = (zh, en, n) => `<li>${t(zh, en)}：<b>${n}</b></li>`;
+    const dlg = openModal({
+      title: t("永久删除标准", "Delete standard permanently"),
+      size: "md",
+      body: `<p style="font-size:13.5px;margin:0">${t("将永久删除", "This permanently deletes")} <b>${esc(s.std_no || "")} ${esc(s.name_cn)}</b> ${t("及其全部关联记录，无法撤销。", "and all linked records. This cannot be undone.")}</p>
+        <div class="danger-impact">
+          <b>${t("将一并删除", "Also deleted")}</b>
+          <ul>
+            ${item("草案版本（含原文章节、批注）", "Draft versions (with chapters and annotations)", scope.drafts)}
+            ${item("草案附图文件", "Draft figure files", scope.images)}
+            ${item("阶段与其他文件", "Stage and other files", scope.files)}
+            ${item("意见（含状态历史）", "Opinions (with status history)", scope.comments)}
+            ${item("标准比对", "Draft comparisons", scope.comparisons)}
+            ${item("关联事项（含状态历史、反馈对象）", "Linked actions (with status history and recipients)", scope.actions)}
+            <li>${t("阶段历史与影响领域", "Stage history and impact areas")}</li>
+          </ul>
+          <div class="kept" style="margin-top:8px">${t(`工作组会议保留：将从 ${scope.meetings} 场会议中解除挂载，挂载批注随之删除。`, `WG meetings are kept: the standard is unlinked from ${scope.meetings} meeting(s) and its notes there are removed.`)}</div>
+        </div>
+        <div class="form-text" style="margin-bottom:10px">${t("只想隐藏这项标准？请改用「归档」，数据会完整保留并可随时恢复。", "Only want to hide it? Use Archive instead; all data is kept and can be restored.")}</div>
+        <label class="danger-confirm-label" for="delete-confirm">${t("请输入", "Type")} <code>${esc(word)}</code> ${t("以确认删除", "to confirm")}</label>
+        <input id="delete-confirm" class="form-control form-control-sm mt-1" autocomplete="off">`,
+      footer: `<button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">${window.App.uiText("取消", "Cancel")}</button>
+               <button class="btn btn-danger btn-sm" data-confirm disabled>${window.App.uiText("永久删除", "Delete permanently")}</button>`,
+      onShown: (el) => el.querySelector("#delete-confirm").focus(),
+    });
+    const input = dlg.body.querySelector("#delete-confirm");
+    const button = dlg.footer.querySelector("[data-confirm]");
+    input.oninput = () => { button.disabled = input.value.trim() !== word; };
+    button.onclick = async () => {
+      try {
+        await del(`/api/standards/${s.id}`);
+        ok(t(`已删除 ${word}`, `${word} deleted`));
+        await dlg.close();
+        await onDeleted();
+      } catch (e) { fail(e.message); }
+    };
   }
 
   /* ================================================== 2. 草案登记 */
@@ -316,22 +367,20 @@
     { name: "notes", label: "Notes", cn: "备注", type: "textarea", rows: 2, col: 12 },
   ];
 
-  function draftForm(values, ctx = {}) {
-    const isNew = !values;
+  /** 登记草案（已有草案在草案详情的「草案元数据」里就地编辑）。 */
+  function draftForm(ctx = {}) {
     Forms.formModal({
-      title: isNew ? t("登记草案", "Register Draft") : `${t("编辑", "Edit")} ${values.version_name} v${values.sub_version_no}`,
+      title: t("登记草案", "Register Draft"),
       subtitle: "Draft Registry",
       fields: draftSpec(),
-      values: values || Object.assign({ draft_date: Forms.today() }, ctx.prefill || {}),
-      submitText: isNew ? t("登记", "Register") : t("保存修改", "Save changes"),
+      values: Object.assign({ draft_date: Forms.today() }, ctx.prefill || {}),
+      submitText: t("登记", "Register"),
       async onSubmit(payload, m) {
-        const saved = isNew
-          ? await post("/api/drafts", payload)
-          : await put(`/api/drafts/${values.id}`, payload);
-        ok(isNew ? t("草案已登记", "Draft registered") : t("已保存", "Saved"));
+        const saved = await post("/api/drafts", payload);
+        ok(t("草案已登记", "Draft registered"));
         await m.close();
         if (ctx.onChanged) await ctx.onChanged();
-        if (isNew) open("draft", saved.id, { trail: trailOf(ctx), onChanged: ctx.onChanged });
+        open("draft", saved.id, { trail: trailOf(ctx), onChanged: ctx.onChanged });
       },
     });
   }
@@ -351,11 +400,8 @@
     { name: "material_link", label: "Meeting Material / Minutes", cn: "会议材料 / 纪要", type: "text", col: 12 },
   ];
 
-  function meetingForm(values, ctx = {}) {
-    const isNew = !values;
-    const formValues = values
-      ? Object.assign({}, values, { standard_ids: values.standards.map((s) => s.id) })
-      : { meeting_date: Forms.today(), standard_ids: [] };
+  /** 登记会议（已有会议在会议明细里就地编辑；涉及标准在明细的「涉及标准」里挂载 / 移除）。 */
+  function meetingForm(ctx = {}) {
     const spec = meetingSpec().concat(
       { section: t("涉及标准", "Related Standards") },
       { name: "standard_ids", label: "Related Standards", type: "standard", multiple: true, col: 12,
@@ -363,30 +409,17 @@
         help: t("一场会议可同时挂多项标准，也可以先不挂，稍后在会议明细里补；搜不到可在下拉底部快速建档。",
                 "A meeting can cover several standards. You can also add them later in the meeting detail; create missing standards from the bottom of the list.") });
     Forms.formModal({
-      title: isNew ? t("登记工作组会议", "Register WG Meeting") : `${t("编辑", "Edit")} ${values.meeting_no}`,
+      title: t("登记工作组会议", "Register WG Meeting"),
       subtitle: "WG Meeting",
       fields: spec,
-      values: formValues,
-      submitText: isNew ? t("登记会议", "Register meeting") : t("保存修改", "Save changes"),
+      values: { meeting_date: Forms.today(), standard_ids: [] },
+      submitText: t("登记会议", "Register meeting"),
       async onSubmit(payload, m) {
-        // 在多选里取消勾选，等于取消挂载：批注跟着关联走，先问一句再提交
-        const retainedIds = payload.standard_ids.map(Number);
-        const losing = isNew ? [] : values.standards.filter(
-          (s) => (s.note || "").trim() && !retainedIds.includes(s.id));
-        if (losing.length) {
-          const yes = await confirmAsync(
-            t("您正在取消挂载一份批注过 Note 的标准，如确认移除，Note 也将丢失。", "You are unlinking a standard that has a meeting note. The note will be lost.") +
-            `\n${t("涉及：", "Affected: ")}${losing.map((s) => s.std_no).join("、")}`);
-          if (!yes) return;
-          payload.drop_notes = true;
-        }
-        const saved = isNew
-          ? await post("/api/meetings", payload)
-          : await put(`/api/meetings/${values.id}`, payload);
-        ok(isNew ? t(`已登记 ${saved.meeting_no}`, `Registered ${saved.meeting_no}`) : t("已保存", "Saved"));
+        const saved = await post("/api/meetings", payload);
+        ok(t(`已登记 ${saved.meeting_no}`, `Registered ${saved.meeting_no}`));
         await m.close();
         if (ctx.onChanged) await ctx.onChanged();
-        if (isNew) open("meeting", saved.id, { trail: trailOf(ctx), onChanged: ctx.onChanged });
+        open("meeting", saved.id, { trail: trailOf(ctx), onChanged: ctx.onChanged });
       },
     });
   }
@@ -435,15 +468,10 @@
 
     const refresh = bubble(ctx, async () => { m = await get(`/api/meetings/${id}`); render(); });
 
+    let editor;
     function render() {
       body.innerHTML = `
-        ${kv([
-          ["Meeting No.", "会议号", `${m.meeting_no}（${t("系统自动", "Automatic")}）`],
-          ["Meeting Date", "开会日期", m.meeting_date], ["Meeting Type", "会议类型", m.meeting_type],
-          ["Organizer", "组织方", m.organizer], ["Participants", "参会单位 / 人员", m.participants],
-          ["Key Discussions", "讨论议题", m.key_discussions], ["Overall Conclusion", "整体结论", m.overall_conclusion],
-          ["Material / Minutes", "会议材料 / 纪要", m.material_link], ["Next Meeting Date", "下次会议日期", m.next_meeting_date],
-        ])}
+        <div data-inline-host></div>
 
 
         <div class="panel" style="margin-top:16px">
@@ -512,6 +540,19 @@
         };
       });
       bindLinks(body, ctx, m.meeting_no, refresh);
+      editor = InlineEdit.mount({
+        host: body.querySelector("[data-inline-host]"), modal: dlg,
+        title: t("会议信息", "Meeting details"),
+        spec: meetingSpec().flatMap((f, i) => i === 0
+          ? [f, { name: "meeting_no", label: "Meeting No.", cn: "会议号", type: "auto", display: m.meeting_no }]
+          : [f]),
+        values: m,
+        async save(payload) {
+          await put(`/api/meetings/${m.id}`, payload);
+          await window.App.refreshLookups();
+          await refresh();
+        },
+      });
       body.querySelectorAll(".meeting-action-row").forEach((row) => {
         row.onkeydown = (event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -526,13 +567,14 @@
         一场会常常一次过好几项标准，各自的议论分开记，才不会糊成一段会议纪要。 */
     function editNote(s) {
       if (!s) return;
-      Forms.formModal({
+      Forms.inlineForm({
+        host: body,
         title: `${t("本会批注", "Meeting note")} · ${s.std_no}`,
         subtitle: `${m.meeting_no} · ${t("涉及标准", "Related Standards")}`,
         size: "md",
         fields: [
           { name: "std", label: "Standard", cn: "标准", type: "auto", col: 12,
-            display: `${s.std_no} ${s.name_cn}` },
+            display: `${s.std_no || s.plan_no || ""} ${s.name_cn}` },
           { name: "note", label: "Note", cn: "本会批注", type: "textarea",
             rows: 4, col: 12,
             help: t("只记这场会上关于这项标准的讨论；它属于这条挂载关系，取消挂载会一并删除。",
@@ -552,7 +594,8 @@
     render();
 
     dlg.footer.querySelector("[data-edit]").onclick = () => {
-      meetingForm(m, { trail: trailOf(ctx), onChanged: refresh });
+      body.scrollIntoView({ block: "start" });
+      editor.edit();
     };
     dlg.footer.querySelector("[data-del]").onclick = () => {
       confirmDialog(t(`确认删除会议 ${m.meeting_no}？派生的事项会保留，但不再关联会议。`, `Delete meeting ${m.meeting_no}? Derived actions are kept but no longer linked to it.`), async () => {
@@ -564,20 +607,21 @@
         } catch (e) { fail(e.message); }
       });
     };
+    Object.assign(dlg, { label: m.meeting_no, refresh });
     return dlg;
   }
 
   /* ================================================== 4. 意见矩阵 */
 
   function commentSpec(isNew, values) {
-    const locked = !!values.source_annotation_id;
+    const locked = !!(values.source_annotation_id || values.comparison_id);
     const comparison = values.source_kind === "comparison";
     const wholeHelp = t("条款编号留空即整份草案范围。", "Leave the clause number empty for whole-draft scope.");
     const sourceOptions = Object.keys(M().comment_sources).map((value) => ({ value, text: CommentView.sourceLabel(value) }));
     const s = [
       { section: t("来源与范围", "Source and scope") },
       locked
-        ? { name: "source_kind", label: "Source", cn: "意见来源", type: "auto", submit: true, col: 6, display: CommentView.sourceLabel("single") }
+        ? { name: "source_kind", label: "Source", cn: "意见来源", type: "auto", submit: true, col: 6, display: CommentView.sourceLabel(values.source_kind) }
         : { name: "source_kind", label: "Source", cn: "意见来源", type: "choices", required: true, col: 6, options: sourceOptions },
       locked
         ? { name: "standard_id", label: "Standard", cn: "标准", type: "auto", submit: true, col: 6, display: values.name_cn }
@@ -605,23 +649,34 @@
       { name: "comment_type", label: "Comment Type", cn: "意见类型", type: "fixed", options: M().annotation_types, required: true, col: 6 },
       { name: "comment_text", label: "Comment / Proposal", cn: "意见内容", type: "textarea", rows: 5, required: true, col: 12 },
       { section: t("提交与跟进", "Submission and follow-up") },
-      { name: "needs_follow_up", label: "Follow-up required", cn: "需要后续跟进", type: "checkbox", col: 6,
-        help: t("需要回复或后续行动时勾选。", "Enable when this opinion needs a response or further action.") },
+      { name: "needs_follow_up", label: "Follow-up required", cn: "需要后续跟进", type: "checkbox", col: 6 },
       { name: "status", label: "Comment Status", cn: "意见状态", type: "auto", col: 6, display: values.status },
       { name: "submitted_by", label: "Submitted By", cn: "提交人", type: "lookup", category: "person", required: true, col: 4 },
       { name: "submission_date", label: "Submission Date", cn: "提交日期", type: "date", col: 4 },
       { name: "submission_channel", label: "Submission Channel", cn: "提交渠道", type: "auto", col: 12, display: M().comment_sources[values.source_kind] });
+    if (values.comparison_id) {
+      for (const field of s) {
+        if (['before_draft_id','after_draft_id','before_clause_no','after_clause_no'].includes(field.name)) {
+          field.type = 'auto'; field.submit = true;
+          field.display = field.name.endsWith('_draft_id')
+            ? `${values[field.name.replace('_draft_id','_version_name')]} v${values[field.name.replace('_draft_id','_sub_version_no')]}`
+            : values[field.name];
+        }
+      }
+    }
     return s;
   }
 
   function commentForm(values, ctx = {}) {
     const isNew = !values;
-    const v = values || Object.assign({ status: "Draft", source_kind: "single", comment_type: "Comment", submitted_by: window.App.user }, ctx.prefill || {});
-    const ctl = Forms.formModal({
+    const v = values || Object.assign({ status: "Draft", source_kind: "single", comment_type: "Proposed Change", submitted_by: window.App.user }, ctx.prefill || {});
+    if (isNew && v.needs_follow_up == null) v.needs_follow_up = true;
+    const ctl = (isNew ? Forms.formModal : Forms.inlineForm)({
+      host: ctx.host,
       title: isNew ? t("新建意见", "New opinion") : `${t("编辑", "Edit")} ${v.comment_no}`,
       subtitle: "Comment Matrix",
       fields: vals => commentSpec(isNew, vals),
-      rebuildOn: ["source_kind"],
+      rebuildOn: isNew ? ["source_kind"] : [],
       values: v,
       after: (host, form) => { if (!isNew) OpinionHistory.mount(host, form, v); },
       submitText: isNew ? t("保存意见", "Save opinion") : t("保存修改", "Save changes"),
@@ -633,7 +688,6 @@
           const update = OpinionHistory.read(form);
           if (update) payload.status_update = update;
         }
-        if (v.source_recipient_id) payload.source_recipient_id = v.source_recipient_id;
         if (v.source_annotation_id) payload.source_annotation_id = v.source_annotation_id;
         const unused = payload.source_kind === "comparison"
           ? ["draft_id", "clause_no"] : ["before_draft_id", "before_clause_no", "after_draft_id", "after_clause_no"];
@@ -696,7 +750,7 @@
     render();
 
     dlg.footer.querySelector("[data-edit]").onclick = () => {
-      commentForm(c, { trail: trailOf(ctx), onChanged: refresh });
+      commentForm(c, { host: body, trail: trailOf(ctx), onChanged: refresh });
     };
     dlg.footer.querySelector("[data-del]").onclick = () => {
       confirmDialog(t(`确认删除意见 ${c.comment_no}？其状态历史会一并删除。`, `Delete opinion ${c.comment_no}? Its status history will also be deleted.`), async () => {
@@ -708,6 +762,7 @@
         } catch (e) { fail(e.message); }
       });
     };
+    Object.assign(dlg, { label: c.comment_no, refresh });
     return dlg;
   }
 
@@ -770,31 +825,31 @@
       });
       body.querySelectorAll("[data-delrec]").forEach((b) => {
         b.onclick = () => confirmDialog(t("删除这个反馈对象？", "Delete this feedback recipient?"), async () => {
-          await del(`/api/actions/recipients/${b.dataset.delrec}`);
-          ok(t("已删除", "Deleted"));
-          await refresh();
+          try {
+            await del(`/api/actions/recipients/${b.dataset.delrec}`);
+            ok(t("已删除", "Deleted"));
+            await refresh();
+          } catch (e) { fail(e.message); }
         });
-      });
-      body.querySelectorAll("[data-gencomment]").forEach((b) => {
-        b.onclick = () => generateComment(Number(b.dataset.gencomment));
       });
       bindLinks(body, ctx, a.item_no, refresh);
     }
 
     const recipientsPanel = () => `
-      <div class="panel" style="margin-top:16px">
+      <div class="panel recipient-panel" style="margin-top:16px">
         <div class="panel-head">
           <h2>${window.App.uiText("反馈对象", "Feedback Recipients")}</h2>
-          <span class="hint">${t(`已回复 ${a.responded_count}/${a.recipient_count}`, `${a.responded_count}/${a.recipient_count} responded`)}</span>
+          <span class="hint">${t(`已回复 ${a.responded_count}/${a.recipient_count} · 全部回复后事项自动完成`, `${a.responded_count}/${a.recipient_count} responded · the action completes automatically when all have responded`)}</span>
           <button class="btn btn-outline-secondary btn-sm ms-auto" data-addrec>${window.App.uiText("+ 添加反馈对象", "+ Add recipient")}</button>
         </div>
         <div class="panel-body tight table-wrap">
-          <table class="table">
+          <table class="table recipient-table">
+            <colgroup><col style="width:17%"><col style="width:12%"><col style="width:13%"><col style="width:12%"><col style="width:12%"><col><col style="width:116px"></colgroup>
             <thead><tr>
               <th>${label("Team", "团队")}</th><th>${label("Person", "人员")}</th><th>${label("Response Status", "回复状态")}</th><th>${label("Due Date", "要求回复")}</th><th>${label("Actual Date", "实际回复")}</th>
-              <th>${label("Response Summary", "回复摘要")}</th><th>${label("Opinion", "正式意见")}</th><th></th>
+              <th>${label("Response Summary", "回复摘要")}</th><th></th>
             </tr></thead>
-            <tbody>${a.recipients.length ? a.recipients.map((r) => `
+            <tbody>${a.recipients.map((r) => `
               <tr>
                 <td>${dash(r.respondent_team)}</td>
                 <td>${dash(r.respondent_person)}</td>
@@ -802,38 +857,19 @@
                 <td class="num">${overdue(r.response_due_date) && r.response_status === "Open"
                     ? `<span class="tag high">${esc(r.response_due_date)}</span>` : dash(r.response_due_date)}</td>
                 <td class="num">${dash(r.response_actual_date)}</td>
-                <td class="cell-sub">${clip(r.response_summary, 60)}</td>
-                <td>${r.generated_comment_no
-                    ? openBtn("comment", r.generated_comment_id, r.generated_comment_no)
-                    : (r.response_summary
-                        ? `<button class="btn btn-sm btn-outline-secondary" data-gencomment="${r.id}">${window.App.uiText("+ 生成意见", "+ Create opinion")}</button>`
-                        : `<span class="cell-sub">${window.App.uiText("待回复", "Awaiting")}</span>`)}</td>
-                <td class="btn-row">
+                <td class="cell-sub recipient-summary">${dash(r.response_summary)}</td>
+                <td class="recipient-actions">
                   <button class="btn-link-quiet" data-editrec="${r.id}">${window.App.uiText("编辑", "Edit")}</button>
-                  <button class="btn-link-quiet" data-delrec="${r.id}">${window.App.uiText("删除", "Delete")}</button>
+                  <button class="btn-link-quiet text-danger" data-delrec="${r.id}" ${a.recipients.length === 1 ? `disabled title="${t("至少保留 1 个反馈对象", "Keep at least one recipient")}"` : ""}>${window.App.uiText("删除", "Delete")}</button>
                 </td>
-              </tr>`).join("")
-              : emptyRow(8, ["还没有反馈对象", "No recipients yet"], ["点右上角添加，逐个跟踪谁回了、谁没回", "Add recipients to track who has responded"])}</tbody>
+              </tr>`).join("")}</tbody>
           </table>
         </div>
       </div>`;
 
-    /** 反馈 → 正式意见：就地开表单，存完直接叠出意见明细，不再跳去意见矩阵。 */
-    async function generateComment(recipientId) {
-      const childCtx = { trail: trailOf(ctx).concat(a.item_no), onChanged: refresh };
-      try {
-        const d = await get(`/api/actions/recipients/${recipientId}/comment-draft`);
-        if (d.existing) {
-          window.App.toast(t(`这条反馈已经生成过意见 ${d.existing.comment_no}`, `This feedback already has opinion ${d.existing.comment_no}`));
-          open("comment", d.existing.id, childCtx);
-          return;
-        }
-        commentForm(null, Object.assign({ prefill: d.prefill }, childCtx));
-      } catch (e) { fail(e.message); }
-    }
-
     function recipientForm(r) {
-      Forms.formModal({
+      (r ? Forms.inlineForm : Forms.formModal)({
+        host: body,
         title: r ? t("编辑反馈对象", "Edit Recipient") : t("添加反馈对象", "Add Recipient"),
         subtitle: "Subform · Feedback Recipients",
         size: "lg",
@@ -845,7 +881,8 @@
           { name: "response_due_date", label: "Response Due Date", cn: "要求回复日期", type: "date", col: 4 },
           { name: "response_actual_date", label: "Response Actual Date", cn: "实际回复日期", type: "date", col: 4 },
           { name: "response_summary", label: "Response Summary", cn: "回复摘要", type: "textarea", rows: 3, col: 12,
-            help: t("填了摘要之后，这一行就能一键生成正式意见。", "Once a summary is entered, an opinion can be created from this row.") },
+            help: t("记录对方回复的要点。回复状态改为 Open 以外的值后，全部反馈对象都回复时事项会自动置为 Completed。",
+                    "Key points of the reply. Once every recipient's status is no longer Open, the action is set to Completed automatically.") },
         ],
         values: r || { response_status: "Open" },
         submitText: r ? t("保存", "Save") : t("添加", "Add"),
@@ -854,7 +891,13 @@
           else await post(`/api/actions/${a.id}/recipients`, payload);
           ok(r ? t("已保存", "Saved") : t("已添加反馈对象", "Recipient added"));
           await m.close();
+          const before = a.current_status;
           await refresh();
+          if (a.current_status !== before) {
+            ok(a.current_status === "Completed"
+              ? t("全部反馈对象均已回复，事项已自动置为 Completed", "All recipients have responded; the action is now Completed")
+              : t("有反馈对象尚未回复，事项已恢复为 In Progress", "A recipient is open again; the action is back to In Progress"));
+          }
         },
       });
     }
@@ -864,6 +907,7 @@
     dlg.footer.querySelector("[data-edit]").onclick = () => {
       ActionForm.open({
         isNew: false,
+        host: body,
         values: a,
         onSaved: refresh,
       });
@@ -889,6 +933,7 @@
         } catch (e) { fail(e.message); }
       });
     };
+    Object.assign(dlg, { label: a.item_no, refresh });
     return dlg;
   }
 
@@ -933,9 +978,11 @@
         const dlg = await detail(id, ctx);
         const layer = { key, dlg };
         recordLayers.push(layer);
+        syncUrl();
         dlg.el.addEventListener("hidden.bs.modal", () => {
           const index = recordLayers.indexOf(layer);
           if (index >= 0) recordLayers.splice(index, 1);
+          syncUrl();
         }, { once: true });
         return dlg;
       } catch (e) {
@@ -949,8 +996,29 @@
     return task;
   }
 
+  /* 弹窗层级写在地址的 records 参数里（如 ?records=standard:5,action:3）：
+     从弹窗进入整页视图（草案详情等）后点「返回」、或刷新页面，都能按原层级重新打开。 */
+  function syncUrl() {
+    const url = new URL(location.href);
+    if (recordLayers.length) url.searchParams.set("records", recordLayers.map((layer) => layer.key).join(","));
+    else url.searchParams.delete("records");
+    history.replaceState(history.state, "", url);
+  }
+
+  /** 页面载入后按地址里的 records 参数逐层重开弹窗；ctx 为页面自己的上下文（列表刷新等）。 */
+  async function restore(ctx = {}) {
+    const keys = (new URLSearchParams(location.search).get("records") || "").split(",").filter(Boolean);
+    let current = ctx;
+    for (const key of keys) {
+      const [kind, rid] = key.split(":");
+      const dlg = await open(kind, Number(rid), current);
+      if (!dlg) return;
+      current = { trail: trailOf(current).concat(dlg.label), onChanged: dlg.refresh };
+    }
+  }
+
   window.Records = {
-    open,
+    open, restore, draftSpec,
     standardForm, draftForm, meetingForm, commentForm, derive,
   };
 })();

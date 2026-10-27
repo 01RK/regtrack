@@ -17,7 +17,7 @@ def existing_actions(meeting_id):
     return db.query('''SELECT a.*, s.std_no, s.name_cn,
         (SELECT COUNT(*) FROM feedback_recipient r WHERE r.action_item_id=a.id) AS recipient_count
         FROM action_item a LEFT JOIN standard s ON s.id=a.standard_id
-        WHERE a.meeting_id=? ORDER BY a.id''', (meeting_id,))
+        WHERE a.meeting_id=%s ORDER BY a.id''', (meeting_id,))
 
 
 def review_actions(package, decision):

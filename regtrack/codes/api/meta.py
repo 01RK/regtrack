@@ -10,7 +10,8 @@ from constants import ACTION_OPEN_STATUSES, STAGE_LABELS, STAGES, meta_payload
 
 bp = Blueprint("meta", __name__, url_prefix="/api")
 
-OPEN_MARKS = ", ".join("?" * len(ACTION_OPEN_STATUSES))
+OPEN_MARKS = db.marks(ACTION_OPEN_STATUSES)
+DUE_DATE = db.coalesce("a.submission_due_date", "a.check_due_date", "a.target_date")
 
 
 @bp.get("/meta")
@@ -30,18 +31,23 @@ def _person_arg(name: str) -> str:
     return current_user() if value is None else value.strip()
 
 
-def _people() -> list[str]:
-    """筛选下拉的候选：登记过记录的人，加上人员字典里的人。"""
+def known_people() -> list[str]:
+    """登记过记录的人，加上人员字典里的人。"""
     rows = db.query(
-        """SELECT DISTINCT name FROM (
-               SELECT created_by AS name FROM standard
+        """SELECT DISTINCT person FROM (
+               SELECT created_by AS person FROM standard
                UNION ALL SELECT created_by FROM draft
                UNION ALL SELECT created_by FROM meeting
                UNION ALL SELECT created_by FROM action_item
                UNION ALL SELECT created_by FROM comment
-               UNION ALL SELECT value FROM lookup_value WHERE category = 'person')
-            WHERE name IS NOT NULL AND name <> '' ORDER BY name""")
-    names = [r["name"] for r in rows]
+               UNION ALL SELECT value FROM lookup_value WHERE category = 'person') AS people
+            WHERE person IS NOT NULL AND person <> '' ORDER BY person""")
+    return [r["person"] for r in rows]
+
+
+def _people() -> list[str]:
+    """筛选下拉的候选：登记过记录的人、人员字典里的人，以及当前操作人。"""
+    names = known_people()
     me = current_user()
     if me and me not in names:
         names.insert(0, me)
@@ -51,20 +57,19 @@ def _people() -> list[str]:
 def open_actions(person: str) -> list[dict]:
     """在办事项 · 按截止日期。person 为空表示不限登记人。"""
     where = [f"a.current_status IN ({OPEN_MARKS})",
-             "COALESCE(a.submission_due_date, a.check_due_date, a.target_date) IS NOT NULL",
+             f"{DUE_DATE} IS NOT NULL",
              "(a.standard_id IS NULL OR s.archived_at IS NULL)"]
     params = list(ACTION_OPEN_STATUSES)
     if person:
-        where.append("a.created_by = ?")
+        where.append("a.created_by = %s")
         params.append(person)
     return db.query(
         f"""SELECT a.id, a.item_no, a.item_type, a.title, a.current_status, a.priority,
-                   a.created_by, s.std_no, s.name_cn,
-                   COALESCE(a.submission_due_date, a.check_due_date, a.target_date) AS due_date
+                   a.created_by, s.std_no, s.name_cn, {DUE_DATE} AS due_date
               FROM action_item a
               LEFT JOIN standard s ON s.id = a.standard_id
              WHERE {" AND ".join(where)}
-             ORDER BY due_date ASC LIMIT 20""", params)
+             ORDER BY {DUE_DATE}, a.id""", params)[:20]
 
 
 def attended_meetings(person: str, date_from: str, date_to: str) -> dict:
@@ -75,24 +80,31 @@ def attended_meetings(person: str, date_from: str, date_to: str) -> dict:
     登记人是精确值。两者取并集，既不漏掉别人代登记的会，
     也不漏掉参会名单里只写了名字的会。
     """
-    where = ["m.meeting_date >= ?", "m.meeting_date <= ?"]
+    where = ["m.meeting_date >= %s", "m.meeting_date <= %s"]
     params = [date_from, date_to]
     if person:
-        where.append("(m.created_by = ? OR COALESCE(m.participants, '') LIKE ?)")
-        params += [person, f"%{person}%"]
-    clause = " WHERE " + " AND ".join(where)
-    total = db.query_one(f"SELECT COUNT(*) c FROM meeting m{clause}", params)["c"]
+        where.append("(m.created_by = %s OR m.participants ILIKE %s)")
+        params += [person, db.contains(person)]
     rows = db.query(
         f"""SELECT m.id, m.meeting_no, m.title, m.meeting_date, m.meeting_type,
                    m.organizer, m.participants, m.created_by,
                    (SELECT COUNT(*) FROM meeting_standard ms WHERE ms.meeting_id = m.id)
-                       AS standard_count,
-                   (SELECT GROUP_CONCAT(s.std_no, ' · ')
-                      FROM meeting_standard ms JOIN standard s ON s.id = ms.standard_id
-                     WHERE ms.meeting_id = m.id) AS standards
-              FROM meeting m{clause}
-             ORDER BY m.meeting_date DESC, m.id DESC LIMIT 20""", params)
-    return {"total": total, "items": rows, "person": person,
+                       AS standard_count
+              FROM meeting m
+             WHERE {" AND ".join(where)}
+             ORDER BY m.meeting_date DESC, m.id DESC""", params)
+    items = rows[:20]
+    numbers = {row["id"]: [] for row in items}
+    if numbers:
+        for r in db.query(
+                f"""SELECT ms.meeting_id, s.std_no FROM meeting_standard ms
+                      INNER JOIN standard s ON s.id = ms.standard_id
+                     WHERE ms.meeting_id IN ({db.marks(numbers)}) AND s.std_no IS NOT NULL
+                     ORDER BY s.std_no""", list(numbers)):
+            numbers[r["meeting_id"]].append(r["std_no"])
+    for row in items:
+        row["standards"] = " · ".join(numbers[row["id"]]) or None
+    return {"total": len(rows), "items": items, "person": person,
             "from": date_from, "to": date_to}
 
 
@@ -119,20 +131,18 @@ def dashboard_meetings():
 def dashboard():
     # 归档标准不计入总览，但数据仍在库里可查
     live = " WHERE archived_at IS NULL"
-    counts = {
-        "standards": db.query_one(f"SELECT COUNT(*) c FROM standard{live}")["c"],
-        "archived_standards": db.query_one(
-            "SELECT COUNT(*) c FROM standard WHERE archived_at IS NOT NULL")["c"],
-        "drafts": db.query_one("SELECT COUNT(*) c FROM draft")["c"],
-        "clauses": db.query_one("SELECT COUNT(*) c FROM v_current_draft_chapter")["c"],
-        "meetings": db.query_one("SELECT COUNT(*) c FROM meeting")["c"],
-        "comments": db.query_one("SELECT COUNT(*) c FROM comment")["c"],
-        "actions": db.query_one("SELECT COUNT(*) c FROM action_item")["c"],
-        "open_actions": db.query_one(
-            f"SELECT COUNT(*) c FROM action_item WHERE current_status IN ({OPEN_MARKS})",
-            ACTION_OPEN_STATUSES,
-        )["c"],
-    }
+    # 各项计数一次查询取回，共享盘上少走 7 个来回。
+    counts = db.query_one(
+        f"""SELECT
+              (SELECT COUNT(*) FROM standard WHERE archived_at IS NULL) AS standards,
+              (SELECT COUNT(*) FROM standard WHERE archived_at IS NOT NULL) AS archived_standards,
+              (SELECT COUNT(*) FROM draft) AS drafts,
+              (SELECT COUNT(*) FROM draft_chapter) AS clauses,
+              (SELECT COUNT(*) FROM meeting) AS meetings,
+              (SELECT COUNT(*) FROM comment) AS comments,
+              (SELECT COUNT(*) FROM action_item) AS actions,
+              (SELECT COUNT(*) FROM action_item WHERE current_status IN ({OPEN_MARKS})) AS open_actions
+              FROM app_meta""", ACTION_OPEN_STATUSES)
     by_stage_rows = {
         r["stage_code"]: r["c"] for r in db.query(
             f"SELECT stage_code, COUNT(*) AS c FROM standard{live} GROUP BY stage_code")}
@@ -146,9 +156,8 @@ def dashboard():
         "by_stage": [{"code": s["code"], "name": STAGE_LABELS[s["code"]],
                       "c": by_stage_rows.get(s["code"], 0)}
                      for s in STAGES],
-        "comment_status": db.query(
-            "SELECT status AS name, COUNT(*) AS c FROM comment "
-            " GROUP BY status ORDER BY c DESC"),
+        "comment_status": [{"name": r["status"], "c": r["c"]} for r in db.query(
+            "SELECT status, COUNT(*) AS c FROM comment GROUP BY status ORDER BY COUNT(*) DESC, status")],
         "due_actions": {"person": action_person, "items": open_actions(action_person)},
         "meetings": attended_meetings(meeting_person, date_from, date_to),
     })

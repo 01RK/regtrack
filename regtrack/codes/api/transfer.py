@@ -5,21 +5,25 @@
 详见下面「导入」一节的说明。
 """
 
+import base64
 import io
 import json
-import sqlite3
 
 from flask import Blueprint, jsonify, request, send_file
 
 import db
+import files
+import storage
 import comment_model
+import comparison_service
 import lookups_service
 import stages
 from common import ApiError, payload_of, sanitize, today
-from constants import LOOKUP_CATEGORIES
+from api.meta import known_people
+from constants import FIXED_VALUES, LOOKUP_CATEGORIES
 
 bp = Blueprint("transfer", __name__, url_prefix="/api/transfer")
-ROOT_TABLES = ("standard", "draft", "meeting", "action_item", "comment")
+ROOT_TABLES = ("standard", "draft", "meeting", "action_item", "comment", "draft_comparison")
 CHILD_RULES = {
     "standard": (("standard_impact_area", "standard_id"), ("standard_stage_history", "standard_id"),
                  ("meeting_standard", "standard_id")),
@@ -27,19 +31,25 @@ CHILD_RULES = {
               ("draft_chapter_image", "draft_id"), ("draft_annotation", "draft_id")),
     "meeting": (("meeting_standard", "meeting_id"),),
     "action_item": (("action_status_history", "action_item_id"), ("feedback_recipient", "action_item_id")),
-    "comment": (("comment_status_history", "comment_id"),),
+    "comment": (("comment_status_history", "comment_id"), ("comparison_opinion", "comment_id")),
+    "draft_comparison": (("comparison_change", "comparison_id"),),
 }
-GRANDCHILD_RULES = {"feedback_recipient": (("recipient_status_history", "feedback_recipient_id"),)}
+GRANDCHILD_RULES = {"feedback_recipient": (("recipient_status_history", "feedback_recipient_id"),),
+                    "comparison_change": (("comparison_opinion", "change_id"),)}
 
 # 每张表的外键列 → 指向的表。导出时据此把引用到的记录一并带上，
 # 导入时据此改写 id（见下面「导入」一节的 IMPORT_PLAN）。
 REF_COLUMNS = {
+    "draft_comparison": {"standard_id":"standard", "before_draft_id":"draft", "after_draft_id":"draft",
+                         "before_import_id":"draft_import", "after_import_id":"draft_import"},
+    "comparison_change": {"comparison_id":"draft_comparison"},
+    "comparison_opinion": {"change_id":"comparison_change", "comment_id":"comment"},
     "draft": {"standard_id": "standard"},
     "action_item": {"standard_id": "standard", "meeting_id": "meeting", "draft_id": "draft"},
     "feedback_recipient": {"action_item_id": "action_item"},
     "comment": {"standard_id": "standard", "draft_id": "draft",
                 "before_draft_id": "draft", "after_draft_id": "draft",
-                "source_annotation_id": "draft_annotation", "source_recipient_id": "feedback_recipient"},
+                "source_annotation_id": "draft_annotation"},
     "standard_impact_area": {"standard_id": "standard"},
     "standard_stage_history": {"standard_id": "standard"},
     "meeting_standard": {"meeting_id": "meeting", "standard_id": "standard"},
@@ -51,7 +61,7 @@ REF_COLUMNS = {
     "recipient_status_history": {"feedback_recipient_id": "feedback_recipient"},
     "comment_status_history": {"comment_id": "comment"},
 }
-PARENT_TABLES = ("draft_annotation", "draft_import", "draft_chapter", "standard", "meeting", "draft", "action_item", "feedback_recipient", "comment")
+PARENT_TABLES = ("draft_comparison", "comparison_change", "draft_annotation", "draft_import", "draft_chapter", "standard", "meeting", "draft", "action_item", "feedback_recipient", "comment")
 
 
 def _table_rows(table, where="", params=()):
@@ -78,16 +88,26 @@ def _close_over_references(tables: dict) -> dict:
                     if row_id is None or row_id in have[parent]:
                         continue
                     parent_row = db.query_one(
-                        f"SELECT * FROM {parent} WHERE id = ?", (row_id,))
+                        f"SELECT * FROM {parent} WHERE id = %s", (row_id,))
                     if not parent_row:
                         continue
                     tables.setdefault(parent, []).append(parent_row)
                     have[parent].add(row_id)
                     growing = True
+                    if parent == "draft":
+                        for child in ("draft_import", "draft_chapter", "draft_chapter_image"):
+                            source_rows = _table_rows(child, " WHERE draft_id=%s", (row_id,))
+                            tables.setdefault(child, []).extend(source_rows)
+                            if child in have:
+                                have[child].update(r["id"] for r in source_rows)
+                    if parent == "draft_comparison":
+                        changes = _table_rows("comparison_change", " WHERE comparison_id=%s", (row_id,))
+                        tables.setdefault("comparison_change", []).extend(changes)
+                        have["comparison_change"].update(r["id"] for r in changes)
                     if parent == "standard":
                         for child in ("standard_impact_area", "standard_stage_history"):
                             tables.setdefault(child, []).extend(_table_rows(
-                                child, " WHERE standard_id = ?", (row_id,)))
+                                child, " WHERE standard_id = %s", (row_id,)))
     return tables
 
 
@@ -106,12 +126,12 @@ def _dedupe(tables: dict) -> dict:
 
 @bp.get("/users")
 def users():
-    rows = db.query("""SELECT created_by AS user, COUNT(*) AS record_count
+    rows = db.query("""SELECT created_by, COUNT(*) AS record_count
                       FROM (SELECT created_by FROM standard UNION ALL SELECT created_by FROM draft
                             UNION ALL SELECT created_by FROM meeting UNION ALL SELECT created_by FROM action_item
-                            UNION ALL SELECT created_by FROM comment)
+                            UNION ALL SELECT created_by FROM comment UNION ALL SELECT created_by FROM draft_comparison) AS owners
                      WHERE created_by IS NOT NULL AND created_by <> '' GROUP BY created_by ORDER BY created_by""")
-    return jsonify(rows)
+    return jsonify([{"user": r["created_by"], "record_count": r["record_count"]} for r in rows])
 
 @bp.get("/export")
 def export_user():
@@ -121,19 +141,22 @@ def export_user():
     data = {"format": "regtrack-user-data", "version": 1, "user": user, "tables": {}}
     selected = {}
     for table in ROOT_TABLES:
-        rows = _table_rows(table, " WHERE created_by = ?", (user,))
+        rows = _table_rows(table, " WHERE created_by = %s", (user,))
         data["tables"][table] = rows
         selected[table] = {r["id"] for r in rows}
     for parent, rules in CHILD_RULES.items():
         for table, fk in rules:
             ids = selected.get(parent, set())
-            rows = [] if not ids else _table_rows(table, f" WHERE {fk} IN ({','.join('?' * len(ids))})", tuple(ids))
+            rows = [] if not ids else _table_rows(table, f" WHERE {fk} IN ({db.marks(ids)})", tuple(ids))
             data["tables"].setdefault(table, []).extend(rows)
             if table in GRANDCHILD_RULES:
                 child_ids = {r["id"] for r in rows}
                 for gt, gfk in GRANDCHILD_RULES[table]:
-                    data["tables"].setdefault(gt, []).extend([] if not child_ids else _table_rows(gt, f" WHERE {gfk} IN ({','.join('?' * len(child_ids))})", tuple(child_ids)))
+                    data["tables"].setdefault(gt, []).extend([] if not child_ids else _table_rows(gt, f" WHERE {gfk} IN ({db.marks(child_ids)})", tuple(child_ids)))
     _dedupe(_close_over_references(data["tables"]))
+    # 附图文件不在数据库里：导出时把文件内容放进数据包，数据包保持自包含，可在另一台电脑或另一份数据库导入。
+    for image in data["tables"].get("draft_chapter_image", []):
+        image["data_base64"] = base64.b64encode(files.read(image.pop("file_path"))).decode("ascii")
     # 字典值不按登记人隔离，但一并带出，方便跨电脑交换后下拉框可用
     data["tables"]["lookup_value"] = _table_rows("lookup_value")
     payload = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
@@ -163,6 +186,7 @@ TABLE_LABELS = {
     "comment": "正式意见", "standard_impact_area": "影响领域",
     "standard_stage_history": "阶段历史", "meeting_standard": "会议涉及标准",
     "draft_import": "章节导入批次", "draft_chapter": "草案章节", "draft_chapter_image": "章节附图",
+    "draft_comparison": "标准比对", "comparison_change": "修订条目", "comparison_opinion": "比对意见关联",
     "draft_annotation": "草案批注", "action_status_history": "事项状态历史",
     "recipient_status_history": "反馈状态历史", "comment_status_history": "意见状态历史",
 }
@@ -175,7 +199,7 @@ class Spec:
     required  这些外键映射不到时整行丢弃（NOT NULL，留着会破坏外键）
     natural   自然键：命中本机已有记录就沿用它的 id，不再插入
     serial    业务编号列 (列名, 前缀, 取年份的日期列)，重号时本机重新取号
-    keyless   复合主键、没有自增 id 的关联表，直接 INSERT OR IGNORE
+    keyless   以复合主键为自然键、没有自增 id 的关联表：已存在即视为合并
     """
 
     def __init__(self, table, fks=(), required=(), natural=(), serial=None, keyless=False):
@@ -201,21 +225,28 @@ IMPORT_PLAN = (
     Spec("feedback_recipient", fks={"action_item_id": "action_item"},
          required=("action_item_id",)),
     Spec("standard_impact_area", fks={"standard_id": "standard"},
-         required=("standard_id",), keyless=True),
+         required=("standard_id",), natural=("standard_id", "impact_area"), keyless=True),
     Spec("standard_stage_history", fks={"standard_id": "standard"},
          required=("standard_id",), natural=("standard_id", "stage_code")),
     Spec("meeting_standard", fks={"meeting_id": "meeting", "standard_id": "standard"},
-         required=("meeting_id", "standard_id"), keyless=True),
+         required=("meeting_id", "standard_id"), natural=("meeting_id", "standard_id"), keyless=True),
     Spec("draft_import", fks={"draft_id": "draft"}, required=("draft_id",)),
     Spec("draft_chapter", fks={"draft_id": "draft", "import_batch_id": "draft_import"}, required=("draft_id", "import_batch_id")),
     Spec("draft_chapter_image", fks={"draft_id": "draft", "chapter_id": "draft_chapter"},
          required=("draft_id", "chapter_id")),
     Spec("draft_annotation", fks={"draft_id": "draft", "chapter_id": "draft_chapter"}, required=("draft_id",)),
+    Spec("draft_comparison", fks={"standard_id":"standard", "before_draft_id":"draft", "after_draft_id":"draft",
+         "before_import_id":"draft_import", "after_import_id":"draft_import"},
+         required=("standard_id", "before_draft_id", "after_draft_id", "before_import_id", "after_import_id"),
+         natural=("before_draft_id", "after_draft_id")),
+    Spec("comparison_change", fks={"comparison_id":"draft_comparison"}, required=("comparison_id",), natural=("comparison_id", "row_key")),
     Spec("comment",
          fks={"standard_id": "standard", "draft_id": "draft",
               "before_draft_id": "draft", "after_draft_id": "draft",
-              "source_annotation_id": "draft_annotation", "source_recipient_id": "feedback_recipient"},
+              "source_annotation_id": "draft_annotation"},
          required=("standard_id",), serial=("comment_no", "CM", "created_at")),
+    Spec("comparison_opinion", fks={"change_id":"comparison_change", "comment_id":"comment"},
+         required=("change_id", "comment_id"), natural=("comment_id",)),
     Spec("action_status_history", fks={"action_item_id": "action_item"},
          required=("action_item_id",)),
     Spec("recipient_status_history", fks={"feedback_recipient_id": "feedback_recipient"},
@@ -243,19 +274,6 @@ def _read_bundle():
     return sanitize(bundle)
 
 
-def _known_people() -> list[str]:
-    rows = db.query(
-        """SELECT DISTINCT name FROM (
-               SELECT created_by AS name FROM standard
-               UNION ALL SELECT created_by FROM draft
-               UNION ALL SELECT created_by FROM meeting
-               UNION ALL SELECT created_by FROM action_item
-               UNION ALL SELECT created_by FROM comment
-               UNION ALL SELECT value FROM lookup_value WHERE category = 'person')
-            WHERE name IS NOT NULL AND name <> '' ORDER BY name""")
-    return [r["name"] for r in rows]
-
-
 @bp.post("/inspect")
 def inspect():
     """导入前的预检：包里有什么、该记到谁名下，交给用户确认后再真正导入。"""
@@ -264,7 +282,7 @@ def inspect():
     counts = [{"table": spec.table, "label": TABLE_LABELS[spec.table],
                "count": len(tables.get(spec.table, []))}
               for spec in IMPORT_PLAN if tables.get(spec.table)]
-    people = _known_people()
+    people = known_people()
     declared = (bundle.get("user") or "").strip()
     return jsonify(user=declared, people=people,
                    matched=declared in people,
@@ -292,17 +310,39 @@ def _row_for(spec, row, idmap, as_user, columns):
     return data
 
 
-def _existing_id(conn, spec, data):
-    """自然键命中本机已有记录时返回它的 id。"""
+def _existing(spec, data):
+    """自然键命中本机已有记录时返回该记录。"""
     natural = spec.natural
-    if spec.table == 'standard' and (not data.get('std_no') or 'XXXX' in data['std_no'].upper()):
+    if spec.table == 'standard' and data.get('plan_no'):
+        natural = ('plan_no',)
+    elif spec.table == 'standard' and (not data.get('std_no') or 'XXXX' in data['std_no'].upper()):
         natural = ('name_cn',)
     if not natural or any(data.get(k) is None for k in natural):
         return None
-    where = " AND ".join(f"{k} = ?" for k in natural)
-    found = conn.execute(f"SELECT id FROM {spec.table} WHERE {where}",
-                         [data[k] for k in natural]).fetchone()
-    return found["id"] if found else None
+    where = " AND ".join(f"{k} = %s" for k in natural)
+    return db.query_one(f"SELECT * FROM {spec.table} WHERE {where}", [data[k] for k in natural])
+
+
+def _image_bytes(row: dict, data: dict) -> bytes | None:
+    """数据包中的附图内容（base64）。类型不受支持或内容无法解码时返回 None。"""
+    if data.get("mime_type") not in files.EXTENSIONS or not isinstance(row.get("data_base64"), str):
+        return None
+    try:
+        return base64.b64decode(row["data_base64"], validate=True)
+    except ValueError:
+        return None
+
+
+def _invalid(table: str, data: dict) -> str | None:
+    """数据包绕过业务表单直接写表：固定值与跨字段规则在这里逐行校验。"""
+    for column, allowed in FIXED_VALUES.get(table, {}).items():
+        if column in data and data[column] not in allowed:
+            return f"{column} 取值不合法：{data[column]}"
+    if table == "action_item" and data.get("item_type") != "Others" and data.get("standard_id") is None:
+        return "非 Others 事项必须关联标准"
+    if table == "feedback_recipient" and not (data.get("respondent_team") or data.get("respondent_person")):
+        return "反馈对象的 Team / Person 至少填写一项"
+    return None
 
 
 def _note(stat, reason: str) -> None:
@@ -312,12 +352,12 @@ def _note(stat, reason: str) -> None:
         stat["reasons"].append(reason)
 
 
-def _unique_serial(conn, spec, data):
+def _unique_serial(spec, data):
     """业务编号在本机已被占用时重新取号，原号留不住也不能顶掉别人的。"""
     column, prefix, date_column = spec.serial
     value = data.get(column)
-    taken = value and conn.execute(
-        f"SELECT 1 FROM {spec.table} WHERE {column} = ?", (value,)).fetchone()
+    taken = value and db.query_one(
+        f"SELECT id FROM {spec.table} WHERE {column} = %s", (value,))
     if value and not taken:
         return value
     year = (data.get(date_column) or today())[:4]
@@ -332,7 +372,6 @@ def import_data():
         raise ApiError("请先确认这批数据记到哪位操作人名下", field="as_user",
                        detail="先调用 /api/transfer/inspect 让用户确认登记人")
 
-    conn = db.get_db()
     idmap = {spec.table: {} for spec in IMPORT_PLAN}
     stats = {}
     tables = bundle["tables"]
@@ -346,14 +385,12 @@ def import_data():
                                and row.get("import_batch_id") == latest_source_batches.get(row.get("draft_id"))}
     protected_source_drafts = set()
     try:
-        conn.execute("BEGIN")
         lookups_service.ensure_values("person", [as_user])
         for spec in IMPORT_PLAN:
             rows = bundle["tables"].get(spec.table) or []
             if not rows:
                 continue
-            columns = {r["name"] for r in conn.execute(
-                f"PRAGMA table_info({spec.table})")}
+            columns = set(db.columns(spec.table))
             stat = stats.setdefault(spec.table, {"inserted": 0, "merged": 0,
                                                  "skipped": 0, "reasons": []})
             for row in rows:
@@ -370,50 +407,61 @@ def import_data():
                                 and row.get("chapter_id") not in current_source_chapters)):
                         _note(stat, "只导入来源草案当前章节及对应批注")
                         continue
+                if spec.table == "draft_comparison" and any(
+                        row.get(field) not in idmap["draft_import"] for field in ("before_import_id", "after_import_id")):
+                    raise ApiError("Comparison source conflicts with local source; import into a fresh database / 比对原文与本机原文冲突，请导入新数据库", 409)
                 data = _row_for(spec, row, idmap, as_user, columns)
                 if data is None:
                     _note(stat, "引用的父记录不在数据包里")
                     continue
+                problem = _invalid(spec.table, data)
+                if problem:
+                    _note(stat, problem)
+                    continue
                 if spec.table == "comment":
                     comment_model.bind_annotation(data)
                     comment_model.validate(data)
-                if spec.keyless:
-                    marks = ",".join("?" * len(data))
-                    cur = conn.execute(
-                        f"INSERT OR IGNORE INTO {spec.table} ({','.join(data)}) "
-                        f"VALUES ({marks})", list(data.values()))
-                    stat["inserted" if cur.rowcount else "merged"] += 1
-                    continue
-                existing = _existing_id(conn, spec, data)
+                if spec.table == "draft_chapter_image":
+                    image = _image_bytes(row, data)
+                    if image is None:
+                        _note(stat, "附图内容缺失或格式不受支持")
+                        continue
+                    data["file_path"] = files.save("drafts", image, data["mime_type"])
+                existing = _existing(spec, data)
                 if existing is not None:
-                    idmap[spec.table][row.get("id")] = existing
                     stat["merged"] += 1
-                    if spec.table == "draft" and conn.execute(
-                            "SELECT 1 FROM draft_chapter WHERE draft_id = ? LIMIT 1", (existing,)).fetchone():
+                    if spec.keyless:
+                        continue
+                    idmap[spec.table][row.get("id")] = existing["id"]
+                    if spec.table == "draft" and db.query_one(
+                            "SELECT id FROM draft_chapter WHERE draft_id = %s", (existing["id"],)):
                         protected_source_drafts.add(row.get("id"))
                     continue
                 if spec.serial:
-                    data[spec.serial[0]] = _unique_serial(conn, spec, data)
-                marks = ",".join("?" * len(data))
+                    data[spec.serial[0]] = _unique_serial(spec, data)
                 try:
-                    cur = conn.execute(
-                        f"INSERT INTO {spec.table} ({','.join(data)}) VALUES ({marks})",
-                        list(data.values()))
-                except sqlite3.IntegrityError as exc:
+                    with db.get_db().transaction():
+                        new_id = db.insert(spec.table, data)
+                except db.IntegrityError as exc:
                     # 单行违反约束（父记录没带全、包里本身就不合规）只丢这一行，
                     # 不连累整批；原因带回给用户，不做无声吞掉。
-                    _note(stat, str(exc))
+                    _note(stat, exc.args[1] if len(exc.args) > 1 else str(exc))
+                    if spec.table == "draft_chapter_image":
+                        storage.remove(data["file_path"])
                     continue
-                idmap[spec.table][row.get("id")] = cur.lastrowid
+                if not spec.keyless:
+                    idmap[spec.table][row.get("id")] = new_id
                 stat["inserted"] += 1
+        for cid in set(idmap["draft_comparison"].values()):
+            comparison_service.validate_stored(cid)
         for sid in set(idmap["standard"].values()):
             stages.recompute(sid)
-        conn.commit()
+        db.commit()
     except ApiError:
-        conn.rollback()
+        db.rollback()
         raise
-    except sqlite3.Error as exc:
-        conn.rollback()
+    except db.Error as exc:
+        db.rollback()
         raise ApiError("导入失败：数据包与当前版本的表结构不匹配",
                        detail=f"{type(exc).__name__}：{exc}") from None
 
@@ -431,7 +479,7 @@ def import_data():
 def export_lookup(category):
     if category not in LOOKUP_CATEGORIES:
         raise ApiError("未知字典类别", 404)
-    rows = db.query("SELECT value, note, sort_order, is_active FROM lookup_value WHERE category = ? ORDER BY sort_order, value", (category,))
+    rows = db.query("SELECT value, note, sort_order, is_active FROM lookup_value WHERE category = %s ORDER BY sort_order, value", (category,))
     payload = json.dumps({"format": "regtrack-lookup", "version": 1, "category": category, "items": rows}, ensure_ascii=False, indent=2).encode("utf-8")
     return send_file(io.BytesIO(payload), mimetype="application/json", as_attachment=True, download_name=f"lookup-{category}.json")
 
@@ -457,19 +505,22 @@ def import_lookup(category):
     if len(set(orders)) != len(orders): raise ApiError("导入包内存在重复排序，请重写顺序")
     mode = request.form.get("mode", "append")
     if mode not in ("append", "replace"): raise ApiError("导入方式只能是补充或完全替换")
-    existing = db.query("SELECT value, sort_order FROM lookup_value WHERE category = ?", (category,))
+    existing = db.query("SELECT value, sort_order FROM lookup_value WHERE category = %s", (category,))
     if mode == "append":
         conflicts = {x["sort_order"] for x in existing} & set(orders)
         duplicate_values = {x["value"] for x in existing} & {x["value"] for x in clean_items}
         if conflicts: raise ApiError("补充导入的展示顺序与现有记录冲突，请重写排序后再导入")
         if duplicate_values: raise ApiError("补充导入包含已存在的字典值，请删除重复项后再导入")
-    conn = db.get_db()
     try:
-        conn.execute("BEGIN")
-        if mode == "replace": conn.execute("DELETE FROM lookup_value WHERE category = ?", (category,))
+        if mode == "replace":
+            if category == "tc_wg":
+                from api.file_manager import assert_workgroups_empty
+                assert_workgroups_empty([row['id'] for row in db.query("SELECT id FROM lookup_value WHERE category='tc_wg'")])
+            db.execute("DELETE FROM lookup_value WHERE category = %s", (category,))
         for x in clean_items:
-            conn.execute("INSERT INTO lookup_value (category, value, note, sort_order, is_active) VALUES (?, ?, ?, ?, ?)", (category, x["value"], x["note"], x["sort_order"], x["is_active"]))
-        conn.commit()
-    except Exception:
-        conn.rollback(); raise ApiError("字典导入失败")
+            db.insert("lookup_value", dict(x, category=category))
+        db.commit()
+    except db.Error as exc:
+        db.rollback()
+        raise ApiError("字典导入失败", detail=str(exc)) from None
     return jsonify(ok=True, count=len(clean_items), mode=mode)

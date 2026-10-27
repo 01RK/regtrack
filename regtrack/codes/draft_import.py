@@ -1,5 +1,4 @@
-"""Read the chapter template at the upload boundary; no database writes here."""
-import base64
+"""Read the chapter template at the upload boundary; no database or file writes here."""
 from collections import defaultdict
 from zipfile import BadZipFile
 from xml.etree.ElementTree import ParseError
@@ -21,6 +20,15 @@ REQUIRED = {"Standard_No", "Standard_Name", "Draft_Version", "Clause_No", "Level
 
 def text(value):
     return "" if value is None else str(value)
+
+
+def merge_continuation(chapter, extra):
+    """把相邻的同名前言 / 引言行并入前一行：正文、附图说明与批注依次接续，页码合并。"""
+    for key in ("content_cn", "content_en", "illustration", "initial_comment"):
+        parts = [part for part in (chapter[key].strip(), extra[key].strip()) if part]
+        chapter[key] = "\n\n".join(parts)
+    pages = [page for page in (chapter["source_page"].strip(), extra["source_page"].strip()) if page]
+    chapter["source_page"] = ", ".join(dict.fromkeys(pages))
 
 
 def special_clause_no(chapter):
@@ -86,14 +94,23 @@ def read_upload(upload):
                 except (TypeError, ValueError, OverflowError):
                     raise ApiError("章节层级和顺序必须是正整数") from None
             raw_clause_no = chapter["clause_no"]
-            chapter["clause_no"] = special_clause_no(chapter) or raw_clause_no
+            special = special_clause_no(chapter)
+            chapter["clause_no"] = special or raw_clause_no
             raw_to_internal[raw_clause_no].add(chapter["clause_no"])
-            for key, items in seen.items():
-                if chapter[key] in items:
-                    raise ApiError("文件存在重复的章节编号、顺序或 Import_ID，请修正后上传")
-                items.add(chapter[key])
-            result.append(chapter)
+            for key, label in (("sequence", "Sequence"), ("import_key", "Import_ID")):
+                if chapter[key] in seen[key]:
+                    raise ApiError(f"第 {excel_row} 行的 {label}「{chapter[key]}」与前面的行重复，请修正后上传")
+                seen[key].add(chapter[key])
             clause_by_row[excel_row] = chapter["clause_no"]
+            # 原文有多段前言（如 ISO 前言与 EN 前言）时，大模型常拆成相邻的几行：合并为同一章。
+            if special and result and result[-1]["clause_no"] == special:
+                merge_continuation(result[-1], chapter)
+                continue
+            if chapter["clause_no"] in seen["clause_no"]:
+                raise ApiError(f"第 {excel_row} 行的 Clause_No「{raw_clause_no}」与前面的行重复；"
+                               "除相邻的多段前言 / 引言会自动合并外，章节编号不能重复")
+            seen["clause_no"].add(chapter["clause_no"])
+            result.append(chapter)
             if len(result) > 10000:
                 raise ApiError("单份草案最多支持 10000 个章节项")
         if not result:
@@ -133,10 +150,7 @@ def read_upload(upload):
             image_bytes += len(data)
             if image_bytes > 40 * 1024 * 1024:
                 raise ApiError("附图解压后总大小不能超过 40 MB")
-            illustrations[clause_no].append({
-                "mime_type": mime,
-                "data_base64": base64.b64encode(data).decode("ascii"),
-            })
+            illustrations[clause_no].append({"mime_type": mime, "data": data})
         return source, result, illustrations
     finally:
         book.close()

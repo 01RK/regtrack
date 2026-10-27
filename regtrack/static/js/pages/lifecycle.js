@@ -17,6 +17,7 @@
     { key: "open", label: t("进行中", "In progress"), color: "#3479b3", statuses: ["Draft", "Submitted", "Pending"] },
     { key: "withdrawn", label: t("已撤回", "Withdrawn"), color: "#9aa6b4", statuses: ["Withdrawn"] },
   ];
+  const REVIEW_STATUSES = new Set(["Accepted", "Partially Accepted", "Rejected", "Submitted"]);
   const GROUP_OF = Object.fromEntries(
     COMMENT_GROUPS.flatMap((g) => g.statuses.map((s) => [s, g.key])));
   const GROUP_LABEL = Object.fromEntries(COMMENT_GROUPS.map((g) => [g.key, g.label]));
@@ -129,6 +130,7 @@
       return;
     }
     if (id !== standardId) return;
+    payload.stages.forEach(st => { st.comments = st.comments.filter(c => REVIEW_STATUSES.has(c.status)); });
     data = payload;
     render();
   }
@@ -138,14 +140,7 @@
   /* ------------------------------------------------------------ 渲染 */
   function render() {
     const { standard: s, stages } = data;
-    // 列宽：未来阶段与空阶段收窄；有内容的阶段按意见量适当加宽。
-    // 所有阶段都没有记录时，空列平分宽度，避免右侧留白。
-    const anyContent = stages.some((st) => st.state !== "future" && !isEmpty(st));
-    const columns = stages.map((st) => {
-      if (st.state === "future") return "var(--lane-future)";
-      if (isEmpty(st)) return anyContent ? "var(--lane-empty)" : "minmax(var(--lane-empty), 1fr)";
-      return `minmax(var(--lane-min), ${(1 + Math.min(st.comments.length, 30) / 15).toFixed(2)}fr)`;
-    }).join(" ");
+    const columns = `repeat(${stages.length}, minmax(280px, 1fr))`;
 
     body.innerHTML = `
       ${hero(s)}
@@ -184,7 +179,6 @@
             <span class="lc-code">${esc(s.std_no)}</span>
             ${s.std_type ? `<span class="lc-chip">${esc(s.std_type)}</span>` : ""}
             ${s.risk_level ? `<span class="lc-risk risk-${esc(s.risk_level)}">${esc(RISK_TEXT[s.risk_level])}</span>` : ""}
-            ${(s.impact_area_list || []).map((a) => `<span class="lc-chip ghost">${esc(a)}</span>`).join("")}
           </div>
           <h2 class="lc-name">${esc(s.name_cn)}</h2>
           ${s.name_en ? `<div class="lc-en">${esc(s.name_en)}</div>` : ""}
@@ -257,7 +251,6 @@
     // 阶段说明作为泳道的第一块「标签」挂在吊线顶端。
     return `
       <div class="${cls}" ${at}>
-        ${st.note ? `<div class="lc-note">${esc(st.note)}</div>` : ""}
         ${st.meetings.map(meetingCard).join("")}
         ${st.drafts.map(draftCard).join("")}
         <div class="lc-comments" data-comments="${i}"></div>
@@ -268,8 +261,7 @@
     return `
       <button type="button" class="lc-card kind-meeting" data-open="meeting:${m.id}">
         <span class="lc-card-heading"><span class="lc-kind">${window.App.uiText("会议", "Meeting")}</span><span class="lc-card-title" title="${esc(m.title)}">${esc(m.title)}</span></span>
-        <span class="lc-card-details"><span class="lc-card-meta">${esc(m.meeting_no)}${m.meeting_type ? " · " + esc(m.meeting_type) : ""}</span><span class="lc-when">${esc(m.meeting_date)}</span></span>
-        ${m.overall_conclusion ? `<span class="lc-card-text"><b>${t("结论", "Conclusion")}</b>${esc(m.overall_conclusion)}</span>` : ""}
+        <span class="lc-card-details"><span class="lc-card-meta">${esc(m.meeting_type || "")}</span><span class="lc-when">${esc(m.meeting_date)}</span></span>
       </button>`;
   }
 
@@ -277,8 +269,7 @@
     return `
       <button type="button" class="lc-card kind-draft" data-open="draft:${d.id}">
         <span class="lc-card-heading"><span class="lc-kind">${window.App.uiText("草案", "Draft")}</span><span class="lc-card-title">${esc(d.version_name)}<span class="lc-ver">v${esc(d.sub_version_no)}</span></span></span>
-        <span class="lc-card-details"><span class="lc-card-meta">${t(`草案章节 ${d.clause_count} 项`, `${d.clause_count} chapter(s)`)}${d.overall_impact ? ` · ${t("影响", "Impact")} ${esc(d.overall_impact)}` : ""}</span><span class="lc-when">${esc(d.draft_date)}</span></span>
-        ${d.main_summary ? `<span class="lc-card-text">${esc(d.main_summary)}</span>` : ""}
+        <span class="lc-card-details"><span class="lc-card-meta">${t(`草案章节 ${d.clause_count} 项`, `${d.clause_count} chapter(s)`)}</span><span class="lc-when">${esc(d.draft_date)}</span></span>
       </button>`;
   }
 
@@ -335,11 +326,11 @@
       <div class="lc-comment tone-${group}${open ? " open" : ""}" data-comment="${c.id}">
         <button type="button" class="lc-comment-face" aria-expanded="${open}">
           <span class="lc-card-top">
-            <span class="no">${esc(c.comment_no)}</span>
+            
             <span class="lc-verdict" title="${esc(c.status)}">${esc(GROUP_LABEL[group])}</span>
           </span>
           <span class="lc-comment-where">${esc(c.comment_type)} · ${esc(c.submission_channel)}</span>
-          <span class="lc-comment-text">${esc(c.comment_text)}</span>
+          <span class="lc-comment-text">${esc(c.clause_no || c.after_clause_no || c.before_clause_no || t("意见", "Opinion"))}</span>
         </button>
         ${open ? `
           <div class="lc-comment-more">

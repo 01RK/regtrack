@@ -53,3 +53,8 @@ regtrack-source-upload.zip
 
 # Local Codex workspace state
 /.codex/
+
+# Cloud server runtime credentials
+regtrack.env
+minio.license
+server-env.ps1

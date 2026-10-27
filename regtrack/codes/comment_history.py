@@ -27,7 +27,7 @@ def append(comment_id, payload):
     if not payload.get('effective_date'):
         raise ApiError('Effective Date is required', field='effective_date')
     check_date(payload, 'effective_date', 'Effective Date')
-    row = db.query_one('SELECT status, needs_follow_up FROM comment WHERE id=?', (comment_id,))
+    row = db.query_one('SELECT status, needs_follow_up FROM comment WHERE id=%s', (comment_id,))
     if not row['needs_follow_up']:
         raise ApiError('Enable Follow-up required before adding a processing status', field='needs_follow_up')
     data = dict(comment_id=comment_id, previous_value=row['status'], new_value=value,

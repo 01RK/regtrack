@@ -1,40 +1,31 @@
-#!/usr/bin/env python3
-"""建库脚本：按 sql/schema.sql 建表，并灌入 sql/seed.sql 的初始化记录。
-
-    python codes/init_db.py              # 建库（已存在则报错退出）
-    python codes/init_db.py --force      # 删掉旧库重建
-    python codes/init_db.py --empty      # 建空库，不灌初始化记录
-"""
-
+"""Explicit initialization of a NEW PostgreSQL database and private MinIO bucket."""
 import argparse
-import sys
+import os
 from pathlib import Path
+from flask import Flask
+import db
+import storage
+import paths
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from app import DEFAULT_DB          # noqa: E402
-from app import init_db          # noqa: E402
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="初始化法规跟踪系统数据库")
-    parser.add_argument("--db", default=str(DEFAULT_DB), help="数据库文件路径")
-    parser.add_argument("--force", action="store_true", help="已存在时先删除再重建")
-    parser.add_argument("--empty", action="store_true", help="不灌入初始化记录")
-    args = parser.parse_args()
-
-    path = Path(args.db)
-    if path.exists():
-        if not args.force:
-            print(f"数据库已存在：{path}\n加 --force 可删除重建（现有数据会丢失）。")
-            return 1
-        path.unlink()
-
-    init_db(path, with_seed=not args.empty)
-    print(f"数据库已就绪：{path}")
-    print("初始化记录：未灌入（--empty）" if args.empty else "初始化记录：已灌入")
+def main(argv=None):
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--empty',action='store_true',help='Create schema without demonstration data')
+    args=parser.parse_args(argv)
+    dsn=os.environ['REGTRACK_DATABASE_URL']
+    app=Flask(__name__)
+    storage.configure(app)
+    with app.app_context():
+        client=storage.client(); bucket=storage.bucket()
+        if not client.bucket_exists(bucket): client.make_bucket(bucket)
+        if any(client.list_objects(bucket,recursive=True)):
+            parser.error('Initialization requires an empty dedicated bucket. No existing data will be deleted.')
+        db.init_db(dsn,with_seed=not args.empty)
+        if not args.empty:
+            for source in (paths.RESOURCE_DIR/'sql/seed-files').rglob('*'):
+                if source.is_file():
+                    import mimetypes
+                    key=source.relative_to(paths.RESOURCE_DIR/'sql/seed-files').as_posix()
+                    client.fput_object(bucket,key,str(source),content_type=mimetypes.guess_type(source.name)[0] or 'application/octet-stream')
+    print('PostgreSQL schema and MinIO bucket initialized.')
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__=='__main__': raise SystemExit(main())

@@ -7,10 +7,12 @@
   </div>
   <textarea id="{{ scope }}-content" class="form-control" rows="{{ rows }}" required placeholder="{{ placeholder }}"></textarea>
   <div class="annotation-compose-footer">
-    <label class="follow-up-toggle" title="{{ t('需要回复或后续行动时勾选', 'Tick when a response or further action is needed') }}">
-      <input class="form-check-input" type="checkbox" id="{{ scope }}-follow-up">
-      <span>{{ L('Follow-up required', '需要后续跟进') }}</span>
-    </label>
+    <span class="follow-up-field">
+      <label class="follow-up-toggle">
+        <input class="form-check-input" type="checkbox" id="{{ scope }}-follow-up" checked>
+        <span>{{ L('Follow-up required', '需要后续跟进') }}</span>
+      </label>{{ follow_up_info() }}
+    </span>
     <button class="btn btn-primary btn-sm" type="submit">{{ U('保存批注', 'Save annotation') }}</button>
   </div>
 </form>
@@ -18,8 +20,8 @@
 {% block title %}{{ t('草案详情', 'Draft Detail') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
 {% block eyebrow %}{% endblock %}
 {% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/drafts" aria-label="{{ t('返回草案版本管理', 'Back to draft versions') }}">← {{ t('返回', 'Back') }}</a><span id="draft-heading">{{ U('草案详情', 'Draft Detail') }}</span></span>{% endblock %}
-{% block actions %}<button class="btn btn-outline-secondary btn-sm" id="edit-draft">{{ U('编辑元数据', 'Edit metadata') }}</button><a class="btn btn-primary btn-sm" href="/drafts/import?draft_id={{ draft_id }}">{{ U('导入草案原文', 'Import Draft Text') }}</a>{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='vendor/katex/katex.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='v20-fix2.13-zoom') }}">{% endblock %}
+{% block actions %}<a class="btn btn-primary btn-sm" href="/drafts/import?draft_id={{ draft_id }}">{{ U('导入草案原文', 'Import Draft Text') }}</a>{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='vendor/katex/katex.min.css', v=app_version) }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v=app_version) }}">{% endblock %}
 {% block content %}
 <div id="draft-page" data-id="{{ draft_id }}">
   <div id="draft-context" class="draft-context"></div>
@@ -29,7 +31,7 @@
   </div>
   <div id="draft-error" class="text-danger" role="alert"></div>
   <section id="view-overview" class="draft-overview" role="tabpanel">
-    <div class="panel"><div class="panel-head"><h2>{{ U('草案元数据', 'Draft Metadata') }}</h2></div><div class="panel-body"><dl id="draft-metadata" class="detail-grid"></dl></div></div>
+    <div class="panel"><div class="panel-head"><h2>{{ U('草案元数据', 'Draft Metadata') }}</h2><div class="btn-row ms-auto"><button type="button" class="btn btn-outline-danger btn-sm" id="delete-draft">{{ U('删除草案', 'Delete draft') }}</button><button type="button" class="btn btn-outline-secondary btn-sm" id="edit-draft">{{ U('编辑元数据', 'Edit metadata') }}</button></div></div><div class="panel-body"><div id="draft-metadata" class="draft-metadata"></div></div></div>
     <div class="panel annotation-panel">
       <div class="panel-head"><h2>{{ U('整份草案批注', 'Whole-draft Annotations') }}</h2><span class="annotation-count" id="whole-count"></span></div>
       <div class="panel-body">
@@ -53,4 +55,4 @@
 </div>
 <dialog id="illustration-viewer" class="illustration-viewer" aria-label="{{ t('查看附图', 'View illustration') }}"><button type="button" id="close-illustration" aria-label="{{ t('关闭附图', 'Close illustration') }}">×</button><img id="illustration-large" alt=""><p id="illustration-caption"></p></dialog>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='vendor/marked.umd.js') }}"></script><script src="{{ url_for('static', filename='vendor/purify.min.js') }}"></script><script src="{{ url_for('static', filename='vendor/katex/katex.min.js') }}"></script><script src="{{ url_for('static', filename='js/pages/draft-detail.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='vendor/marked.umd.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='vendor/purify.min.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='vendor/katex/katex.min.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='js/rich-text.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='js/pages/draft-detail.js', v=app_version) }}"></script>{% endblock %}

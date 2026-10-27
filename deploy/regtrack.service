@@ -1,0 +1,26 @@
+[Unit]
+Description=RegTrack central application server
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=regtrack
+Group=regtrack
+WorkingDirectory=/opt/regtrack/regtrack
+EnvironmentFile=/etc/regtrack/regtrack.env
+Environment=TZ=Asia/Shanghai
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/regtrack/.venv/bin/python codes/run.py --host 127.0.0.1 --port 5000 --threads 32
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=300
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

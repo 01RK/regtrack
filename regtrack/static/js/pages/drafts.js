@@ -77,7 +77,8 @@ App.ready(async () => {
   const ctx = { onChanged: async () => { await loadDrafts(); } };
   const openDetail = (id) => (window.location.href = `/drafts/${id}`);
 
-  document.getElementById("btn-new").onclick = () => Records.draftForm(null, ctx);
+  document.getElementById("btn-new").onclick = () => Records.draftForm(ctx);
 
   await loadDrafts();
+  await Records.restore(ctx);
 });

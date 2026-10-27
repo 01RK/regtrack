@@ -6,7 +6,7 @@ import db
 import lookups_service
 import stages
 from common import (
-    ApiError, check_date, check_enum, clean, paginate, payload_of, require,
+    ApiError, check_date, check_enum, clean, paginate, payload_of, record_id, require,
     stamp_create, stamp_update,
 )
 from constants import MEETING_TYPES
@@ -18,20 +18,31 @@ FIELDS = ["title", "meeting_date", "meeting_type", "organizer", "participants",
 
 
 def _get(meeting_id: int) -> dict:
-    row = db.query_one("SELECT * FROM meeting WHERE id = ?", (meeting_id,))
+    row = db.query_one("SELECT * FROM meeting WHERE id = %s", (meeting_id,))
     if not row:
         raise ApiError("会议不存在", 404)
     return row
 
 
+def _standards_for(meeting_ids: list[int]) -> dict[int, list[dict]]:
+    """多场会议的涉及标准一次查出（列表页不再逐场查询）。"""
+    found = {mid: [] for mid in meeting_ids}
+    if not meeting_ids:
+        return found
+    for row in db.query(
+            f"""SELECT ms.meeting_id, s.id, s.std_no, s.name_cn, s.stage_code, s.risk_level, s.mb_owner,
+                       ms.note,
+                       (SELECT COUNT(*) FROM action_item a
+                         WHERE a.meeting_id = ms.meeting_id AND a.standard_id = s.id) AS action_count
+                  FROM meeting_standard ms INNER JOIN standard s ON s.id = ms.standard_id
+                 WHERE ms.meeting_id IN ({db.marks(meeting_ids)})
+                 ORDER BY s.std_no, s.id""", meeting_ids):
+        found[row.pop("meeting_id")].append(row)
+    return found
+
+
 def _standards(meeting_id: int) -> list[dict]:
-    return db.query(
-        """SELECT s.id, s.std_no, s.name_cn, s.stage_code, s.risk_level, s.mb_owner,
-                  ms.note,
-                  (SELECT COUNT(*) FROM action_item a
-                    WHERE a.meeting_id = ? AND a.standard_id = s.id) AS action_count
-             FROM meeting_standard ms JOIN standard s ON s.id = ms.standard_id
-            WHERE ms.meeting_id = ? ORDER BY s.std_no""", (meeting_id, meeting_id))
+    return _standards_for([meeting_id])[meeting_id]
 
 
 def _validate(data: dict) -> None:
@@ -58,7 +69,7 @@ def _standard_ids(payload: dict) -> list[int] | None:
         if sid not in ids:
             ids.append(sid)
     missing = [sid for sid in ids
-               if not db.query_one("SELECT id FROM standard WHERE id = ?", (sid,))]
+               if not db.query_one("SELECT id FROM standard WHERE id = %s", (sid,))]
     if missing:
         raise ApiError("涉及标准中有不存在的记录", field="standard_ids",
                        detail="不存在的标准 id：" + ", ".join(map(str, missing)))
@@ -70,20 +81,19 @@ def list_meetings():
     where, params = [], []
     q = (request.args.get("q") or "").strip()
     if q:
-        where.append("(m.title LIKE ? OR m.meeting_no LIKE ? OR COALESCE(m.organizer,'') LIKE ?"
-                     " OR COALESCE(m.key_discussions,'') LIKE ?)")
-        params += [f"%{q}%"] * 4
+        where.append("(m.title ILIKE %s OR m.meeting_no ILIKE %s OR m.organizer ILIKE %s"
+                     " OR m.key_discussions ILIKE %s)")
+        params += [db.contains(q)] * 4
     if request.args.get("type"):
-        where.append("m.meeting_type = ?")
+        where.append("m.meeting_type = %s")
         params.append(request.args["type"])
-    if request.args.get("standard_id"):
+    standard_id = request.args.get("standard_id", type=int)
+    if standard_id:
         where.append("EXISTS (SELECT 1 FROM meeting_standard ms "
-                     " WHERE ms.meeting_id = m.id AND ms.standard_id = ?)")
-        params.append(request.args["standard_id"])
+                     " WHERE ms.meeting_id = m.id AND ms.standard_id = %s)")
+        params.append(standard_id)
 
     clause = (" WHERE " + " AND ".join(where)) if where else ""
-    total = db.query_one(f"SELECT COUNT(*) c FROM meeting m{clause}", params)["c"]
-    limit, offset = paginate(request.args)
     rows = db.query(
         f"""SELECT m.*,
                    (SELECT COUNT(*) FROM meeting_standard ms WHERE ms.meeting_id = m.id)
@@ -91,11 +101,13 @@ def list_meetings():
                    (SELECT COUNT(*) FROM action_item a WHERE a.meeting_id = m.id)
                        AS action_count
               FROM meeting m{clause}
-             ORDER BY m.meeting_date DESC, m.id DESC LIMIT ? OFFSET ?""",
-        params + [limit, offset])
-    for r in rows:
-        r["standards"] = _standards(r["id"])
-    return jsonify(total=total, items=rows)
+             ORDER BY m.meeting_date DESC, m.id DESC""", params)
+    limit, offset = paginate(request.args)
+    items = rows[offset:offset + limit]
+    standards = _standards_for([r["id"] for r in items])
+    for r in items:
+        r["standards"] = standards[r["id"]]
+    return jsonify(total=len(rows), items=items)
 
 
 @bp.get("/options")
@@ -103,11 +115,11 @@ def options():
     q = (request.args.get("q") or "").strip()
     params, clause = [], ""
     if q:
-        clause = " WHERE title LIKE ? OR meeting_no LIKE ?"
-        params = [f"%{q}%"] * 2
+        clause = " WHERE title ILIKE %s OR meeting_no ILIKE %s"
+        params = [db.contains(q)] * 2
     return jsonify(db.query(
         f"""SELECT id, meeting_no, title, meeting_date, meeting_type
-              FROM meeting{clause} ORDER BY meeting_date DESC LIMIT 50""", params))
+              FROM meeting{clause} ORDER BY meeting_date DESC, id DESC""", params)[:50])
 
 
 @bp.get("/<int:meeting_id>")
@@ -118,7 +130,7 @@ def detail(meeting_id):
         """SELECT a.id, a.item_no, a.item_type, a.title, a.current_status, a.standard_id,
                   s.std_no, s.name_cn
              FROM action_item a LEFT JOIN standard s ON s.id = a.standard_id
-            WHERE a.meeting_id = ? ORDER BY a.id DESC""", (meeting_id,))
+            WHERE a.meeting_id = %s ORDER BY a.id DESC""", (meeting_id,))
     return jsonify(meeting)
 
 
@@ -188,15 +200,10 @@ def _wants_drop_notes(payload: dict) -> bool:
     return str(flag).lower() in ("1", "true", "yes")
 
 
-def _noted(meeting_id: int, standard_ids: list[int] | None = None) -> list[str]:
+def _noted(meeting_id: int, keep_ids: list[int]) -> list[str]:
     """本会议中写过批注、且不在保留列表里的标准编号。"""
-    sql = ("""SELECT s.std_no FROM meeting_standard ms JOIN standard s ON s.id = ms.standard_id
-               WHERE ms.meeting_id = ? AND ms.note IS NOT NULL AND TRIM(ms.note) <> ''""")
-    params = [meeting_id]
-    if standard_ids is not None:
-        sql += f" AND ms.standard_id NOT IN ({', '.join('?' for _ in standard_ids)})"
-        params += standard_ids
-    return [r["std_no"] for r in db.query(sql + " ORDER BY s.std_no", params)]
+    return [r["std_no"] for r in _standards(meeting_id)
+            if r["id"] not in keep_ids and (r["note"] or "").strip()]
 
 
 def _replace_standards(meeting_id: int, standard_ids: list[int] | None,
@@ -208,13 +215,14 @@ def _replace_standards(meeting_id: int, standard_ids: list[int] | None,
     if losing and not drop_notes:
         raise ApiError(DROP_NOTE_WARNING, field="standard_ids",
                        detail="涉及：" + "、".join(losing))
-    # NOT IN () 在 SQLite 中为合法写法，空列表即清空本会议的全部关联
-    keep = ", ".join("?" for _ in standard_ids)
-    db.execute(f"DELETE FROM meeting_standard WHERE meeting_id = ? "
-               f"AND standard_id NOT IN ({keep})", [meeting_id] + standard_ids)
+    linked = {r["standard_id"] for r in db.query(
+        "SELECT standard_id FROM meeting_standard WHERE meeting_id = %s", (meeting_id,))}
+    for sid in linked - set(standard_ids):
+        db.execute("DELETE FROM meeting_standard WHERE meeting_id = %s AND standard_id = %s",
+                   (meeting_id, sid))
     for sid in standard_ids:
-        db.execute("INSERT OR IGNORE INTO meeting_standard (meeting_id, standard_id) "
-                   "VALUES (?, ?)", (meeting_id, sid))
+        if sid not in linked:
+            db.insert("meeting_standard", {"meeting_id": meeting_id, "standard_id": sid})
 
 
 @bp.post("/<int:meeting_id>/standards")
@@ -222,13 +230,13 @@ def attach_standard(meeting_id):
     """给会议追加一个涉及标准。会议可挂多个标准，不会影响其它会议的关联。"""
     _get(meeting_id)
     payload = payload_of(request)
-    sid = payload.get("standard_id")
-    if not sid:
+    if not payload.get("standard_id"):
         raise ApiError("请选择标准", field="standard_id")
-    std = db.query_one("SELECT id, std_no FROM standard WHERE id = ?", (sid,))
+    sid = record_id(payload["standard_id"], "standard_id")
+    std = db.query_one("SELECT id, std_no FROM standard WHERE id = %s", (sid,))
     if not std:
         raise ApiError("标准不存在", field="standard_id")
-    if db.query_one("SELECT 1 FROM meeting_standard WHERE meeting_id = ? AND standard_id = ?",
+    if db.query_one("SELECT 1 FROM meeting_standard WHERE meeting_id = %s AND standard_id = %s",
                     (meeting_id, sid)):
         raise ApiError(f"{std['std_no']} 已经挂在这场会议上", field="standard_id")
     db.insert("meeting_standard", {
@@ -243,12 +251,12 @@ def update_standard_note(meeting_id, standard_id):
     """编辑某一项标准在本次会议上的批注。"""
     _get(meeting_id)
     link = db.query_one(
-        "SELECT 1 FROM meeting_standard WHERE meeting_id = ? AND standard_id = ?",
+        "SELECT 1 FROM meeting_standard WHERE meeting_id = %s AND standard_id = %s",
         (meeting_id, standard_id))
     if not link:
         raise ApiError("这项标准没有挂在本次会议上", 404, field="standard_id")
     note = (payload_of(request).get("note") or "").strip() or None
-    db.execute("UPDATE meeting_standard SET note = ? WHERE meeting_id = ? AND standard_id = ?",
+    db.execute("UPDATE meeting_standard SET note = %s WHERE meeting_id = %s AND standard_id = %s",
                (note, meeting_id, standard_id))
     db.commit()
     return jsonify(_standards(meeting_id))
@@ -258,11 +266,11 @@ def update_standard_note(meeting_id, standard_id):
 def detach_standard(meeting_id, standard_id):
     link = db.query_one(
         """SELECT ms.note, s.std_no FROM meeting_standard ms
-                  JOIN standard s ON s.id = ms.standard_id
-            WHERE ms.meeting_id = ? AND ms.standard_id = ?""", (meeting_id, standard_id))
+                  INNER JOIN standard s ON s.id = ms.standard_id
+            WHERE ms.meeting_id = %s AND ms.standard_id = %s""", (meeting_id, standard_id))
     if link and (link["note"] or "").strip() and not _wants_drop_notes(payload_of(request)):
         raise ApiError(DROP_NOTE_WARNING, field="note", detail=f"涉及：{link['std_no']}")
-    db.execute("DELETE FROM meeting_standard WHERE meeting_id = ? AND standard_id = ?",
+    db.execute("DELETE FROM meeting_standard WHERE meeting_id = %s AND standard_id = %s",
                (meeting_id, standard_id))
     stages.recompute(standard_id)
     db.commit()

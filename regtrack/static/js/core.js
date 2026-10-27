@@ -11,13 +11,103 @@
   const t = (zh, en) => (LANG === "en" ? en : zh);
 
   const App = {
+    version: document.documentElement.dataset.version || "",
     meta: null,
     lookups: null,
     user: localStorage.getItem(USER_KEY) || "",
   };
 
+  /* ------------------------------------------------------------ 加载状态
+     数据库在共享盘上，个别请求可能要等一两秒。任何请求进行中都在顶部显示细进度条；
+     超过 0.9 秒再显示“正在读取 / 正在保存”提示，让人知道系统在处理，不必反复点击。 */
+  const Activity = (() => {
+    let reads = 0;
+    let writes = 0;
+    let showTimer = 0;
+    let slowTimer = 0;
+    function render() {
+      const el = document.getElementById("app-activity");
+      if (!el) return;
+      clearTimeout(showTimer);
+      clearTimeout(slowTimer);
+      document.body.classList.toggle("app-saving", writes > 0);
+      if (reads + writes === 0) {
+        el.classList.remove("show", "slow");
+        return;
+      }
+      el.querySelector(".app-activity-text").textContent =
+        writes ? t("正在保存，请稍候…", "Saving, please wait…") : t("正在读取数据…", "Loading data…");
+      if (!el.classList.contains("show")) showTimer = setTimeout(() => el.classList.add("show"), 150);
+      if (!el.classList.contains("slow")) slowTimer = setTimeout(() => el.classList.add("slow"), 900);
+    }
+    return {
+      start(write) { if (write) writes += 1; else reads += 1; render(); },
+      end(write) { if (write) writes -= 1; else reads -= 1; render(); },
+    };
+  })();
+
+  /** 写入期间把触发它的按钮置为忙碌：禁用并显示转圈，防止重复提交。返回恢复函数。 */
+  function busyTrigger() {
+    const el = document.activeElement;
+    if (!el || !el.matches || !el.matches("button, .btn") || el.disabled) return () => {};
+    el.disabled = true;
+    el.classList.add("is-busy");
+    el.setAttribute("aria-busy", "true");
+    return () => {
+      el.disabled = false;
+      el.classList.remove("is-busy");
+      el.removeAttribute("aria-busy");
+    };
+  }
+
+  /* ------------------------------------------------------- 语言切换快照
+     界面语言由服务端渲染，切换语言需要重新载入页面；业务数据与语言无关。
+     切换前把本页已读取的数据暂存到 sessionStorage，重新载入后同一请求直接取用一次，
+     不必再到共享数据库读一遍。快照只在 1 分钟内、同一页面、同一操作人时有效。 */
+  const SNAPSHOT_KEY = "regtrack.lang-snapshot";
+  const pageReads = new Map();
+  const snapshot = (() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(SNAPSHOT_KEY) || "null");
+      sessionStorage.removeItem(SNAPSHOT_KEY);
+      if (saved && saved.page === location.pathname + location.search && saved.user === App.user
+          && Date.now() - saved.at < 60000) return new Map(saved.reads);
+    } catch (e) { /* 存储不可用或内容损坏：照常读取 */ }
+    return new Map();
+  })();
+
+  function saveLanguageSnapshot() {
+    try {
+      sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify({
+        page: location.pathname + location.search, user: App.user, at: Date.now(), reads: [...pageReads],
+      }));
+    } catch (e) { /* 超出浏览器存储上限时放弃快照，切换后重新读取 */ }
+  }
+
   /* ------------------------------------------------------------ 请求 */
-  async function api(path, options = {}) {
+  const pending = new Map();
+  const clone = (data) => (data === null || data === undefined ? data : structuredClone(data));
+
+  /** 同一请求（方法、地址与内容都相同）尚未返回时不再重复发出，共用同一结果。 */
+  function api(path, options = {}) {
+    const method = (options.method || "GET").toUpperCase();
+    const key = options.body instanceof FormData ? null
+      : `${method} ${path} ${typeof options.body === "string" ? options.body : JSON.stringify(options.body ?? null)}`;
+    if (key && pending.has(key)) return pending.get(key).then(clone);
+    const request = send(path, options, method);
+    if (!key) return request;
+    pending.set(key, request);
+    return request.finally(() => pending.delete(key));
+  }
+
+  async function send(path, options, method) {
+    const write = method !== "GET";
+    if (!write && snapshot.has(path)) {
+      const text = snapshot.get(path);
+      snapshot.delete(path);
+      pageReads.set(path, text);
+      return JSON.parse(text);
+    }
     const opt = Object.assign({ headers: {} }, options);
     // HTTP 头只允许 ISO-8859-1，中文姓名必须先 URL 编码，由后端解码。
     opt.headers["X-User"] = encodeURIComponent(App.user || "未署名");
@@ -26,18 +116,24 @@
       opt.body = JSON.stringify(opt.body);
     }
 
+    const restore = write ? busyTrigger() : () => {};
+    Activity.start(write);
     let res;
+    let text;
     try {
       res = await fetch(path, opt);
+      text = await res.text();
     } catch (e) {
       // 浏览器只会给出 "Failed to fetch"，这里换成用户能据以行动的说明。
-      const err = new Error(t(`无法连接到本地服务（${path}），请确认 RegTrack 仍在运行后重试`,
-        `Cannot reach the local service (${path}). Make sure RegTrack is still running and try again.`));
+      const err = new Error(t(`无法连接到本地服务（${path}），请确认 RegTrack 窗口仍在运行后重试`,
+        `Cannot reach the local service (${path}). Make sure the RegTrack window is still running and try again.`));
       err.cause = e;
       throw err;
+    } finally {
+      Activity.end(write);
+      restore();
     }
 
-    const text = await res.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
     if (!res.ok) {
@@ -53,6 +149,8 @@
       err.status = res.status;
       throw err;
     }
+    if (!write && path.startsWith("/api/")) pageReads.set(path, text);
+    if (write) forgetLookups();
     return data;
   }
 
@@ -92,14 +190,22 @@
     }[c]));
   }
 
-  /** 字段名：英文为主；中文界面在其后附中文小字。 */
+  /** 字段名：英文为主；中文界面在其后附中文小字，英文界面只显示英文。 */
   function label(en, zh) {
-    return esc(en) + (zh ? `<small class="cn-sub"${LANG === "en" ? ' aria-hidden="true"' : ""}>${esc(zh)}</small>` : "");
+    return esc(en) + (zh && LANG !== "en" ? `<small class="cn-sub">${esc(zh)}</small>` : "");
   }
 
   function uiText(zh, en) {
     return `<span class="ui-text"><span${LANG === "en" ? ' aria-hidden="true"' : ""}>${esc(zh)}</span><span${LANG === "zh" ? ' aria-hidden="true"' : ""}>${esc(en)}</span></span>`;
   }
+
+  /** Light grey (i) with a hover / focus tooltip. Same markup as i18n.info_tip on the server. */
+  const infoTip = (text) =>
+    `<span class="info-tip" tabindex="0" role="img" data-bs-toggle="tooltip" data-bs-title="${esc(text)}" aria-label="${esc(text)}">i</span>`;
+  /** Note shown after every "Follow-up required" checkbox. */
+  const followUpInfo = () => infoTip(App.meta.follow_up_hint[LANG]);
+  // One delegated instance serves every tooltip, including those rendered later in modals and lists.
+  new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });
 
   const dash = (v) => (v === null || v === undefined || v === "" ? "—" : esc(v));
 
@@ -174,6 +280,110 @@
     return `<tr><td colspan="${cols}"><div class="empty"><b>${uiText(...title)}</b>${uiText(...hint)}</div></td></tr>`;
   }
 
+  /* ------------------------------------------------------- 文字选择
+     1. 拖动选中文字后松开鼠标，浏览器会在共同的父元素上补发一次 click。整行可点的列表、
+        目录、分组标题会因此打开详情或切换内容，选中的文字随之被重绘掉。选区非空时，
+        这次 click 不再交给页面处理；按钮、链接和表单控件不受影响。
+     2. 在已选中的文字上按下鼠标并移动，浏览器会开始“拖放文字”。拖放期间页面不响应
+        点击和滚动；若拖动的文字在拖放途中被重绘移除，Windows 上的浏览器可能停在拖放
+        状态，表现为整页卡死、只能刷新。系统没有拖放文字的功能，只放行明确声明可拖动
+        的元素（如字典排序的拖动手柄），其余拖放一律取消。 */
+  const INTERACTIVE = "a, button, input, select, textarea, label, summary, [contenteditable], [role='button'], .ts-control, .ts-dropdown";
+  function selectedText() {
+    const selection = window.getSelection ? window.getSelection() : null;
+    return selection && !selection.isCollapsed && selection.toString().trim() ? selection : null;
+  }
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || target.closest(INTERACTIVE) || event.detail === 0) return;
+    const selection = selectedText();
+    if (!selection) return;
+    const range = selection.getRangeAt(0);
+    if (!target.contains(range.commonAncestorContainer) && !range.intersectsNode(target)) return;
+    event.stopPropagation();
+    event.preventDefault();
+  }, true);
+  document.addEventListener("dragstart", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target && target.closest('[draggable="true"]')) return;
+    event.preventDefault();
+  }, true);
+
+  /* ------------------------------------------------------- 工作区高度
+     草案阅读与比对结果的工作区内部各自滚动，高度应正好到窗口底部。上方的标题、
+     说明与页签高度随内容和语言变化，这里量出工作区顶部位置写入 --fill-top，
+     由 CSS 计算高度；上方内容或窗口尺寸变化时重新测量。 */
+  function fitWorkspaces() {
+    document.querySelectorAll(".cmp-workspace, .draft-workspace").forEach((workspace) => {
+      if (!workspace.getClientRects().length) return;  // 所在页签未显示，显示后再量
+      const top = Math.round(workspace.getBoundingClientRect().top + window.scrollY);
+      if (workspace.style.getPropertyValue("--fill-top") !== `${top}px`) workspace.style.setProperty("--fill-top", `${top}px`);
+    });
+  }
+  function watchWorkspaces() {
+    const workspaces = document.querySelectorAll(".cmp-workspace, .draft-workspace");
+    if (!workspaces.length) return;
+    let queued = false;
+    const schedule = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; fitWorkspaces(); });
+    };
+    // 只观察工作区上方的元素与父容器：工作区自身的高度由这里决定，观察它会形成循环。
+    const observer = new ResizeObserver(schedule);
+    const topbar = document.querySelector(".topbar");
+    if (topbar) observer.observe(topbar);
+    workspaces.forEach((workspace) => {
+      observer.observe(workspace.parentElement);
+      for (let node = workspace.previousElementSibling; node; node = node.previousElementSibling) observer.observe(node);
+    });
+    window.addEventListener("resize", schedule);
+    fitWorkspaces();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchWorkspaces);
+  else watchWorkspaces();
+
+  /* ------------------------------------------------------- 返回上一页
+     草案详情、比对结果、导入页等整页视图常从某个弹窗进入（如标准主档 › 草案）。
+     弹窗层级记录在来源页地址的 records 参数里（records.js），返回时退回浏览器历史即可回到
+     原页面并重新打开原来的弹窗；直接打开的页面没有来源，才使用链接上写的默认页。 */
+  function cameFromApp() {
+    if (window.history.length < 2 || !document.referrer) return false;
+    try { return new URL(document.referrer).origin === location.origin; } catch (e) { return false; }
+  }
+  function goBack(fallback) {
+    if (cameFromApp()) window.history.back();
+    else location.href = fallback;
+  }
+  document.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("a.draft-back") : null;
+    if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    event.preventDefault();
+    goBack(link.getAttribute("href"));
+  });
+  // 从浏览器缓存恢复的页面可能是旧数据（例如刚在草案页改过、删过）：重新载入，弹窗层级由地址恢复。
+  window.addEventListener("pageshow", (event) => { if (event.persisted) location.reload(); });
+
+  /* ------------------------------------------------------- 未保存提示
+     返回 "save" | "discard" | "stay"。 */
+  function unsavedPrompt(message) {
+    return new Promise((resolve) => {
+      let chosen = "stay";
+      const m = openModal({
+        title: t("有未保存的修改", "Unsaved changes"),
+        size: "sm",
+        body: `<div style="font-size:13.5px">${esc(message)}</div>`,
+        footer: `<button class="btn btn-outline-secondary btn-sm" data-choice="stay">${uiText("继续编辑", "Keep editing")}</button>
+                 <button class="btn btn-outline-danger btn-sm" data-choice="discard">${uiText("放弃修改", "Discard")}</button>
+                 <button class="btn btn-primary btn-sm" data-choice="save">${uiText("保存", "Save")}</button>`,
+        onHidden: () => resolve(chosen),
+      });
+      m.footer.querySelectorAll("[data-choice]").forEach((button) => {
+        button.onclick = () => { chosen = button.dataset.choice; m.close(); };
+      });
+    });
+  }
+
   /* ------------------------------------------------------------ 模态 */
   let seq = 0;
 
@@ -201,11 +411,12 @@
     window.history.pushState(state, "", window.location.href);
   }
 
+  /** 全部弹窗关闭后，去掉地址里记录弹窗层级的 records 参数（由 records.js 维护）。 */
   function clearDeepIdWhenIdle() {
     if (modalLayers.length || !canUseHistory() || !window.location) return;
     const url = new URL(window.location.href);
-    if (!url.searchParams.has("id")) return;
-    url.searchParams.delete("id");
+    if (!url.searchParams.has("records")) return;
+    url.searchParams.delete("records");
     window.history.replaceState(window.history.state, "", url);
   }
 
@@ -410,8 +621,40 @@
   }
 
   /* ------------------------------------------------------- 启动装配 */
+  /** 固定取值只随程序版本变化，按版本缓存在本机，换页时不再重复请求。 */
+  async function loadMeta() {
+    const key = `regtrack.meta:${App.version}`;
+    try {
+      const cached = localStorage.getItem(key);
+      if (cached) return JSON.parse(cached);
+    } catch (e) { /* 存储不可用时直接读取 */ }
+    const meta = await get("/api/meta");
+    try {
+      Object.keys(localStorage).filter((k) => k.startsWith("regtrack.meta:")).forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem(key, JSON.stringify(meta));
+    } catch (e) { /* 存储不可用时下次再读 */ }
+    return meta;
+  }
+
+  /* 字典（人员、团队、机构等下拉选项）每次换页都要用。读取后在本标签页缓存 1 分钟，
+     换页不必每次访问共享盘；本机任何保存操作都会清掉缓存（保存可能顺带新增字典值）。 */
+  const LOOKUPS_KEY = "regtrack.lookups";
+  const LOOKUPS_TTL = 60000;
+  function forgetLookups() {
+    try { sessionStorage.removeItem(LOOKUPS_KEY); } catch (e) { /* 存储不可用 */ }
+  }
+  async function loadLookups() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(LOOKUPS_KEY) || "null");
+      if (cached && cached.version === App.version && Date.now() - cached.at < LOOKUPS_TTL) return cached.data;
+    } catch (e) { /* 存储不可用或内容损坏：直接读取 */ }
+    const data = await get("/api/lookups");
+    try { sessionStorage.setItem(LOOKUPS_KEY, JSON.stringify({ version: App.version, at: Date.now(), data })); } catch (e) { /* 存储不可用 */ }
+    return data;
+  }
+
   async function boot() {
-    const [meta, lookups] = await Promise.all([get("/api/meta"), get("/api/lookups")]);
+    const [meta, lookups] = await Promise.all([loadMeta(), loadLookups()]);
     App.meta = meta;
     App.lookups = lookups;
 
@@ -426,12 +669,15 @@
   }
 
   async function refreshLookups() {
-    App.lookups = await get("/api/lookups");
+    forgetLookups();
+    App.lookups = await loadLookups();
     return App.lookups;
   }
 
+  let bootPromise;
   function ready(fn) {
-    boot()
+    if (!bootPromise) bootPromise = boot();
+    bootPromise
       .then(fn)
       .catch((e) => fail(t("初始化失败：", "Initialization failed: ") + e.message));
   }
@@ -440,8 +686,9 @@
     lang: LANG, t, label,
     REPOSITION,
     api, get, post, put, del, qs,
-    toast, ok, fail, esc, dash, clip, tag, statusTag, overdue, today, uiText,
+    toast, ok, fail, esc, dash, clip, tag, statusTag, overdue, today, uiText, infoTip, followUpInfo,
     stageMini, stageRail, stageLabel, stageIndex, stageList, isTerminalStage,
-    refreshLookups, emptyRow, openModal, confirmDialog, confirmAsync, ready,
+    refreshLookups, emptyRow, openModal, confirmDialog, confirmAsync, ready, saveLanguageSnapshot,
+    goBack, unsavedPrompt,
   });
 })();

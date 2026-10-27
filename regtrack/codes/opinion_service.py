@@ -25,10 +25,11 @@ def record_change(previous, data):
 
 
 def sync_annotation(annotation_id, flag):
-    note = db.query_one("""SELECT a.*, d.standard_id, ch.clause_no FROM draft_annotation a
-        JOIN draft d ON d.id=a.draft_id LEFT JOIN draft_chapter ch ON ch.id=a.chapter_id
-        WHERE a.id=?""", (annotation_id,))
-    previous = db.query_one('SELECT * FROM comment WHERE source_annotation_id=?', (annotation_id,))
+    note = db.query_one("""SELECT a.*, d.standard_id, ch.clause_no
+        FROM (draft_annotation a INNER JOIN draft d ON d.id = a.draft_id)
+        LEFT JOIN draft_chapter ch ON ch.id = a.chapter_id
+        WHERE a.id = %s""", (annotation_id,))
+    previous = db.query_one('SELECT * FROM comment WHERE source_annotation_id=%s', (annotation_id,))
     data = dict(source_kind='single', standard_id=note['standard_id'], draft_id=note['draft_id'],
         clause_no=note['clause_no'], comment_type=note['annotation_type'], comment_text=note['content'],
         needs_follow_up=flag)

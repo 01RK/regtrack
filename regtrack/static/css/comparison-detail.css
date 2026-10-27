@@ -1,0 +1,143 @@
+/* Comparison result page. Shares the reader frame of the single-draft page (draft-reader.css: draft-context,
+   draft-view-tabs, reader-column, reader-scroll, reader-language, rich-content, illustration viewer). */
+.cmp-page [hidden] { display: none !important; }
+.cmp-context { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.cmp-context b { color: var(--ink); font-weight: 600; }
+.cmp-context span { color: var(--ink-3); font-size: 12.5px; }
+.cmp-muted { color: var(--ink-3); font-size: 12.5px; margin: 0; }
+.cmp-empty { padding: 48px 16px; text-align: center; color: var(--ink-3); font-size: 13px; }
+
+/* Revision-class colours, shared by tabs, contents and badges */
+.cls-Substantive { --cls: var(--flag); --cls-soft: var(--flag-soft); }
+.cls-Editorial { --cls: var(--accent); --cls-soft: var(--accent-soft); }
+.cls-Uncertain { --cls: var(--amber); --cls-soft: var(--amber-soft); }
+.cls-Unchanged { --cls: var(--ink-3); --cls-soft: var(--surface-2); }
+.cmp-dot { flex: none; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--cls, var(--ink-3)); }
+
+/* Class tabs: same underline tabs as the draft page, with counts */
+#cmp-classes button { display: inline-flex; align-items: center; gap: 7px; }
+#cmp-classes button span { margin-left: 0; padding: 0 6px; border-radius: 8px; background: var(--surface-2); font-size: 11px; color: var(--ink-3); line-height: 1.6; }
+#cmp-classes button.active span { background: var(--accent-soft); color: var(--accent); }
+
+/* Workspace: contents | paper, fixed height with inner scrolling like the chapter reader */
+.cmp-workspace { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 14px; height: calc(100dvh - var(--fill-top, 205px) - var(--fill-bottom, 20px)); min-height: 420px; }
+.cmp-directory header { display: flex; flex-direction: column; gap: 10px; }
+.cmp-directory-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cmp-directory-head h2 { margin: 0; }
+.cmp-toc { padding: 8px; }
+.cmp-entry { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 8px 8px; border: 0; border-radius: 3px; background: none; text-align: left; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); overflow-wrap: break-word; }
+.cmp-entry .cmp-dot { transform: translateY(-1px); }
+.cmp-entry small { color: var(--ink-3); font-size: 11px; }
+.cmp-entry em { font-style: normal; font-size: 11px; color: var(--cls); }
+.cmp-entry.absent { color: var(--ink-3); }
+.cmp-entry:hover { background: var(--surface-2); }
+.cmp-entry.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; box-shadow: inset 3px 0 var(--accent); }
+
+/* Segmented switch (contents follow before / after) */
+.cmp-seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 4px; background: #fff; overflow: hidden; flex: none; }
+.cmp-seg button { border: 0; background: transparent; padding: 2px 10px; font-size: 11.5px; color: var(--ink-2); line-height: 1.6; }
+.cmp-seg button + button { border-left: 1px solid var(--rule); }
+.cmp-seg button:hover { background: var(--surface-2); }
+.cmp-seg button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+/* Paper */
+.cmp-paper-bar { flex: none; display: flex; align-items: center; gap: 16px; padding: 0 0 0 12px; border-bottom: 1px solid var(--rule); background: #fff; }
+.cmp-paper-bar .reader-language { margin-left: auto; border-bottom: 0; }
+.cmp-pager { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-3); }
+.cmp-pager button { width: 26px; height: 26px; border: 1px solid var(--rule); border-radius: 4px; background: #fff; color: var(--ink-2); font-size: 15px; line-height: 1; }
+.cmp-pager button:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.cmp-pager button:disabled { opacity: .4; }
+.cmp-pager span { min-width: 52px; text-align: center; }
+.cmp-legend { display: inline-flex; gap: 8px; font-size: 11.5px; }
+.cmp-paper-body { padding: 22px 28px 28px; }
+.cmp-paper-body > h2 { font-size: 22px; line-height: 1.5; margin: 6px 0 10px; }
+.cmp-row-meta { font-size: 12px; color: var(--ink-3); }
+.cmp-row-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 20px; font-size: 12.5px; color: var(--ink-2); }
+.cmp-badge { font-size: 11.5px; font-weight: 600; color: var(--cls); background: var(--cls-soft); border-radius: 4px; padding: 2px 8px; }
+.cmp-map b { font-weight: 600; color: var(--ink); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+
+/* Sections inside the paper */
+.cmp-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.cmp-section-head h3 { font-size: 14px; font-weight: 600; margin: 0; }
+.cmp-section-head h3 small { color: var(--ink-3); font-weight: 400; margin-left: 4px; font-size: 12px; }
+.cmp-analysis { padding: 14px 16px; margin-bottom: 20px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 5px; }
+.cmp-analysis-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; }
+.cmp-analysis h4 { font-size: 11.5px; font-weight: 600; color: var(--ink-3); margin: 0 0 4px; }
+.cmp-analysis p { margin: 0; font-size: 13.5px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: break-word; }
+.cmp-review { margin-top: 12px; padding: 9px 12px; background: var(--amber-soft); border-left: 3px solid var(--amber); border-radius: 0 4px 4px 0; }
+.cmp-review h4 { color: var(--amber); }
+
+/* Source text side by side */
+.cmp-source-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+.cmp-source { min-width: 0; padding: 0 20px 4px; overflow-wrap: break-word; }
+.cmp-source + .cmp-source { border-left: 1px solid var(--rule); }
+.cmp-source > header { margin: 0 -20px 14px; padding: 8px 20px; font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-bottom: 1px solid var(--rule); }
+.cmp-source > header b { font-weight: 600; color: var(--ink); margin-right: 8px; }
+.cmp-source.is-empty > p { padding: 6px 0 14px; color: var(--ink-3); font-size: 13px; }
+.cmp-clause { margin-bottom: 18px; }
+.cmp-clause h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; line-height: 1.55; }
+.cmp-clause h3 b { margin-right: 4px; }
+.cmp-clause h3 small { font-weight: 400; color: var(--ink-3); font-size: 11.5px; margin-left: 8px; }
+.cmp-rich { font-size: 14px; line-height: 1.95; }
+.cmp-rich p:last-child { margin-bottom: 0; }
+.cmp-illustration { margin-top: 8px; font-size: 12.5px; color: var(--ink-2); }
+.cmp-clause .illustration-grid { margin-top: 10px; }
+.cmp-fallback { color: var(--amber); font-size: 12px; margin: 0 0 4px; }
+
+/* Revision marks */
+.rev-del { color: #a3261e; background: #fdecea; text-decoration: line-through; text-decoration-color: #a3261e; text-decoration-thickness: 1.5px; border-radius: 2px; }
+.rev-ins { color: inherit; background: #fff2a8; padding: 0 1px; border-radius: 2px; }
+.rev-del .math-slot, .rev-ins .math-slot { position: relative; display: inline-block; padding: 0 2px; }
+.rev-ins .math-slot { background: #fff2a8; }
+.rev-del .math-slot::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1.5px solid #a3261e; }
+/* A changed display formula is a block: the mark becomes a block and only the formula itself is tinted. */
+.rev-del:has(.katex-display), .rev-ins:has(.katex-display) { display: block; background: none; padding: 0; }
+.rev-del .math-slot:has(.katex-display), .rev-ins .math-slot:has(.katex-display) { display: block; width: fit-content; max-width: 100%; margin: 0 auto; }
+.rev-del .katex-display, .rev-ins .katex-display { margin: 6px 0; }
+
+/* Manual review form */
+.cmp-edit { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.cmp-class-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding: 0; border: 0; }
+.cmp-class-pick legend { float: left; width: auto; margin: 0 6px 0 0; font-size: 12px; color: var(--ink-2); }
+.cmp-class-option { position: relative; margin: 0; cursor: pointer; }
+.cmp-class-option input { position: absolute; opacity: 0; pointer-events: none; }
+.cmp-class-option span { display: inline-block; padding: 4px 12px; border: 1px solid var(--rule); border-radius: 14px; font-size: 12.5px; color: var(--ink-2); background: #fff; }
+.cmp-class-option:hover span { border-color: var(--cls); }
+.cmp-class-option input:checked + span { color: var(--cls); background: var(--cls-soft); border-color: var(--cls); font-weight: 600; }
+.cmp-class-option input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-soft); }
+.cmp-class-option.disabled { cursor: not-allowed; opacity: .45; }
+.cmp-edit-hint { min-height: 18px; margin: 6px 0 8px; font-size: 12px; color: var(--amber); }
+.cmp-edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; }
+.cmp-field { display: block; margin: 0; }
+.cmp-field > span { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+.cmp-field textarea { font-size: 13px; line-height: 1.65; resize: vertical; }
+.cmp-edit-review { margin-top: 10px; }
+.cmp-edit-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.cmp-edit-actions [data-error] { margin-right: auto; font-size: 12.5px; }
+
+/* Annotations */
+.cmp-opinions { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.cmp-opinion { border-left: 3px solid var(--accent-soft); padding: 6px 12px; margin-top: 10px; font-size: 13px; }
+.cmp-opinion-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink-3); font-size: 12px; }
+.cmp-opinion-meta .btn-link { padding: 0; font-size: 12px; margin-left: auto; }
+.cmp-opinion p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: break-word; }
+
+@container workspace (max-width: 1250px) {
+  .cmp-workspace { grid-template-columns: 240px minmax(0, 1fr); gap: 10px; }
+  .cmp-paper-body { padding: 18px; }
+}
+@container workspace (max-width: 1000px) {
+  .cmp-workspace { display: flex; flex-direction: column; height: auto; min-height: 0; }
+  .cmp-directory { max-height: 280px; }
+  .cmp-paper { min-height: 420px; max-height: 80dvh; }
+}
+@container workspace (max-width: 760px) {
+  .cmp-legend { display: none; }
+  .cmp-source-pair, .cmp-analysis-grid, .cmp-edit-grid { grid-template-columns: minmax(0, 1fr); }
+  .cmp-source + .cmp-source { border-left: 0; border-top: 1px solid var(--rule); }
+  #cmp-classes { flex-wrap: nowrap; overflow-x: auto; gap: 16px; }
+  #cmp-classes button { white-space: nowrap; }
+}
+
+.cmp-rich, .cmp-source { word-break: normal; white-space: normal; }
+.cmp-rich ins, .cmp-rich del { display: inline; white-space: normal; }

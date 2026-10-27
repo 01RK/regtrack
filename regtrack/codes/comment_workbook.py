@@ -88,6 +88,29 @@ def build(rows: list[tuple]) -> BytesIO:
     sheet.add_data_validation(status)
     sheet.freeze_panes = "A2"
 
+    guide = book.create_sheet("使用说明")
+    guide.append(("列名", "是否导入", "填写方法", "示例"))
+    guide_rows = [
+        (HEADERS[0], "否", "仅供阅读和排序，不是系统意见编号，可留空。", "1"),
+        (HEADERS[1], "是", "填写所选草案中存在的章条编号；留空表示整份草案。建议使用文本格式，避免 Excel 自动转为日期。", "5.1"),
+        (HEADERS[2], "否", "原文参考，不会覆盖草案正文。", "对应章条原文"),
+        (HEADERS[3], "是，必填", "每行一条意见，写明建议修改内容及理由或依据。", "建议修改本条表述，理由：…"),
+        (HEADERS[4], "是，必填", "从下拉列表选择，允许值：" + " / ".join(COMMENT_STATUSES), "Draft"),
+        ("导入规则", "", "保留第一张‘意见’工作表的五列表头和顺序。导入时在页面选择目标草案及共用元数据。任一行校验失败时整批不写入。", ""),
+    ]
+    for row in guide_rows:
+        guide.append(row)
+    for cell in guide[1]:
+        cell.fill = _HEAD_FILL
+        cell.font = _HEAD_FONT
+    for row in guide.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+        guide.row_dimensions[row[0].row].height = 64
+    for col, width in zip("ABCD", (30, 18, 88, 36)):
+        guide.column_dimensions[col].width = width
+    guide.freeze_panes = "A2"
+
     out = BytesIO()
     book.save(out)
     out.seek(0)

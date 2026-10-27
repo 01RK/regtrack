@@ -1,10 +1,16 @@
 """固定取值（文档中标注为「固定值」的字段）。
 
 这里是全系统唯一定义源：
-- 后端写入前校验；
-- 通过 /api/meta 下发给前端渲染下拉框；
-- sql/schema.sql 的 CHECK 约束与此保持一致，作为库层兜底。
+- 业务接口写入前校验；
+- 数据交换包导入时按 FIXED_VALUES 逐行校验；
+- 通过 /api/meta 下发给前端渲染下拉框。
 """
+
+# 程序版本：页面左下角显示，并作为静态资源的缓存版本号。
+APP_VERSION = "v24-cloud.1"
+# 表结构版本：写在数据库 app_meta 表中。只有 schema.sql 变化时才加 1；
+# 程序启动时比对，不一致则拒绝打开，防止新旧程序混用同一份共享数据库。
+SCHEMA_VERSION = 9
 
 # --------------------------------------------------------------------- #
 # 标准生命周期阶段
@@ -71,7 +77,15 @@ COMMENT_STATUSES = [
 
 COMMENT_SOURCES = {"single": "Single-draft annotation", "comparison": "Draft comparison annotation"}
 
-ANNOTATION_TYPES = ["Interpretation", "Comment", "Question", "Recommendation"]
+# 批注 / 意见类型。Others 用于类型未知的导入内容（草案原文 Initial_Comment、意见交换文件）。
+ANNOTATION_TYPES = ["Interpretation", "Proposed Change", "Question", "Recommendation", "Others"]
+IMPORTED_ANNOTATION_TYPE = "Others"
+
+# Hover note next to every "Follow-up required" checkbox (Draft vs Submitted opinion).
+FOLLOW_UP_HINT = {
+    "zh": "勾选将默认显示在意见矩阵界面，便于后续进行追踪；未勾选则仅作为草稿，如一般解读或其他备注信息",
+    "en": "Ticked opinions appear in the Comment Matrix by default for tracking. Unticked ones stay as drafts, such as general interpretations or other notes.",
+}
 
 # 草案版本名称只能从下列固定值中选择；映射值为该版本通常对应的阶段编码，
 # 生命周期回顾据此归档草案，映射为 None 或该阶段未经历时按草案日期归档。
@@ -156,6 +170,30 @@ STATUS_FIELDS = {
     ("feedback_recipient", "response_status"): (RESPONSE_STATUSES, "回复状态历史"),
 }
 
+# 各表固定值字段的取值范围（None 表示允许为空）。数据交换包绕过业务表单直接写表，按此逐行校验。
+_STAGE_CODES = [s["code"] for s in STAGES]
+FIXED_VALUES = {
+    "lookup_value": {"category": list(LOOKUP_CATEGORIES), "is_active": [0, 1]},
+    "standard": {"stage_code": _STAGE_CODES, "std_type": STANDARD_TYPES + [None],
+                 "risk_level": RISK_LEVELS + [None]},
+    "standard_stage_history": {"stage_code": _STAGE_CODES, "record_type": list(STAGE_RECORD_TYPES),
+                               "is_manual": [0, 1]},
+    "draft": {"version_name": VERSION_NAMES, "overall_impact": OVERALL_IMPACTS + [None]},
+    "draft_annotation": {"annotation_type": ANNOTATION_TYPES},
+    "meeting": {"meeting_type": MEETING_TYPES + [None]},
+    "meeting_standard": {"imported_stage_code": _STAGE_CODES + [None]},
+    "action_item": {"item_type": ACTION_TYPES, "priority": PRIORITIES + [None],
+                    "current_status": ACTION_STATUSES,
+                    "submission_channel": SUBMISSION_CHANNELS + [None],
+                    "lobby_method": LOBBY_METHODS + [None], "check_result": CHECK_RESULTS + [None]},
+    "action_status_history": {"previous_value": ACTION_STATUSES + [None], "new_value": ACTION_STATUSES},
+    "feedback_recipient": {"response_status": RESPONSE_STATUSES},
+    "recipient_status_history": {"previous_value": RESPONSE_STATUSES + [None],
+                                 "new_value": RESPONSE_STATUSES},
+    "comment": {"needs_follow_up": [0, 1]},
+    "comment_status_history": {"previous_value": COMMENT_STATUSES + [None], "new_value": COMMENT_STATUSES},
+}
+
 
 def meta_payload() -> dict:
     """下发给前端的全部固定取值。"""
@@ -174,6 +212,7 @@ def meta_payload() -> dict:
         "meeting_types": MEETING_TYPES,
         "comment_statuses": COMMENT_STATUSES,
         "annotation_types": ANNOTATION_TYPES,
+        "follow_up_hint": FOLLOW_UP_HINT,
         "comment_sources": COMMENT_SOURCES,
         "submission_channels": SUBMISSION_CHANNELS,
         "action_types": ACTION_TYPES,

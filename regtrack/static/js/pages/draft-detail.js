@@ -1,16 +1,11 @@
 App.ready(async () => {
   const { get, post, put, del, esc, dash, tag, fail, ok, confirmAsync, t, label } = App;
-  // Standards use a single ~ for numeric ranges; only paired ~~ marks deletion.
-  marked.use({ tokenizer: { del(src) {
-    const match = /^~~(?=\S)([\s\S]*?\S)~~/.exec(src);
-    if (match) return { type: "del", raw: match[0], text: match[1], tokens: this.lexer.inlineTokens(match[1]) };
-  } } });
   const id = Number(document.getElementById("draft-page").dataset.id);
   const whole = document.getElementById("whole-content"), note = document.getElementById("chapter-content");
   const typeOptions = selected => App.meta.annotation_types.map(type =>
     `<option value="${type}" ${type === selected ? "selected" : ""}>${type}</option>`).join("");
   for (const scope of ["whole", "chapter"]) {
-    document.getElementById(`${scope}-type`).innerHTML = typeOptions("Comment");
+    document.getElementById(`${scope}-type`).innerHTML = typeOptions("Proposed Change");
   }
   let data, activeId = null;
   let language = localStorage.getItem("regtrack.reader.language") === "en" ? "en" : "cn";
@@ -35,8 +30,8 @@ App.ready(async () => {
   }
   document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => showView(b.dataset.view));
   window.addEventListener("beforeunload", e => { if (whole.value.trim() || note.value.trim() || dirtyEditor()) { e.preventDefault(); e.returnValue = ""; } });
-  const followUpToggle = (inputAttrs, checked) => `<label class="follow-up-toggle" title="${t("需要回复或后续行动时勾选", "Tick when a response or further action is needed")}">
-      <input class="form-check-input" type="checkbox" ${inputAttrs} ${checked ? "checked" : ""}><span>${label("Follow-up required", "需要后续跟进")}</span></label>`;
+  const followUpToggle = (inputAttrs, checked) => `<span class="follow-up-field"><label class="follow-up-toggle">
+      <input class="form-check-input" type="checkbox" ${inputAttrs} ${checked ? "checked" : ""}><span>${label("Follow-up required", "需要后续跟进")}</span></label>${App.followUpInfo()}</span>`;
   const annotation = a => `<article class="annotation-card" data-annotation-id="${a.id}">
     <div data-annotation-readonly>
       <div class="annotation-head"><span class="annotation-author">${esc(a.created_by)}</span><time datetime="${esc(a.created_at.replace(" ", "T"))}">${esc(a.created_at.slice(0, 16))}</time></div>
@@ -234,44 +229,27 @@ App.ready(async () => {
     });
     if (activeIsVisible) tree.scrollTop += active.getBoundingClientRect().top - previousTop;
   }
-  function richText(value) {
-    const formulas = [];
-    const withMathSlots = value.replace(/\$\$([\s\S]+?)\$\$|\$([^\n$]+?)\$/g, (_match, block, inline) => {
-      const display = block !== undefined;
-      const index = formulas.push({ tex: display ? block : inline, display }) - 1;
-      return `<span class="math-slot" data-index="${index}"></span>`;
-    });
-    return { html: DOMPurify.sanitize(marked.parse(withMathSlots, { gfm: true, breaks: true }),
-      { FORBID_TAGS: ["img", "iframe", "script", "style", "svg"] }), formulas };
-  }
-  function renderMath(root, formulas) {
-    root.querySelectorAll(".math-slot").forEach(slot => {
-      const formula = formulas[Number(slot.dataset.index)];
-      katex.render(formula.tex, slot, { displayMode: formula.display, throwOnError: false, trust: false });
-    });
-  }
   function renderChapter({ preserveScroll = false, preserveNotes = false } = {}) {
     const c = data.chapters.find(chapter => chapter.id === activeId);
     if (!c) return;
     const content = contentOf(c);
-    const rendered = content ? richText(content) : null;
+    const rendered = content ? RichText.render(content) : null;
     const illustrations = data.illustrations.filter(image => image.chapter_id === c.id);
     const imageHtml = illustrations.map((image, index) => {
-      const url = `/api/drafts/${id}/chapters/${c.id}/illustrations/${image.id}`;
-      return `<button type="button" class="illustration-thumb" data-image="${image.id}" aria-label="${t("放大查看附图", "Enlarge illustration")} ${index + 1}"><img src="${url}" alt="${esc(c.illustration || `${displayNo(c)} ${t("附图", "Illustration")} ${index + 1}`)}" loading="lazy"><span>${window.App.uiText("点击放大", "Click to enlarge")}</span></button>`;
+      return `<button type="button" class="illustration-thumb" data-image="${image.id}" aria-label="${t("放大查看附图", "Enlarge illustration")} ${index + 1}"><img src="${esc(image.url)}" alt="${esc(c.illustration || `${displayNo(c)} ${t("附图", "Illustration")} ${index + 1}`)}" loading="lazy"><span>${window.App.uiText("点击放大", "Click to enlarge")}</span></button>`;
     }).join("");
     const illustrationHtml = c.illustration || imageHtml
       ? `<section class="chapter-illustrations"><h3>${language === "cn" ? "附图" : "Illustrations"}</h3>${c.illustration ? `<p>${esc(c.illustration)}</p>` : ""}<div class="illustration-grid">${imageHtml}</div></section>` : "";
     const paper = document.getElementById("chapter-paper");
     const previousScroll = paper.scrollTop;
     paper.innerHTML = `<div class="small text-muted">${esc(data.std_no)} · ${language === "cn" ? "来源第" : "Source page"} ${dash(c.source_page)} ${language === "cn" ? "页" : ""}</div><h2>${esc(displayNo(c))} ${esc(titleOf(c))}</h2><div>${tag(c.clause_type, "info")}</div><div class="chapter-text rich-content">${rendered ? rendered.html : `<span class="text-muted">${language === "cn" ? "原文件未提供正文。" : "No text in the source file."}</span>`}</div>${illustrationHtml}`;
-    if (rendered) renderMath(paper, rendered.formulas);
+    if (rendered) RichText.mount(paper, rendered.formulas);
     paper.querySelectorAll("[data-image]").forEach(button => button.onclick = () => {
       const imageId = Number(button.dataset.image);
       const image = illustrations.find(item => item.id === imageId);
       const viewer = document.getElementById("illustration-viewer");
       const large = document.getElementById("illustration-large");
-      large.src = `/api/drafts/${id}/chapters/${c.id}/illustrations/${image.id}`;
+      large.src = image.url;
       large.alt = c.illustration || `${displayNo(c)} ${t("附图", "Illustration")}`;
       document.getElementById("illustration-caption").textContent = c.illustration || displayNo(c);
       viewer.showModal();
@@ -307,8 +285,21 @@ App.ready(async () => {
     document.getElementById("draft-context").textContent = `${data.std_no} · ${data.name_cn}`;
     document.getElementById("chapter-count").textContent = data.chapters.length;
     const latest = data.imports[0];
-    const fields = [["Standard", "所属标准", `${data.std_no} · ${data.name_cn}`], ["Draft Version", "草案版本", `${data.version_name} · ${data.sub_version_no}`], ["Draft Date", "草案日期", data.draft_date], ["Issued By", "发布方", data.issued_by], ["Overall Impact", "总体影响", data.overall_impact], ["Main Summary", "主要内容", data.main_summary], ["Draft File / Link", "原文位置", data.file_link], ["Notes", "备注", data.notes], ["Source File", "来源文件", latest?.filename], ["Standard in File", "文件中的标准", latest ? `${latest.source_standard_no} · ${latest.source_standard_name}` : ""], ["Source Version Text", "来源版本文字", latest?.source_version], ["Last Import", "最近导入", latest ? `${latest.created_at} · ${latest.created_by}` : t("尚未导入", "Not imported yet")]];
-    document.getElementById("draft-metadata").innerHTML = fields.map(([en, zh, value]) => `<dt>${label(en, zh)}</dt><dd style="white-space:pre-wrap;overflow-wrap:anywhere">${dash(value)}</dd>`).join("");
+    metadataEditor = InlineEdit.mount({
+      host: document.getElementById("draft-metadata"),
+      title: t("草案元数据", "Draft metadata"),
+      spec: Records.draftSpec().map(f => f.name === "standard_id" ? Object.assign({}, f, { view: d => `${d.std_no || ""} · ${d.name_cn}` }) : f),
+      values: data,
+      extra: [["Source File", "来源文件", latest?.filename],
+              ["Standard in File", "文件中的标准", latest ? `${latest.source_standard_no} · ${latest.source_standard_name}` : ""],
+              ["Source Version Text", "来源版本文字", latest?.source_version],
+              ["Last Import", "最近导入", latest ? `${latest.created_at} · ${latest.created_by}` : t("尚未导入", "Not imported yet")]],
+      async save(payload) {
+        await put(`/api/drafts/${id}`, payload);
+        await App.refreshLookups();
+        await load();
+      },
+    });
     document.getElementById("whole-annotations").innerHTML = data.annotations.filter(a => !a.chapter_id).map(annotation).join("");
     bindAnnotationEditors(document.getElementById("whole-annotations"));
     renderCounts();
@@ -355,12 +346,39 @@ App.ready(async () => {
         await post(`/api/drafts/${id}/annotations`, { content: input.value, chapter_id: chapter ? activeId : null,
           annotation_type: document.getElementById(chapter ? "chapter-type" : "whole-type").value,
           needs_follow_up: document.getElementById(chapter ? "chapter-follow-up" : "whole-follow-up").checked });
-        input.value = ""; document.getElementById(chapter ? "chapter-follow-up" : "whole-follow-up").checked = false; await load(); ok(t("批注已保存", "Annotation saved"));
+        input.value = ""; document.getElementById(chapter ? "chapter-follow-up" : "whole-follow-up").checked = true; await load(); ok(t("批注已保存", "Annotation saved"));
       }
       catch (e) { fail(e.message); } finally { button.disabled = false; }
     };
   }
-  document.getElementById("edit-draft").onclick = () => Records.draftForm(data, { onChanged: load });
-  try { await load(); showView(location.hash.slice(1) === "reader" ? "reader" : "overview"); }
-  catch (e) { document.getElementById("draft-error").textContent = e.message; document.getElementById("edit-draft").disabled = true; }
+  document.getElementById("edit-draft").onclick = () => metadataEditor.edit();
+  /** 删除草案：先列出将一并删除的章节、附图、批注和意见，确认后删除并返回来源页。 */
+  document.getElementById("delete-draft").onclick = async () => {
+    try {
+      const scope = await get(`/api/drafts/${id}/deletion`);
+      if (scope.comparisons) {
+        fail(t(`这份草案已用于 ${scope.comparisons} 组标准比对，请先在比对结果页删除比对，再删除草案。`,
+               `This draft is used by ${scope.comparisons} comparison(s). Delete those comparisons first.`));
+        return;
+      }
+      const name = `${data.std_no || data.name_cn} ${data.version_name} v${data.sub_version_no}`;
+      const yes = await confirmAsync(t(
+        `永久删除草案「${name}」？将一并删除：${scope.chapters} 个原文章节、${scope.images} 张附图文件、${scope.annotations} 条批注、${scope.comments} 条相关意见（含状态历史）。${scope.actions ? `${scope.actions} 个关联事项会保留，但不再关联这份草案。` : ""}此操作无法撤销。`,
+        `Delete draft "${name}" permanently? This also deletes ${scope.chapters} source chapter(s), ${scope.images} figure file(s), ${scope.annotations} annotation(s) and ${scope.comments} related opinion(s) with their status history.${scope.actions ? ` ${scope.actions} linked action(s) are kept but no longer linked to this draft.` : ""} This cannot be undone.`));
+      if (!yes) return;
+      await del(`/api/drafts/${id}`);
+      ok(t("草案已删除", "Draft deleted"));
+      App.goBack("/drafts");
+    } catch (e) { fail(e.message); }
+  };
+  let metadataEditor;
+  try {
+    await load();
+    showView(location.hash.slice(1) === "reader" ? "reader" : "overview");
+    await Records.restore({ onChanged: load });
+  } catch (e) {
+    document.getElementById("draft-error").textContent = e.message;
+    document.getElementById("edit-draft").disabled = true;
+    document.getElementById("delete-draft").disabled = true;
+  }
 });

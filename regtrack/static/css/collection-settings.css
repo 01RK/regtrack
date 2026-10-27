@@ -1,0 +1,48 @@
+.collection-card { padding:20px 24px; box-shadow:none; }
+.collection-toggle-row { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.collection-toggle-row label { font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
+.collection-toggle-row p { margin:5px 0 0; font-size:12px; line-height:1.7; color:var(--ink-3); }
+.collection-schedule-toggle { padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--rule); }
+.collection-switch { padding-left:0; min-height:0; margin:0; flex:none; }
+.collection-switch .form-check-input { float:none; width:2.3em; height:1.25em; margin:0; cursor:pointer; }
+.collection-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+.collection-fields .form-label { font-size:12px; color:var(--ink-2); margin-bottom:7px; }
+.collection-fields .form-control, .collection-fields .form-select, .collection-fields .ts-control { font-size:13px; }
+.collection-range .ts-dropdown .dropdown-input { width:100%; padding:9px 12px; border:0; border-bottom:1px solid var(--rule); outline:none; font-size:12px; }
+.collection-range .ts-dropdown .create { color:var(--accent); }
+.collection-recovery-row { margin-top:20px; padding:18px 0; border-top:1px solid var(--rule); }
+.collection-recommended { display:inline-block; font-size:10px; font-weight:400; padding:1px 6px; margin-left:5px; border-radius:4px; color:var(--accent); background:var(--accent-soft); vertical-align:middle; }
+.collection-form-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding-top:14px; border-top:1px solid var(--rule); }
+.collection-form-footer > span { color:var(--ink-3); font-size:11px; }
+.collection-form-footer .btn { font-size:12px; }
+.collection-window-warning { color:var(--amber); font-size:12px; margin:10px 0; }
+.collection-status { margin-top:16px; border:1px solid var(--rule); border-radius:12px; background:var(--surface); padding:18px 24px 0; }
+.collection-status-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:16px; }
+.collection-status-head h3 { margin:0; font-size:13px; font-weight:600; }
+.collection-state { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-3); }
+.collection-state i { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.collection-state.is-success { color:var(--green); }
+.collection-state.is-info { color:var(--accent); }
+.collection-state.is-warning { color:var(--amber); }
+.collection-state.is-danger { color:var(--flag); }
+.collection-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin:0; padding-bottom:18px; }
+.collection-metrics > div + div { border-left:1px solid var(--rule); padding-left:18px; }
+.collection-metrics dt { font-size:11px; font-weight:400; color:var(--ink-3); margin-bottom:6px; }
+.collection-metrics dd { margin:0; font-size:13px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.collection-metrics b { font-weight:650; }
+.collection-metric-divider { padding:0 8px; color:var(--ink-3); }
+.collection-recovery-pending { color:var(--accent); font-size:12px; margin:0 0 14px; }
+.collection-run-details { border-top:1px solid var(--rule); padding:10px 0; }
+.collection-run-details summary { cursor:pointer; font-size:11px; color:var(--ink-3); }
+.collection-run-details summary:hover { color:var(--accent); }
+.collection-run-details dl { margin:12px 0 4px; font-size:11px; }
+.collection-run-details dl > div { display:grid; grid-template-columns:110px minmax(0,1fr); gap:12px; padding:4px 0; }
+.collection-run-details dt { font-weight:400; color:var(--ink-3); }
+.collection-run-details dd { margin:0; overflow-wrap:anywhere; color:var(--ink-2); }
+.collection-run-error { font-size:11px; color:var(--flag); white-space:pre-wrap; overflow-wrap:anywhere; margin:12px 0 0; }
+@media(max-width:800px) {
+  .collection-fields { grid-template-columns:1fr; gap:14px; }
+  .collection-metrics { grid-template-columns:1fr; gap:12px; }
+  .collection-metrics > div + div { border-left:0; padding-left:0; }
+  .collection-card, .collection-status { padding-left:18px; padding-right:18px; }
+}

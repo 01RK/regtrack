@@ -1,30 +1,26 @@
-#!/usr/bin/env python3
-"""使用 PyInstaller 生成单文件发布包。"""
+"""Build a clean cloud server source archive. Never embed credentials."""
+import argparse
 from pathlib import Path
-import shutil
-import subprocess
-import sys
+from zipfile import ZipFile,ZIP_DEFLATED
+from constants import APP_VERSION
+ROOT=Path(__file__).resolve().parent.parent
+PROJECT=ROOT.parent
+EXCLUDED={'__pycache__','.pytest_cache','.venv','.git','node_modules','build','release','data'}
+def source_archive(destination):
+    destination=Path(destination).resolve()
+    with ZipFile(destination,'w',ZIP_DEFLATED) as archive:
+        for path in sorted(PROJECT.rglob('*')):
+            if not path.is_file() or path.resolve()==destination: continue
+            if any(p in EXCLUDED for p in path.relative_to(PROJECT).parts): continue
+            if path.suffix in {'.pyc','.accdb','.laccdb','.exe','.log'} or path.name in {'.env','minio.license','server-env.ps1','regtrack.env'}: continue
+            archive.write(path,Path('regtrack-cloud')/path.relative_to(PROJECT))
+    return destination
 
-ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "release"
-
-def main() -> int:
-    exe = shutil.which("pyinstaller")
-    if not exe:
-        print("请先安装打包依赖：python -m pip install pyinstaller")
-        return 1
-    OUT.mkdir(exist_ok=True)
-    separator = ";" if sys.platform == "win32" else ":"
-    cmd = [exe, "--noconfirm", "--clean", "--onefile", "--name", "RegTrack",
-           "--distpath", str(OUT), "--workpath", str(ROOT / "build"),
-           "--specpath", str(ROOT)]
-    for directory in ("templates", "static", "sql"):
-        cmd += ["--add-data", f"{ROOT / directory}{separator}{directory}"]
-    cmd.append(str(ROOT / "codes" / "run.py"))
-    subprocess.run(cmd, cwd=ROOT, check=True)
-    built = OUT / ("RegTrack.exe" if sys.platform == "win32" else "RegTrack")
-    print(f"发布文件已生成：{built}")
+def main(argv=None):
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source',type=Path,required=True)
+    args=parser.parse_args(argv)
+    print(source_archive(args.source))
     return 0
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__=='__main__': raise SystemExit(main())

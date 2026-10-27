@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ t('最新标准进度', 'Standard Progress') }} · RegTrack{% endblock %}
+{% block eyebrow %}{{ t('消息中心', 'NOTIFICATIONS') }}{% endblock %}
+{% block heading %}{{ t('最新标准进度', 'Standard Progress') }}{% endblock %}
+{% block content %}
+<div class="inbox-workspace">
+  <div class="inbox-intro"><div><a class="inbox-back" href="{{ url_for('page_notifications') }}">← {{ t('消息中心', 'Notifications') }}</a><p>{{ t('处理新计划，知悉已有标准的最新进展。', 'Review new plans and acknowledge progress on tracked standards.') }}</p></div><button id="inbox-refresh" class="btn btn-outline-secondary btn-sm">{{ t('刷新', 'Refresh') }}</button></div>
+  <div class="inbox-toolbar">
+    <nav class="inbox-filters" aria-label="{{ t('消息筛选', 'Filter notifications') }}">
+      <button type="button" data-inbox-view="plans" aria-pressed="false">{{ t('计划下达', 'Project plans') }} <span data-view-count="plans">0</span></button>
+      <button type="button" data-inbox-view="comments" aria-pressed="false">{{ t('征求意见更新', 'Consultation updates') }} <span data-view-count="comments">0</span></button>
+      <button type="button" data-inbox-view="releases" aria-pressed="false">{{ t('标准公告更新', 'Release updates') }} <span data-view-count="releases">0</span></button>
+      <button type="button" data-inbox-view="all" aria-pressed="false">{{ t('全部动态', 'All updates') }} <span data-view-count="all">0</span></button>
+    </nav>
+  </div>
+  <div id="inbox-list" class="inbox-list" aria-live="polite" aria-busy="true"></div>
+  <div class="inbox-pager"><span id="inbox-page"></span><div class="btn-row"><button id="inbox-prev" class="btn btn-outline-secondary btn-sm">{{ t('上一页', 'Previous') }}</button><button id="inbox-next" class="btn btn-outline-secondary btn-sm">{{ t('下一页', 'Next') }}</button></div></div>
+  <p class="inbox-footnote">{{ t('已有标准自动更新，点击「我已知悉」后归入全部动态。新计划确认后按立项建档；本次忽略后，下次采集发现时再次提醒。', 'Tracked standards update automatically. Acknowledge each update to archive it in All updates. Confirm new plans to create a Project Approval profile. Skipped plans prompt again on the next discovery.') }}</p>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/notifications.js', v=app_version) }}"></script>{% endblock %}

@@ -3,14 +3,37 @@
 {% block eyebrow %}{{ U('Settings', 'System') }}{% endblock %}
 {% block heading %}{{ U('设置', 'Settings') }}{% endblock %}
 
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/collection-settings.css', v=app_version) }}">{% endblock %}
 {% block content %}
 <div class="settings-layout">
   <aside class="settings-menu" aria-label="{{ t('设置板块', 'Settings sections') }}">
     <button class="settings-menu-item" data-setting-tab="operator"><span>◎</span><span><b>{{ t('切换操作人', 'Switch Operator') }}</b><small>{{ U('确认当前登记账户', 'Confirm who is recording') }}</small></span></button>
     <button class="settings-menu-item active" data-setting-tab="transfer"><span>↔</span><span><b>{{ t('操作人数据交换', 'Operator Data Exchange') }}</b><small>{{ U('导入与导出个人登记数据', 'Import and export personal records') }}</small></span></button>
     <button class="settings-menu-item" data-setting-tab="lookups"><span>☷</span><span><b>{{ t('字典维护', 'Dictionaries') }}</b><small>{{ U('管理系统下拉选项', 'Manage drop-down options') }}</small></span></button>
+    <button class="settings-menu-item" data-setting-tab="collection"><span>◷</span><span><b>{{ t("标准自动采集", "Standard Collection") }}</b><small>{{ t("采集频率与时间", "Schedule and results") }}</small></span></button>
   </aside>
   <div class="settings-main">
+    <section class="settings-section" data-setting-section="collection">
+      <div class="settings-section-head"><div><h2>{{ t('标准自动采集', 'Standard Collection') }}</h2><p>{{ t('中汽中心 · 计划下达、征求意见与标准公告', 'CATARC · Project plans, consultations and releases') }}</p></div></div>
+      <form id="collection-form" class="settings-card collection-card">
+        <div class="collection-toggle-row collection-schedule-toggle">
+          <label for="collection-enabled">{{ t('启用定时采集', 'Scheduled collection') }}</label>
+          <div class="form-check form-switch collection-switch"><input type="checkbox" class="form-check-input" role="switch" id="collection-enabled" checked></div>
+        </div>
+        <div class="collection-fields">
+          <div><label for="collection-days" class="form-label">{{ t('间隔天数', 'Every N days') }}</label><input id="collection-days" type="number" min="1" max="365" required class="form-control"></div>
+          <div><label for="collection-time" class="form-label">{{ t('采集时间', 'Run time') }}</label><input id="collection-time" type="time" required class="form-control"></div>
+          <div class="collection-range"><label for="collection-lookback" class="form-label">{{ t('通知发布时间范围', 'Publication window') }}</label><select id="collection-lookback" class="form-select" required><option value="1">{{ t('当天', 'Today') }}</option><option value="3">{{ t('近 3 天', 'Last 3 days') }}</option><option value="7">{{ t('近 7 天', 'Last 7 days') }}</option></select></div>
+        </div>
+        <div class="collection-toggle-row collection-recovery-row">
+          <div><label for="collection-recovery-enabled">{{ t('服务器中断补采', 'Downtime recovery') }} <span class="collection-recommended">{{ t('推荐开启', 'Recommended') }}</span></label><p>{{ t('恢复启动后，从上次完整采集成功之日补到当天。', 'After restart, catch up from the last fully successful collection date.') }}</p></div>
+          <div class="form-check form-switch collection-switch"><input type="checkbox" class="form-check-input" role="switch" id="collection-recovery-enabled" checked></div>
+        </div>
+        <div class="collection-form-footer"><span>{{ t('北京时间 · 范围含今天 · 运行时需联网', 'China time · Window includes today · Keep the server online') }}</span><div class="btn-row"><button class="btn btn-primary" type="submit">{{ t('保存设置', 'Save settings') }}</button><button class="btn btn-outline-primary" id="collection-run" type="button">{{ t('立即采集', 'Collect now') }}</button></div></div>
+      </form>
+      <p id="collection-window-warning" class="collection-window-warning" hidden>{{ t('间隔超过通知范围，可能漏采。', 'The interval exceeds the window; notices may be missed.') }}</p>
+      <section id="collection-status" class="collection-status" aria-label="{{ t('运行概况', 'Run overview') }}" aria-live="polite"></section>
+    </section>
     <section class="settings-section" data-setting-section="operator">
       <div class="settings-section-head"><div><h2>{{ U('切换操作人', 'Switch Operator') }}</h2><p>{{ t('切换后，新建和修改记录会使用新的登记人署名。', 'New and edited records will be signed with the selected operator.') }}</p></div></div>
       <div class="settings-card operator-card">
@@ -18,6 +41,15 @@
         <div class="row g-2 align-items-center"><div class="col-md-7"><select id="operator-user" class="form-select"></select></div><div class="col-md-auto"><button id="operator-confirm" class="btn btn-primary">{{ U('确认切换', 'Switch') }}</button></div></div>
         <div class="settings-note">{{ t('当前操作人：', 'Current operator: ') }}<b id="operator-current">{{ t('未署名', 'Unsigned') }}</b></div>
       </div>
+      <form id="operator-add-form" class="settings-card operator-card">
+        <h3 class="settings-card-title">{{ U('新增操作人', 'Add an operator') }}</h3>
+        <p class="settings-card-hint">{{ t('名单里没有你？在这里添加。部门可从列表选择，也可直接输入新部门。新增的操作人和部门分别写入「字典维护」的人员、团队 / 部门，同事之间共用。', 'Not in the list? Add yourself here. Pick a department or type a new one. The operator and the department are added to Dictionary → People and Teams / Departments, shared with colleagues.') }}</p>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4"><label class="form-label" for="operator-new-name">{{ L('Name', '姓名') }}</label><input id="operator-new-name" class="form-control" maxlength="255" required autocomplete="off"></div>
+          <div class="col-md-5"><label class="form-label" for="operator-new-note">{{ L('Department', '部门') }} <span class="text-muted">{{ U('（可选）', '(optional)') }}</span></label><select id="operator-new-note"></select></div>
+          <div class="col-md-auto"><button class="btn btn-outline-primary" type="submit">{{ U('添加', 'Add') }}</button></div>
+        </div>
+      </form>
     </section>
     <section class="settings-section active" data-setting-section="transfer">
       <div class="settings-section-head"><div><h2>{{ U('操作人数据交换', 'Operator Data Exchange') }}</h2><p>{{ t('按登记人交换业务记录，适合在不同同事的单机版本之间传递数据。', 'Exchange records by operator, for moving data between colleagues’ local copies.') }}</p></div></div>
@@ -41,6 +73,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='vendor/sortable.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/settings.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/settings-navigation.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='vendor/sortable.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/pages/settings.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/pages/collection-settings.js', v=app_version) }}"></script>
 {% endblock %}

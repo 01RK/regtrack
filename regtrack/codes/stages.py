@@ -38,7 +38,7 @@ def check_code(code: str, field: str = "stage_code") -> str:
 def records(standard_id: int) -> list[dict]:
     """阶段记录（按阶段先后排序），附带显示名称与记录类型名称。"""
     rows = db.query(
-        "SELECT * FROM standard_stage_history WHERE standard_id = ?",
+        "SELECT * FROM standard_stage_history WHERE standard_id = %s",
         (standard_id,))
     rows.sort(key=lambda r: STAGE_ORDER[r["stage_code"]])
     for row in rows:
@@ -61,15 +61,15 @@ def current_state(standard_id: int) -> tuple[str, str | None]:
     """Latest meeting snapshots versus all manual stages; same-day snapshots use max rank."""
     candidates = db.query(
         "SELECT stage_code, effective_date FROM standard_stage_history "
-        "WHERE standard_id = ? AND is_manual = 1", (standard_id,))
+        "WHERE standard_id = %s AND is_manual = 1", (standard_id,))
     meetings = db.query(
         """SELECT ms.imported_stage_code AS stage_code, m.meeting_date AS effective_date
-             FROM meeting_standard ms JOIN meeting m ON m.id = ms.meeting_id
-            WHERE ms.standard_id = ? AND ms.imported_stage_code IS NOT NULL
+             FROM meeting_standard ms INNER JOIN meeting m ON m.id = ms.meeting_id
+            WHERE ms.standard_id = %s AND ms.imported_stage_code IS NOT NULL
               AND m.meeting_date = (
                   SELECT MAX(m2.meeting_date) FROM meeting_standard ms2
-                  JOIN meeting m2 ON m2.id = ms2.meeting_id
-                  WHERE ms2.standard_id = ? AND ms2.imported_stage_code IS NOT NULL)""",
+                  INNER JOIN meeting m2 ON m2.id = ms2.meeting_id
+                  WHERE ms2.standard_id = %s AND ms2.imported_stage_code IS NOT NULL)""",
         (standard_id, standard_id))
     candidates.extend(meetings)
     # No remaining source after unlinking all imported meetings means not yet researched.
@@ -85,7 +85,7 @@ def current_code(standard_id: int) -> str:
 
 def recompute(standard_id: int) -> str:
     code = current_code(standard_id)
-    db.execute("UPDATE standard SET stage_code = ? WHERE id = ?", (code, standard_id))
+    db.execute("UPDATE standard SET stage_code = %s WHERE id = %s", (code, standard_id))
     return code
 
 
@@ -156,7 +156,7 @@ def add(standard_id: int, stage_code: str, payload: dict) -> dict:
     check_date(data, "effective_date", "Effective Date 生效日期")
 
     existing = db.query_one(
-        "SELECT * FROM standard_stage_history WHERE standard_id = ? AND stage_code = ?",
+        "SELECT * FROM standard_stage_history WHERE standard_id = %s AND stage_code = %s",
         (standard_id, stage_code))
     if existing and existing["is_manual"]:
         raise ApiError(
@@ -202,7 +202,7 @@ def edit(standard_id: int, record_id: int, payload: dict) -> dict:
     首次记录的 created_at / created_by 保持不变，留痕交给这两对时间戳。
     """
     row = db.query_one(
-        "SELECT * FROM standard_stage_history WHERE id = ? AND standard_id = ?",
+        "SELECT * FROM standard_stage_history WHERE id = %s AND standard_id = %s",
         (record_id, standard_id))
     if not row:
         raise ApiError("阶段记录不存在", 404)
@@ -225,14 +225,14 @@ def edit(standard_id: int, record_id: int, payload: dict) -> dict:
 
 def one(record_id: int) -> dict:
     return _decorate(
-        db.query_one("SELECT * FROM standard_stage_history WHERE id = ?", (record_id,)))
+        db.query_one("SELECT * FROM standard_stage_history WHERE id = %s", (record_id,)))
 
 
 
 def record_from_meeting(standard_id: int, stage_code: str, meeting: dict) -> str:
     """Keep a stage audit entry; current state comes from dated meeting snapshots."""
     existing = db.query_one(
-        "SELECT id FROM standard_stage_history WHERE standard_id = ? AND stage_code = ?",
+        "SELECT id FROM standard_stage_history WHERE standard_id = %s AND stage_code = %s",
         (standard_id, stage_code))
     if not existing:
         _insert(standard_id, {

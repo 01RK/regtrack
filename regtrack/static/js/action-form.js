@@ -134,7 +134,8 @@
     }
 
     function addRow() {
-      Forms.formModal({
+      (isNew ? Forms.formModal : Forms.inlineForm)({
+      host: cfg.host,
         title: t("添加反馈对象", "Add Recipient"),
         subtitle: "Subform · Feedback Recipients",
         size: "md",
@@ -169,7 +170,8 @@
     const values = Object.assign({ item_type: "Survey Feedback", current_status: "Open" }, cfg.values || {});
     const recipients = [];
 
-    Forms.formModal({
+    (isNew ? Forms.formModal : Forms.inlineForm)({
+      host: cfg.host,
       title: isNew ? t("新建事项", "New Action") : `${t("编辑", "Edit")} ${values.item_no}`,
       subtitle: t("Action Item · 事项", "Action Item"),
       size: "xl",

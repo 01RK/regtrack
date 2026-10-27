@@ -104,9 +104,8 @@ App.ready(async () => {
   const ctx = { onChanged: load };
   const openDetail = (id) => Records.open("meeting", id, ctx);
 
-  document.getElementById("btn-new").onclick = () => Records.meetingForm(null, ctx);
+  document.getElementById("btn-new").onclick = () => Records.meetingForm(ctx);
 
   await load();
-  const deep = new URLSearchParams(location.search).get("id");
-  if (deep) openDetail(Number(deep));
+  await Records.restore(ctx);
 });

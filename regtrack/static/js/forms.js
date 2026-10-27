@@ -4,28 +4,114 @@
 
   const { esc, dash, get, post, ok, fail, openModal, statusTag, today, t, label: fieldLabel } = window.App;
 
-  /* ---------------------------------------------------------- 生成表单 */
-  function buildForm(host, spec, values = {}) {
+
+  function inlineForm(cfg) {
+    const dialogs = [...document.querySelectorAll('.modal.show')];
+    const host = cfg.host || (dialogs.length ? dialogs[dialogs.length - 1].querySelector('.modal-body') : document.querySelector('main.content'));
+    if (host.querySelector(':scope > .inline-panel')) return;
+    const previous = [...host.children].map(el => [el, el.hidden]);
+    previous.forEach(([el]) => { el.hidden = true; });
+    const panel = document.createElement('section');
+    panel.className = 'inline-panel inline-edit is-editing';
+    panel.innerHTML = `<h3 class="inline-title">${esc(cfg.title)}</h3><div data-fields></div><div class="inline-actions"><span class="inline-state" aria-live="polite"></span><button type="button" class="btn btn-outline-secondary btn-sm" data-cancel>${esc(t('\u53d6\u6d88', 'Cancel'))}</button><button type="button" class="btn btn-primary btn-sm" data-save>${esc(cfg.submitText || t('\u4fdd\u5b58', 'Save'))}</button></div>`;
+    host.prepend(panel);
+    const fieldsHost = panel.querySelector('[data-fields]');
+    const modalEl = host.closest('.modal');
+    const footer = modalEl && modalEl.querySelector('.modal-footer');
+    const buttons = footer ? [...footer.querySelectorAll('button:not([data-bs-dismiss]):not([data-back])')].map(b => [b, b.disabled]) : [];
+    buttons.forEach(([b]) => { b.disabled = true; });
+    let form, baseline, busy = false, touched = false;
+    const snapshot = () => JSON.stringify({values: form.read(), history: [...fieldsHost.querySelectorAll('[data-history-field]')].map(el => el.value)});
+    const dirty = () => touched && snapshot() !== baseline;
+    function render(vals) {
+      const fields = typeof cfg.fields === 'function' ? cfg.fields(vals) : cfg.fields;
+      form = buildForm(fieldsHost, fields, vals, 'kv');
+      if (cfg.after) cfg.after(fieldsHost, form, vals);
+      (cfg.rebuildOn || []).forEach(name => {
+        const c = form.controls[name];
+        c.ts.on('change', value => render(Object.assign({}, vals, form.read(), {[name]: value})));
+      });
+    }
+    render(cfg.values || {});
+    baseline = snapshot();
+    const beginInteraction = () => { if (!touched) baseline = snapshot(); touched = true; };
+    fieldsHost.addEventListener("pointerdown", beginInteraction, true);
+    fieldsHost.addEventListener("keydown", beginInteraction, true);
+    const status = panel.querySelector('.inline-state');
+    function mark() { status.textContent = dirty() ? t('\u6709\u672a\u4fdd\u5b58\u7684\u4fee\u6539', 'Unsaved changes') : t('\u6b63\u5728\u7f16\u8f91', 'Editing'); }
+    panel.addEventListener('input', mark);
+    panel.addEventListener('change', mark);
+    function close() {
+      Fields.destroyIn(panel);
+      panel.remove();
+      previous.forEach(([el, hidden]) => { el.hidden = hidden; });
+      buttons.forEach(([b, disabled]) => { b.disabled = disabled; });
+      window.removeEventListener('beforeunload', beforeUnload);
+      document.removeEventListener('click', outsideClick, true);
+      if (modalEl) modalEl.removeEventListener('hide.bs.modal', onHide);
+    }
+    async function save() {
+      if (busy) return false;
+      busy = true;
+      panel.querySelector('[data-save]').disabled = true;
+      panel.querySelector('[data-cancel]').disabled = true;
+      try { await cfg.onSubmit(form.read(), {close}, form); return true; }
+      catch (e) { fail(e.message); if (e.field) form.focusField(e.field); return false; }
+      finally { busy = false; panel.querySelectorAll('[data-save], [data-cancel]').forEach(b => { b.disabled = false; }); }
+    }
+    async function leave() {
+      if (busy) return false;
+      if (!dirty()) { close(); return true; }
+      const choice = await App.unsavedPrompt(t('\u6709\u4fee\u6539\u5c1a\u672a\u4fdd\u5b58\u3002', 'There are unsaved changes.'));
+      if (choice === 'save') return save();
+      if (choice === 'stay') return false;
+      close(); return true;
+    }
+    async function outsideClick(e) {
+      const target = e.target.closest('a, button, [role="tab"], [data-open], .row-click');
+      if (!target || panel.contains(target) || target.closest('.ts-dropdown')) return;
+      const otherModal = target.closest('.modal');
+      if (otherModal && otherModal !== modalEl) return;
+      if (target.closest('[data-bs-dismiss], [data-back]')) return;
+      e.preventDefault(); e.stopPropagation();
+      if (await leave() && target.isConnected) target.click();
+    }
+    document.addEventListener('click', outsideClick, true);
+    function beforeUnload(e) { if (dirty()) { e.preventDefault(); e.returnValue = ''; } }
+    function onHide(e) { e.preventDefault(); leave().then(ok => { if (ok) bootstrap.Modal.getInstance(modalEl).hide(); }); }
+    window.addEventListener('beforeunload', beforeUnload);
+    if (modalEl) modalEl.addEventListener('hide.bs.modal', onHide);
+    panel.querySelector('[data-cancel]').onclick = leave;
+    panel.querySelector('[data-save]').onclick = save;
+    mark();
+    return {modal: {el: panel, footer: panel.querySelector('.inline-actions'), close}, getForm: () => form};
+  }
+
+  /* ---------------------------------------------------------- 生成表单
+     layout "grid"：弹窗表单的栅格布局；"kv"：与明细相同的「字段名 | 值」两栏，用于就地编辑。 */
+  function buildForm(host, spec, values = {}, layout = "grid") {
     const automaticText = t("系统自动", "Automatic");
     const v = values || {};
     const controls = {};   // name -> {type, el, ts}
     // 重建表单前先销毁旧下拉框：面板挂在 body 上，不会随 innerHTML 一起消失。
     Fields.destroyIn(host);
     host.innerHTML = "";
-    const grid = document.createElement("div");
-    grid.className = "form-grid";
+    const kvLayout = layout === "kv";
+    const grid = document.createElement(kvLayout ? "dl" : "div");
+    grid.className = kvLayout ? "kv kv-edit" : "form-grid";
     host.appendChild(grid);
 
     spec.forEach((f) => {
       if (f.section) {
         const h = document.createElement("div");
-        h.className = "fieldset-title";
+        h.className = kvLayout ? "kv-section" : "fieldset-title";
         h.textContent = f.section;
         grid.appendChild(h);
         return;
       }
-      const wrap = document.createElement("div");
-      wrap.className = "f-" + (f.col || 6);
+      const wrap = document.createElement(kvLayout ? "dd" : "div");
+      wrap.className = kvLayout ? "kv-field" : "f-" + (f.col || 6);
+      wrap.dataset.field = f.name;
       const label = f.label
         ? `<label class="form-label" for="fld-${f.name}">${fieldLabel(f.label, f.cn)}${f.required ? '<span class="req">*</span>' : ""}</label>`
         : "";
@@ -41,7 +127,7 @@
           control = `<textarea class="form-control" id="fld-${f.name}" rows="${f.rows || 3}" placeholder="${esc(f.placeholder || "")}">${esc(val || "")}</textarea>`;
           break;
         case "checkbox":
-          control = `<div class="follow-up-control form-check"><input class="form-check-input" type="checkbox" id="fld-${f.name}" ${val ? "checked" : ""}><label class="form-check-label" for="fld-${f.name}">${fieldLabel(f.label, f.cn)}</label></div>`;
+          control = `<div class="follow-up-control form-check"><input class="form-check-input" type="checkbox" id="fld-${f.name}" ${val ? "checked" : ""}><label class="form-check-label" for="fld-${f.name}">${fieldLabel(f.label, f.cn)}</label>${window.App.followUpInfo()}</div>`;
           break;
         case "date":
           control = `<input type="date" class="form-control" id="fld-${f.name}" value="${esc(val || "")}">`;
@@ -57,7 +143,14 @@
         default:
           control = `<input type="text" class="form-control" id="fld-${f.name}" value="${esc(val === null || val === undefined ? "" : val)}" placeholder="${esc(f.placeholder || "")}">`;
       }
-      wrap.innerHTML = (f.type === "checkbox" ? "" : label) + control + help;
+      if (kvLayout) {
+        const dt = document.createElement("dt");
+        dt.innerHTML = label;
+        grid.appendChild(dt);
+        wrap.innerHTML = control + help;
+      } else {
+        wrap.innerHTML = (f.type === "checkbox" ? "" : label) + control + help;
+      }
       grid.appendChild(wrap);
 
       const el = wrap.querySelector(`#fld-${CSS.escape(f.name)}`);
@@ -76,7 +169,7 @@
       } else if (f.type === "lookup") {
         c.ts = Fields.lookup(c.el, { category: f.category, value: val, multiple: f.multiple, create: f.create, placeholder: f.placeholder });
       } else if (f.type === "standard") {
-        c.ts = Fields.standard(c.el, { value: val, multiple: f.multiple, preload: f.preload, placeholder: f.placeholder });
+        c.ts = Fields.standard(c.el, { value: val, multiple: f.multiple, placeholder: f.placeholder });
       } else if (f.type === "meeting") {
         c.ts = Fields.meeting(c.el, { value: val });
       } else if (f.type === "draft") {
@@ -263,5 +356,5 @@
     return m;
   }
 
-  window.Forms = { buildForm, formModal, statusModal, historyList, today };
+  window.Forms = { inlineForm, buildForm, formModal, statusModal, historyList, today };
 })();

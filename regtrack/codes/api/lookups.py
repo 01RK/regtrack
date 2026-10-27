@@ -30,11 +30,17 @@ def list_all():
 def list_one(category):
     lookups_service.check_category(category)
     active_only = request.args.get("all") != "1"
-    sql = "SELECT * FROM lookup_value WHERE category = ?"
+    sql = "SELECT * FROM lookup_value WHERE category = %s"
     if active_only:
         sql += " AND is_active = 1"
     sql += " ORDER BY sort_order, value"
     return jsonify(db.query(sql, (category,)))
+
+
+def _ensure_department(category: str, note: str | None) -> None:
+    """人员的说明就是所在部门：新键入的部门同时写进「团队 / 部门」字典（同一事务）。"""
+    if category == "person":
+        lookups_service.ensure_values("team", [note])
 
 
 @bp.post("/<category>")
@@ -43,26 +49,31 @@ def create(category):
     value = (payload.get("value") or "").strip()
     if not value:
         raise ApiError("字典值不能为空", field="value")
+    note = (payload.get("note") or "").strip() or None
 
     existing = db.query_one(
-        "SELECT * FROM lookup_value WHERE category = ? AND value = ?",
+        "SELECT * FROM lookup_value WHERE category = %s AND value = %s",
         (lookups_service.check_category(category), value))
+    _ensure_department(category, note)
     if existing:
         row = lookups_service.ensure_values(category, [value])[0]
+        if note and note != row["note"]:
+            db.update("lookup_value", row["id"], {"note": note})
+            row["note"] = note
         db.commit()
         return jsonify(row), 200
 
     new_id = db.insert("lookup_value", {
         "category": category,
         "value": value,
-        "note": (payload.get("note") or "").strip() or None,
-        "sort_order": db.query_one(
-            "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next FROM lookup_value WHERE category = ?",
-            (category,))["next"],
+        "note": note,
+        "sort_order": (db.query_one(
+            "SELECT MAX(sort_order) AS max_order FROM lookup_value WHERE category = %s",
+            (category,))["max_order"] or 0) + 1,
         "is_active": 1,
     })
     db.commit()
-    return jsonify(db.query_one("SELECT * FROM lookup_value WHERE id = ?", (new_id,))), 201
+    return jsonify(db.query_one("SELECT * FROM lookup_value WHERE id = %s", (new_id,))), 201
 
 
 @bp.put("/<int:row_id>")
@@ -80,13 +91,19 @@ def update(row_id):
         data["is_active"] = 1 if payload["is_active"] else 0
     if not data:
         raise ApiError("没有需要更新的字段")
+    row = db.query_one("SELECT category FROM lookup_value WHERE id = %s", (row_id,))
+    if not row:
+        raise ApiError("字典值不存在", 404)
+    _ensure_department(row["category"], data.get("note"))
     db.update("lookup_value", row_id, data)
     db.commit()
-    return jsonify(db.query_one("SELECT * FROM lookup_value WHERE id = ?", (row_id,)))
+    return jsonify(db.query_one("SELECT * FROM lookup_value WHERE id = %s", (row_id,)))
 
 
 @bp.delete("/<int:row_id>")
 def remove(row_id):
+    from api.file_manager import assert_workgroups_empty
+    assert_workgroups_empty([row_id])
     db.delete("lookup_value", row_id)
     db.commit()
     return jsonify(ok=True)
@@ -99,11 +116,10 @@ def reorder(category):
     ids = payload_of(request).get("ids")
     if not isinstance(ids, list) or any(type(row_id) is not int for row_id in ids):
         raise ApiError("请提供字典项编号列表")
-    db.execute("BEGIN IMMEDIATE")
-    current = db.query("SELECT id FROM lookup_value WHERE category = ?", (category,))
+    current = db.query("SELECT id FROM lookup_value WHERE category = %s", (category,))
     if len(ids) != len(set(ids)) or set(ids) != {row["id"] for row in current}:
         raise ApiError("字典项已发生变化，请刷新后重新排序", 409)
     for position, row_id in enumerate(ids, 1):
         db.update("lookup_value", row_id, {"sort_order": position})
     db.commit()
-    return jsonify(db.query("SELECT * FROM lookup_value WHERE category = ? ORDER BY sort_order", (category,)))
+    return jsonify(db.query("SELECT * FROM lookup_value WHERE category = %s ORDER BY sort_order", (category,)))

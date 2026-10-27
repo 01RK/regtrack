@@ -1,0 +1,72 @@
+<div class="tab-pane fade" id="tab-compare" role="tabpanel">
+  <div class="cmp-flow">
+    <section class="panel" id="cmp-step-pair">
+      <div class="panel-head"><span class="step-number">1</span><h2>{{ U('选择比对版本', 'Choose the drafts') }}</h2>
+        <span class="hint">{{ t('同一标准的前后两版草案，两版都需已导入原文。', 'Two drafts of the same standard, both with imported source text.') }}</span></div>
+      <div class="panel-body">
+        <form id="cmp-pair-form">
+          <label class="form-label" for="cmp-standard">{{ L('Standard', '标准') }}</label>
+          <select id="cmp-standard"></select>
+          <div class="cmp-pair-grid">
+            <div><label class="form-label" for="cmp-before">{{ L('Before draft', '前版草案') }}</label><select class="form-select" id="cmp-before" required></select></div>
+            <span class="cmp-pair-arrow" aria-hidden="true">→</span>
+            <div><label class="form-label" for="cmp-after">{{ L('After draft', '后版草案') }}</label><select class="form-select" id="cmp-after" required></select></div>
+          </div>
+          <div class="import-actions"><span class="text-muted">{{ U('前版日期不能晚于后版。已有比对时直接显示查看入口，否则确认后提供比对工作簿和提示词。', 'The before draft must not be later than the after draft. An existing comparison opens directly; otherwise the workbook and prompt appear after you confirm.') }}</span>
+            <button class="btn btn-primary" id="cmp-confirm" type="submit" disabled>{{ U('确认版本', 'Confirm drafts') }}</button></div>
+        </form>
+        <div id="cmp-pair-summary" class="cmp-pair-summary" hidden>
+          <div class="cmp-pair-summary-text"><small id="cmp-summary-standard"></small><strong id="cmp-summary-drafts"></strong></div>
+          <button class="btn btn-outline-secondary btn-sm" id="cmp-change-pair" type="button">{{ U('更改版本', 'Change drafts') }}</button>
+        </div>
+        <div id="cmp-existing" class="cmp-existing" hidden>
+          <span>{{ t('这两版草案已有比对结果。', 'These drafts already have a comparison.') }}</span>
+          <a class="btn btn-primary btn-sm" id="cmp-open" href="#">{{ U('查看比对结果', 'Open comparison') }} →</a>
+        </div>
+        <div id="cmp-pair-error" class="text-danger mt-2" role="alert"></div>
+        <div id="cmp-saved" class="cmp-saved" hidden>
+          <h3>{{ U('该标准已保存的比对', 'Saved comparisons for this standard') }}</h3>
+          <div id="cmp-saved-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="cmp-step-generate" hidden>
+      <div class="panel-head"><span class="step-number">2</span><h2>{{ U('生成并导入比对结果', 'Create and import the result') }}</h2></div>
+      <div class="panel-body">
+        <div class="import-choices" aria-label="{{ t('比对方式', 'Comparison method') }}">
+          <button class="import-choice" id="cmp-auto" type="button"><strong>{{ U('自动比对', 'Automatic comparison') }}</strong><span>{{ U('由系统调用大模型', 'The system calls a model') }}</span></button>
+          <button class="import-choice active" id="cmp-manual" type="button" aria-expanded="true"><strong>{{ U('手动比对', 'Manual comparison') }}</strong><span>{{ U('下载比对工作簿，交给 Web 端大模型', 'Download the workbook for a web LLM') }}</span></button>
+        </div>
+        <div id="cmp-auto-message" class="import-choice-message" role="status" aria-live="polite"></div>
+        <div id="cmp-manual-import" class="manual-import">
+          <details class="import-guide" open>
+            <summary>{{ t('当前使用方法', 'How to use') }}</summary>
+            <ol>
+              <li>{{ t('下载', 'Download') }}<a id="cmp-workbook-link" href="#" download></a>{{ t('，其中包含两版原文、附图和待填写的结果表。', ', which holds both source drafts, figures and the result sheet to fill.') }}</li>
+              <li>{{ t('在 Web 端大模型上传该工作簿，粘贴下方提示词，下载模型返回的 Excel。', 'Upload the workbook to a web LLM, paste the prompt below and download the returned Excel.') }}</li>
+              <li>{{ t('上传返回的 Excel，核对预览后确认导入。', 'Upload the returned Excel, check the preview and confirm the import.') }}</li>
+            </ol>
+            <div class="prompt-head"><strong>{{ U('标准比对提示词', 'Comparison prompt') }}</strong><button class="btn btn-outline-secondary btn-sm" id="cmp-copy" type="button">{{ U('复制提示词', 'Copy prompt') }}</button></div>
+            <textarea id="cmp-prompt" class="form-control" rows="8" wrap="soft" readonly aria-label="{{ t('标准比对提示词', 'Comparison prompt') }}">{{ t('正在读取提示词…', 'Loading prompt…') }}</textarea>
+            <div id="cmp-prompt-message" class="form-text" role="status" aria-live="polite"></div>
+          </details>
+          <label for="cmp-file" class="form-label mt-3">{{ L('Comparison result Excel', '比对结果 Excel') }}</label>
+          <input class="form-control" id="cmp-file" type="file" accept=".xlsx">
+          <p class="form-text mb-0">{{ t('支持 .xlsx，最大 20 MB。选择文件后自动检查。', '.xlsx only, up to 20 MB. The file is checked when selected.') }}</p>
+          <p class="form-text">{{ t('导入目标以页面选择的前后草案为准，不检查工作簿中的草案编号或原文批次是否一致。', 'Imports use the selected drafts. Workbook draft IDs and source batch numbers are not checked.') }}</p>
+          <div id="cmp-upload-message" class="mt-3" role="status" aria-live="polite"></div>
+          <div id="cmp-preview" class="cmp-preview" hidden>
+            <div id="cmp-preview-counts" class="cmp-stats"></div>
+            <div class="cmp-preview-list"><table class="table table-sm"><colgroup><col style="width:72px"><col style="width:170px"><col style="width:125px"><col></colgroup><thead><tr>
+              <th>{{ L('Row', '行') }}</th><th>{{ L('Clauses', '条款') }}</th><th>{{ L('Class', '性质') }}</th><th>{{ L('Summary', '修订说明') }}</th>
+            </tr></thead><tbody id="cmp-preview-rows"></tbody></table></div>
+            <div class="import-actions"><span class="text-muted">{{ U('确认后保存比对并打开比对结果，原文不会被复制。', 'Confirming saves the comparison and opens the result; source text is not copied.') }}</span>
+              <button class="btn btn-primary" id="cmp-import" type="button">{{ U('确认导入', 'Confirm import') }}</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>

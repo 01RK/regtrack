@@ -142,7 +142,7 @@ a.stat:hover {
     padding: 0;
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
     gap: 2px 12px;
     font-size: 12.5px;
 }
@@ -168,8 +168,11 @@ a.stat:hover {
 }
 
 .chart-legend .lbl {
+    min-width: 0;
     color: var(--ink-2);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chart-legend .val {
@@ -344,9 +347,9 @@ a.stat:hover {
     --lc-line: #2a6fa5;
     --lc-line-2: #5aa0cf;
     --lc-muted-line: #c3ccd8;
-    --lane-min: 208px;
-    --lane-empty: 92px;
-    --lane-future: 72px;
+
+
+
     --tone-accepted: #2f8f6d;
     --tone-partial: #d69a2d;
     --tone-rejected: #c8453c;
@@ -1285,9 +1288,9 @@ html.lc-immersive {
 /* ---- 自适应：按面板宽度 ---- */
 @container (max-width: 760px) {
     .lc-panel {
-        --lane-min: 184px;
-        --lane-empty: 84px;
-        --lane-future: 64px;
+
+
+
     }
 
     .lc-toolbar {
@@ -1332,3 +1335,9 @@ html.lc-immersive {
         padding: 0 8px;
     }
 }
+
+/* Equal-width lifecycle lanes and quiet cards. */
+.lc-lane { padding: 16px; border-inline-end: 1px solid var(--rule); }
+.lc-card, .lc-comment { border-radius: 10px; box-shadow: none; }
+.lc-hero { border-radius: 12px; box-shadow: none; }
+.lc-grid { align-items: stretch; }
