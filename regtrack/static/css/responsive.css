@@ -24,7 +24,7 @@
 .record-scroll-button:hover { background: var(--accent-soft); }
 .record-scroll-button:disabled { opacity: .4; }
 .responsive-table { width: 100%; table-layout: fixed; min-width: 900px; }
-.standards-table { min-width: 1080px; }
+.standards-table { min-width: 960px; }
 .comments-grouped-table { min-width: 1120px; }
 .actions-grouped-table { min-width: 980px; }
 .drafts-grouped-table { min-width: 1040px; }
@@ -32,10 +32,11 @@
 .lookup-table { min-width: 700px; }
 .exchange-columns { min-width: 640px; }
 .responsive-table tr[hidden] { display: none; }
-.responsive-table td, .responsive-table th { overflow-wrap: anywhere; }
+.responsive-table td { overflow-wrap: break-word; }
 .responsive-table > thead > tr > th { white-space: normal; }
 .responsive-field-label { display: none; }
-.tag { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+/* 标签只在空格处换行：“Waiting for Response” 可分两行，“Submitted”“Recommendation” 保持完整。 */
+.tag { max-width: 100%; white-space: normal; overflow-wrap: normal; word-break: keep-all; }
 .standard-group-toggle { min-width: 0; flex-wrap: wrap; }
 .group-standard-no, .group-summary { white-space: normal; overflow-wrap: anywhere; }
 .meeting-list-table { table-layout: fixed; width: 100%; min-width: 1000px; }

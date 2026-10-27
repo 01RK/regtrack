@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ t('消息中心', 'Notifications') }} · RegTrack{% endblock %}
+{% block eyebrow %}{{ t('消息与提醒', 'MESSAGES & ALERTS') }}{% endblock %}
+{% block heading %}{{ t('消息中心', 'Notifications') }}{% endblock %}
+{% block content %}
+<div class="message-hub">
+  <div class="message-hub-intro"><h2>{{ t('选择消息板块', 'Your message boards') }}</h2><p>{{ t('按板块查看最新消息与处理记录。', 'Open a board to review its latest messages and activity.') }}</p></div>
+  <div class="message-hub-grid">
+    <a href="{{ url_for('page_standard_notifications') }}" class="message-board" id="standard-message-board" aria-busy="true">
+      <div class="message-board-top"><span class="message-board-icon" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span><span class="message-board-status" id="standard-board-status">{{ t('正在读取…', 'Loading…') }}</span></div>
+      <h3>{{ t('最新标准进度', 'Standard Progress') }}</h3>
+      <p>{{ t('计划下达、征求意见与标准公告，集中查看标准的最新变化。', 'Follow project plans, consultations and releases in one place.') }}</p>
+      <div class="message-board-counts"><span>{{ t('计划下达', 'Plans') }} <b data-board-count="plans">—</b></span><span>{{ t('征求意见', 'Consultations') }} <b data-board-count="comments">—</b></span><span>{{ t('标准公告', 'Releases') }} <b data-board-count="releases">—</b></span></div>
+      <div class="message-board-footer"><span>{{ t('查看消息', 'View messages') }}</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></div>
+    </a>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/notification-hub.js', v=app_version) }}"></script>{% endblock %}

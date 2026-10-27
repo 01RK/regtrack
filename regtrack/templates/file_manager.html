@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ t('文件管理','File Manager') }}{% endblock %}
+{% block heading %}{{ t('文件管理','File Manager') }}{% endblock %}
+{% block content %}
+<div class="panel" style="padding:20px">
+ <div class="filters">
+  <div class="fl"><label for="fm-scope">{{ t('存储范围','Storage scope') }}</label><select id="fm-scope" class="form-select"><option value="standard">{{ t('标准','Standard') }}</option><option value="workgroup">{{ t('工作组','Workgroup') }}</option></select></div>
+  <div class="fl" style="flex:1"><label for="fm-owner">{{ t('标准 / 工作组','Standard / Workgroup') }}</label><select id="fm-owner" class="form-select"></select></div>
+  <div class="fl"><label for="fm-stage">{{ t('阶段','Stage') }}</label><select id="fm-stage" class="form-select"></select></div>
+ </div>
+ <div class="btn-row" style="margin:16px 0;flex-wrap:wrap">
+  <button type="button" class="btn btn-outline-secondary btn-sm" id="fm-up">{{ t('上一级','Up') }}</button>
+  <button type="button" class="btn btn-outline-secondary btn-sm" id="fm-refresh">{{ t('刷新','Refresh') }}</button>
+  <button type="button" class="btn btn-outline-secondary btn-sm" id="fm-new">{{ t('新建文件夹','New folder') }}</button>
+  <label class="btn btn-primary btn-sm" for="fm-upload">{{ t('上传文件','Upload files') }}</label><input id="fm-upload" type="file" multiple hidden>
+ </div>
+ <nav id="fm-breadcrumb" aria-label="Folder path" style="overflow-wrap:anywhere;margin:12px 0"></nav>
+ <p id="fm-status" role="status" aria-live="polite"></p>
+ <div class="table-wrap"><table class="table"><thead><tr><th>{{ t('名称','Name') }}</th><th>{{ t('大小','Size') }}</th><th>{{ t('上传人','Uploaded by') }}</th><th>{{ t('上传时间','Uploaded at') }}</th><th>{{ t('操作','Actions') }}</th></tr></thead><tbody id="fm-rows"></tbody></table></div>
+ <div class="btn-row"><button type="button" class="btn btn-sm btn-outline-secondary" id="fm-prev">{{ t('上一页','Previous') }}</button><span id="fm-page"></span><button type="button" class="btn btn-sm btn-outline-secondary" id="fm-next">{{ t('下一页','Next') }}</button></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static',filename='js/pages/file-manager.js',v=app_version) }}"></script>{% endblock %}

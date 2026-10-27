@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ t('导入意见', 'Import Opinions') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
 {% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/comments">← {{ t('返回', 'Back') }}</a><span>{{ U('导入意见', 'Import Opinions') }}</span></span>{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='v20-fix2.13-zoom') }}">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v=app_version) }}">{% endblock %}
 {% block content %}
 <div class="draft-import-flow exchange-flow">
   <section class="panel">
@@ -50,4 +50,4 @@
   </section>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/comment-import.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/comment-import.js', v=app_version) }}"></script>{% endblock %}

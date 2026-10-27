@@ -8,14 +8,6 @@ App.ready(async () => {
   let categoryRows = {};
   let sorter;
 
-  document.querySelectorAll("[data-setting-tab]").forEach((tab) => {
-    tab.onclick = () => {
-      const key = tab.dataset.settingTab;
-      document.querySelectorAll("[data-setting-tab]").forEach((x) => x.classList.toggle("active", x === tab));
-      document.querySelectorAll("[data-setting-section]").forEach((x) => x.classList.toggle("active", x.dataset.settingSection === key));
-    };
-  });
-
   async function load() {
     const host = document.getElementById("cats");
     const nav = document.getElementById("lookup-categories");
@@ -70,7 +62,7 @@ App.ready(async () => {
                   <td class="cell-main">${esc(r.value)}</td>
                   <td class="cell-sub">${dash(r.note)}</td>
                   <td>${r.is_active ? `<span class="tag ok">${window.App.uiText("启用", "Active")}</span>` : `<span class="tag muted">${window.App.uiText("停用", "Inactive")}</span>`}</td>
-                  <td><div class="lookup-actions">
+                  <td><div class="lookup-actions">${cat === "tc_wg" ? `<a class="btn btn-outline-secondary btn-sm" href="/file-manager?scope=workgroup&owner_id=${r.id}&stage=OTHER">${t("文件", "Files")}</a>` : ""}
                     <button class="btn-link-quiet" data-edit='${esc(JSON.stringify(r))}'>${window.App.uiText("编辑", "Edit")}</button>
                     <button class="btn-link-quiet" data-toggle="${r.id}" data-active="${r.is_active}">${r.is_active ? t("停用", "Deactivate") : t("启用", "Activate")}</button>
                     <button class="btn-link-quiet" data-del="${r.id}">${window.App.uiText("删除", "Delete")}</button>
@@ -290,13 +282,37 @@ App.ready(async () => {
     });
   }
 
+  function renderOperators(selected) {
+    const sel = document.getElementById("operator-user");
+    const people = (App.lookups.person || []).filter((p) => p.is_active);
+    if (App.user && !people.some((p) => p.value === App.user)) people.unshift({ value: App.user, note: "" });
+    sel.innerHTML = people.map((p) => `<option value="${esc(p.value)}">${esc(p.value)}${p.note ? ` · ${esc(p.note)}` : ""}</option>`).join("");
+    sel.value = selected || App.user || (people[0] && people[0].value) || "";
+  }
+
   async function loadOperator() {
     const sel = document.getElementById("operator-user");
     if (!sel) return;
-    const people = (App.lookups.person || []).map((p) => p.value);
-    if (App.user && !people.includes(App.user)) people.unshift(App.user);
-    sel.innerHTML = people.map((u) => `<option>${esc(u)}</option>`).join("");
-    sel.value = App.user || people[0] || "";
+    renderOperators();
+    // 部门：从「团队 / 部门」字典选择，或直接键入新部门（保存时由后端补进字典）。
+    const department = () => Fields.lookup(document.getElementById("operator-new-note"), {
+      category: "team", placeholder: t("选择或输入部门…", "Select or type a department…") });
+    let departmentPicker = department();
+    // 新增操作人：写入人员字典（与「字典维护 → 人员」同一份名单），并选中它，再确认切换即可。
+    document.getElementById("operator-add-form").onsubmit = async (event) => {
+      event.preventDefault();
+      const name = document.getElementById("operator-new-name").value.trim();
+      const note = departmentPicker.getValue();
+      if (!name) return fail(t("请填写操作人姓名", "Enter the operator's name"));
+      try {
+        const saved = await post("/api/lookups/person", { value: name, note });
+        await App.refreshLookups();
+        renderOperators(saved.value);
+        event.target.reset();
+        departmentPicker = department();
+        ok(t(`已添加操作人 ${saved.value}，点「确认切换」即可使用`, `Added ${saved.value}. Click Switch to use it.`));
+      } catch (e) { fail(e.message); }
+    };
     document.getElementById("operator-current").textContent = App.user || t("未署名", "Unsigned");
     document.getElementById("operator-confirm").onclick = () => {
       const next = sel.value; if (!next || next === App.user) return fail(t("请选择不同的操作人", "Select a different operator"));
@@ -310,12 +326,12 @@ App.ready(async () => {
   }
 
   async function reload() {
-    App.lookups = await get("/api/lookups");
+    await App.refreshLookups();
     await load();
   }
 
   function openForm(category, row) {
-    Forms.formModal({
+    (row ? Forms.inlineForm : Forms.formModal)({
       title: row ? `${t("编辑", "Edit")} ${row.value}` : `${t("新增", "Add")} · ${CATS[category]}`,
       subtitle: `${t("字典", "Dictionary")} · ${category}`,
       size: "md",

@@ -84,6 +84,5 @@ App.ready(async () => {
 
 
   await load();
-  const deep = new URLSearchParams(location.search).get("id");
-  if (deep) openDetail(Number(deep));
+  await Records.restore(ctx);
 });

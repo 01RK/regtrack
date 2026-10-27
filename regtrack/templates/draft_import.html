@@ -3,7 +3,7 @@
 {% block eyebrow %}{% endblock %}
 {% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/drafts" aria-label="{{ t('返回草案版本管理', 'Back to draft versions') }}">← {{ t('返回', 'Back') }}</a><span>{{ U('导入草案原文', 'Import Draft Text') }}</span></span>{% endblock %}
 {% block actions %}{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v='v20-fix2.13-zoom') }}">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v=app_version) }}">{% endblock %}
 {% block content %}
 <div class="draft-import-flow">
   <section class="panel">
@@ -18,7 +18,7 @@
         <details class="import-guide" open>
         <summary>{{ t('当前使用方法', 'How to use') }}</summary>
         <ol>
-          <li>{{ t('下载', 'Download the') }}<a href="{{ url_for('static', filename='standard-clause-import-blank.xlsx') }}" download>{{ U('空白章节模板', 'blank chapter template') }}</a>{{ U('。', '.') }}</li>
+          <li>{{ t('下载', 'Download the') }}<a href="{{ url_for('static', filename='standard-clause-import-blank.xlsx', v=app_version) }}" download>{{ U('空白章节模板', 'blank chapter template') }}</a>{{ U('。', '.') }}</li>
           <li>{{ t('在 Web 端大模型上传草案原文和模板，粘贴下方提示词，下载生成的 Excel。', 'Upload the draft and the template to a web LLM, paste the prompt below and download the generated Excel.') }}</li>
           <li>{{ t('核对编号、表格和公式，再上传 Excel。', 'Check numbering, tables and formulas, then upload the Excel.') }}</li>
         </ol>
@@ -70,4 +70,4 @@
   </section>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/draft-import.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/draft-import.js', v=app_version) }}"></script>{% endblock %}

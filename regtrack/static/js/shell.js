@@ -36,10 +36,13 @@
     }));
 
     // 界面语言由服务端按 Cookie 渲染，切换后整页重载，页面与弹窗保持同一语言。
+    // 重载前保存本页已读取的数据（core.js），重载后直接使用，不再重复读取共享数据库。
     document.querySelectorAll("[data-lang]").forEach((option) => {
       option.addEventListener("click", () => {
         if (option.getAttribute("aria-pressed") === "true") return;
         document.cookie = `regtrack_lang=${option.dataset.lang}; path=/; max-age=31536000; SameSite=Lax`;
+        if (window.App) window.App.saveLanguageSnapshot();
+        document.documentElement.classList.add("lang-switching");
         location.reload();
       });
     });

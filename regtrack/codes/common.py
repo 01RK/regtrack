@@ -95,7 +95,7 @@ class ApiError(Exception):
 def current_user() -> str:
     """当前操作人。
 
-    本系统单机内网使用，不做账号体系：顶栏选定的姓名随请求头下发，
+    本系统通过云服务器入口认证控制访问；顶栏选定的业务署名随请求头下发，
     用于「Recorded By / Created By」等系统自动字段。
 
     HTTP 头只允许 ISO-8859-1，中文姓名由前端 encodeURIComponent 后传入，
@@ -135,8 +135,23 @@ def clean(payload: dict, fields: list[str]) -> dict:
         if isinstance(v, str):
             v = v.strip()
             v = v or None
+        if f.endswith("_id") and v is not None:
+            v = record_id(v, f)
         out[f] = v
     return out
+
+
+def record_id(value, field: str) -> int:
+    """把请求里的记录 id 解析为正整数（在请求边界校验，避免非法文本传入数据库）。"""
+    if isinstance(value, bool):
+        raise ApiError(f"记录 id 不合法：{value}", field=field)
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise ApiError(f"记录 id 不合法：{value}", field=field) from None
+    if number < 1 or str(number) != str(value).strip():
+        raise ApiError(f"记录 id 不合法：{value}", field=field)
+    return number
 
 
 def require(data: dict, fields: list[tuple[str, str]]) -> None:

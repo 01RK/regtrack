@@ -1,0 +1,8 @@
+# Replace domain and bcrypt hash before use. Requires Caddy >=2.8.
+regtrack.example.com {
+    basic_auth {
+        team REPLACE_WITH_CADDY_HASH_PASSWORD_OUTPUT
+    }
+    reverse_proxy 127.0.0.1:5000
+    header X-Content-Type-Options nosniff
+}

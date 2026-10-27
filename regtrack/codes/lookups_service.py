@@ -30,7 +30,7 @@ def ensure_values(category: str, values) -> list[dict]:
         if not value:
             continue
         row = db.query_one(
-            "SELECT * FROM lookup_value WHERE category = ? AND value = ?",
+            "SELECT * FROM lookup_value WHERE category = %s AND value = %s",
             (category, value))
         if row:
             if not row["is_active"]:
@@ -39,7 +39,7 @@ def ensure_values(category: str, values) -> list[dict]:
             saved.append(row)
             continue
         tail = db.query_one(
-            "SELECT MAX(sort_order) AS m FROM lookup_value WHERE category = ?",
+            "SELECT MAX(sort_order) AS m FROM lookup_value WHERE category = %s",
             (category,))
         new_id = db.insert("lookup_value", {
             "category": category,
@@ -48,5 +48,5 @@ def ensure_values(category: str, values) -> list[dict]:
             "sort_order": (tail["m"] or 0) + 10,
             "is_active": 1,
         })
-        saved.append(db.query_one("SELECT * FROM lookup_value WHERE id = ?", (new_id,)))
+        saved.append(db.query_one("SELECT * FROM lookup_value WHERE id = %s", (new_id,)))
     return saved

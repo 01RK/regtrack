@@ -25,7 +25,7 @@ App.ready(async () => {
     if (loadedFile) document.getElementById("assignment").hidden = false;
     document.getElementById("source-upload-message").textContent = "";
   };
-  fetch("/static/single-draft-chapters-prompt.txt?v=20261001-preface-zero").then(response => {
+  fetch(`/static/single-draft-chapters-prompt.txt?v=${App.version}`).then(response => {
     if (!response.ok) throw new Error(t("提示词读取失败", "Failed to load the prompt"));
     return response.text();
   }).then(text => { prompt.value = text.trim(); }).catch(e => { prompt.value = ""; promptMessage.textContent = e.message; });
@@ -117,7 +117,7 @@ App.ready(async () => {
       if (standardPicker) standardPicker.destroy();
       standard.innerHTML = "";
       standardPicker = Fields.standard(standard, {
-        preload: data.standards,
+        recommended: data.standards,
         quickCreatePrefill: { std_no: data.standard_no, name_cn: data.standard_name },
         onChange: () => loadVersions().catch(e => { error.textContent = e.message; }),
       });
@@ -169,7 +169,8 @@ App.ready(async () => {
       }
       const form = new FormData(); form.append("file", loadedFile); form.append("target", JSON.stringify(target));
       const result = await api("/api/drafts/imports", { method: "POST", body: form });
-      location.href = `/drafts/${result.draft_id}#reader`;
+      // 替换当前历史项：之后在草案页点「返回」回到导入前的页面，而不是已完成的导入页。
+      location.replace(`/drafts/${result.draft_id}#reader`);
     } catch (e) {
       if (e.status === 409 && draft.value !== "new") {
         try {

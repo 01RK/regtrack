@@ -35,21 +35,21 @@ def _resolve(entity_type: str, field_key: str):
 def history(entity_type: str, entity_id: int, field_key: str) -> list[dict]:
     _, history_table, parent_key, _, _ = _resolve(entity_type, field_key)
     return db.query(
-        f"SELECT * FROM {history_table} WHERE {parent_key} = ? "
+        f"SELECT * FROM {history_table} WHERE {parent_key} = %s "
         "ORDER BY effective_date DESC, id DESC",
         (entity_id,),
     )
 
 
 def add(entity_type: str, entity_id: int, field_key: str, payload: dict) -> dict:
-    """Append an action or recipient status event."""
+    """在当前事务中追加一条事项或反馈对象的状态变更（不提交）。"""
     if entity_type == "comment":
         raise ApiError("Use the opinion edit form to update status", 400)
     entity_table, history_table, parent_key, allowed, _ = _resolve(
         entity_type, field_key
     )
     row = db.query_one(
-        f"SELECT {field_key} AS cur FROM {entity_table} WHERE id = ?",
+        f"SELECT {field_key} AS cur FROM {entity_table} WHERE id = %s",
         (entity_id,),
     )
     if row is None:
@@ -75,12 +75,12 @@ def add(entity_type: str, entity_id: int, field_key: str, payload: dict) -> dict
         "recorded_by": current_user(),
     })
     db.execute(
-        f"UPDATE {entity_table} SET {field_key} = ? WHERE id = ?",
+        f"UPDATE {entity_table} SET {field_key} = %s WHERE id = %s",
         (new_value, entity_id),
     )
-    db.commit()
+    # 由调用方提交：状态变更常与其他修改（反馈对象字段、事项自动完成）同属一次保存。
     return db.query_one(
-        f"SELECT * FROM {history_table} WHERE id = ?", (history_id,)
+        f"SELECT * FROM {history_table} WHERE id = %s", (history_id,)
     )
 
 

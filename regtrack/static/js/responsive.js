@@ -38,7 +38,20 @@
     tools.querySelector('[data-scroll-right]').disabled = viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 1;
   }
 
+  /* prepare() 自己改动的 DOM（插入字段标签、显隐滚动提示）也会被 MutationObserver 看到。
+     若不排除，提示条显隐改变页面滚动条、进而改变表格是否溢出，就会每一帧来回切换、
+     反复重排整页，页面随之卡顿甚至无响应。因此整理期间暂停监听，结束后丢弃自身产生的记录。 */
   function prepare() {
+    observer.disconnect();
+    try {
+      prepareTables();
+    } finally {
+      observer.takeRecords();
+      observe();
+    }
+  }
+
+  function prepareTables() {
     document.querySelectorAll('.table, .meeting-standard-list').forEach(content => {
       if (content.matches('.table') && !content.tHead) return;
       const viewport = scrollView(content);
@@ -73,9 +86,11 @@
     requestAnimationFrame(() => { scheduled = false; prepare(); });
   }
   const observer = new MutationObserver(schedule);
-  observer.observe(document.querySelector('.content'), {childList:true, subtree:true, attributes:true, attributeFilter:['class', 'hidden']});
-  observer.observe(document.getElementById('modal-host'), {childList:true, subtree:true, attributes:true, attributeFilter:['class', 'hidden']});
-  observer.observe(document.documentElement, {attributes:true, attributeFilter:['class']});
+  function observe() {
+    observer.observe(document.querySelector('.content'), {childList:true, subtree:true, attributes:true, attributeFilter:['class', 'hidden']});
+    observer.observe(document.getElementById('modal-host'), {childList:true, subtree:true, attributes:true, attributeFilter:['class', 'hidden']});
+    observer.observe(document.documentElement, {attributes:true, attributeFilter:['class']});
+  }
   window.addEventListener('resize', schedule);
   document.addEventListener('shown.bs.modal', schedule);
   document.addEventListener('shown.bs.tab', schedule);

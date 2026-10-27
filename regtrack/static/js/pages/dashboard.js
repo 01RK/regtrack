@@ -204,4 +204,5 @@ App.ready(async () => {
   bootstrap.Tab.getOrCreateInstance(start).show();
   // show() 对已激活的标签不触发事件，默认标签需要手动同步一次网址。
   if (view.tab === "overview") syncUrl();
+  await Records.restore({ onChanged: loadOverview });
 });

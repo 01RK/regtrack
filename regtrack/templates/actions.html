@@ -32,14 +32,14 @@
     <table class="table grouped-table actions-grouped-table">
       <colgroup>
         <col class="action-col-no"><col class="action-col-type"><col class="action-col-title">
-        <col class="action-col-status"><col class="action-col-priority">
+        <col class="action-col-priority">
         <col class="action-col-due"><col class="action-col-feedback">
       </colgroup>
       <thead><tr>
         <th>{{ L('Action No.', '事项号') }}</th><th>{{ L('Type', '类型') }}</th><th>{{ L('Title', '标题') }}</th>
-        <th>{{ L('Status', '状态') }}</th><th>{{ L('Priority', '优先级') }}</th><th>{{ L('Due Date', '截止') }}</th><th>{{ L('Feedback', '反馈进度') }}</th>
+        <th>{{ L('Priority', '优先级') }}</th><th>{{ L('Due Date', '截止') }}</th><th>{{ L('Feedback', '反馈进度') }}</th>
       </tr></thead>
-      <tbody id="rows"><tr><td colspan="7"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="6"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
     </table>
   </div>
   <div class="pager" id="pager"></div>
@@ -47,5 +47,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/pages/actions.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/actions.js', v=app_version) }}"></script>
 {% endblock %}

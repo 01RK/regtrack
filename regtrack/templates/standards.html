@@ -21,20 +21,19 @@
   <div class="panel-body tight standards-list">
     <table class="table standards-table">
       <colgroup>
-        <col style="width:24%"><col style="width:17%"><col style="width:12%">
-        <col style="width:7%"><col style="width:7%"><col style="width:10%">
-        <col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:11%">
+        <col style="width:31%"><col style="width:17%"><col style="width:9%"><col style="width:14%">
+        <col style="width:7%"><col style="width:7%"><col style="width:6%"><col style="width:9%">
       </colgroup>
       <thead><tr>
-        <th>{{ L('Standard', '标准编号 / 名称') }}</th><th>{{ L('Current Stage', '当前阶段') }}</th><th>{{ L('TC / WG', '归口') }}</th>
-        <th>{{ L('Risk', '风险') }}</th><th>{{ L('Owner', '负责人') }}</th><th>{{ L('Impact Area', '影响领域') }}</th>
-        <th>{{ L('Drafts', '草案') }}</th><th>{{ L('Opinions', '意见') }}</th><th>{{ L('Open', '在办') }}</th><th>{{ L('Effective Date', '实施日期') }}</th>
+        <th>{{ L('Standard', '标准编号 / 名称') }}</th><th>{{ L('Current Stage', '当前阶段') }}</th>
+        <th>{{ L('Owner', '负责人') }}</th><th>{{ L('Impact Area', '影响领域') }}</th>
+        <th>{{ L('Drafts', '草案') }}</th><th>{{ L('Opinions', '意见') }}</th><th title="{{ t('未完成、未关闭、未取消的事项数', 'Actions not Completed, Closed or Cancelled') }}">{{ L('Todo', '待办') }}</th><th>{{ L('Effective Date', '实施日期') }}</th>
       </tr></thead>
-      <tbody id="rows"><tr><td colspan="10"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="8"><div class="loading">{{ t('载入中…', 'Loading…') }}</div></td></tr></tbody>
     </table>
   </div>
   <div class="pager" id="pager"></div>
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="{{ url_for('static', filename='js/pages/standards.js', v='v20-fix2.13-zoom') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/standards.js', v=app_version) }}"></script>{% endblock %}

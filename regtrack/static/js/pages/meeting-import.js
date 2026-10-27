@@ -17,7 +17,7 @@ App.ready(() => {
     el('manual-import-guide').open = true;
     el('minutes-file').focus({preventScroll:true});
   };
-  fetch('/static/meeting-import-prompt.txt?v=v20-fix2.8c').then(r => {if (!r.ok) throw Error(t('提示词加载失败，请刷新页面重试', 'Failed to load the prompt. Refresh and try again.')); return r.text();}).then(t => el('minutes-prompt').value = t).catch(e => el('copy-status').textContent = e.message);
+  fetch(`/static/meeting-import-prompt.txt?v=${App.version}`).then(r => {if (!r.ok) throw Error(t('提示词加载失败，请刷新页面重试', 'Failed to load the prompt. Refresh and try again.')); return r.text();}).then(t => el('minutes-prompt').value = t).catch(e => el('copy-status').textContent = e.message);
   el('copy-prompt').onclick = async () => {
     if (!el('minutes-prompt').value) return;
     try {await navigator.clipboard.writeText(el('minutes-prompt').value); el('copy-status').textContent = t('已复制提示词', 'Prompt copied');}
@@ -72,19 +72,38 @@ App.ready(() => {
   function renderStandards() {
     el('standard-choices').innerHTML = data.package.standards.map((s,i) => `<article class="minutes-standard">
       <div class="minutes-standard-row"><div class="minutes-standard-identity"><span class="minutes-standard-index">${i+1}</span><div><h3>${esc(s.name_cn)}</h3>${data.package.meeting.title.includes('系列标准') ? `<p class="minutes-series-warning" role="note">${t('请注意，系列标准是否要建档', 'Check whether each standard of the series needs a profile')}</p>` : ''}<span class="minutes-standard-number">${esc(s.std_no || t('尚未编号', 'No number yet'))} · ${t('本次会议阶段：', 'Stage at this meeting: ')}${esc(s.current_stage)}</span></div></div>
-      <div class="minutes-standard-choice"><label for="standard-${i}" class="form-label">${App.label('Tracking', '追踪选择')}</label><select id="standard-${i}" class="form-select form-select-sm" required><option value="">${t('请选择处理方式…', 'Choose…')}</option>${data.standards[i].candidates.map(c=>`<option value="${c.id}" ${c.archived_at ? 'disabled' : ''}>${t('匹配已有', 'Existing')} · ${esc(c.std_no || t('尚未编号', 'No number yet'))} · ${esc(c.name_cn)}（${c.exact?t('名称一致', 'same name'):c.similarity+t('% 相似', '% similar')}${c.archived_at?t('，已归档，需先恢复', ', archived; restore it first'):''}）</option>`).join('')}<option value="create">${t('新建主档并追踪', 'Create profile and track')}</option><option value="skip">${t('不追踪，不入库', 'Do not track or import')}</option></select></div></div>
+      <div class="minutes-standard-choice"><label for="standard-${i}" class="form-label">${App.label('Tracking', '追踪选择')}</label><select id="standard-${i}" class="form-select form-select-sm" required><option value="">${t('请选择处理方式…', 'Choose…')}</option>${data.standards[i].candidates.map(c=>`<option value="${c.id}" ${c.archived_at ? 'disabled' : ''}>${t('匹配已有', 'Existing')} · ${esc(c.std_no || t('尚未编号', 'No number yet'))} · ${esc(c.name_cn)}（${c.exact?t('名称一致', 'same name'):c.similarity+t('% 相似', '% similar')}${c.archived_at?t('，已归档，需先恢复', ', archived; restore it first'):''}）</option>`).join('')}<option value="search">${t('搜索并匹配其他已有标准…', 'Search for another existing standard…')}</option><option value="create">${t('新建主档并追踪', 'Create profile and track')}</option><option value="skip">${t('不追踪，不入库', 'Do not track or import')}</option></select>
+        <button type="button" class="btn btn-link btn-sm minutes-search-toggle" data-search="${i}">${data.standards[i].candidates.length ? t('推荐里没有？搜索已有标准', 'Not suggested? Search existing standards') : t('没有推荐结果，搜索已有标准', 'No suggestions. Search existing standards')}</button>
+        <div id="search-${i}" class="minutes-standard-search" hidden><select id="search-select-${i}" aria-label="${t('搜索已有标准', 'Search existing standards')}"></select></div></div></div>
       <fieldset id="profile-${i}" class="minutes-profile" hidden disabled><div><label class="form-label" for="name-${i}">${App.label('Standard Name CN', '标准名称')}</label><input id="name-${i}" class="form-control form-control-sm" value="${esc(s.name_cn)}" required></div><div><label class="form-label" for="number-${i}">${App.label('Standard No.', '标准号')} <span class="text-muted">${window.App.uiText('（可留空）', '(optional)')}</span></label><input id="number-${i}" class="form-control form-control-sm" value="${esc(s.std_no)}" placeholder="${t('如 GB/T XXXX，可留空', 'e.g. GB/T XXXX; optional')}"></div></fieldset>
       <details><summary>${t('查看会议纪要', 'View minutes')}</summary><div class="minutes-note">${esc(s.note)}</div></details></article>`).join('') || `<div class="minutes-empty">${t('本次没有分标准纪要，可直接进入下一步。', 'No per-standard minutes this time; continue to the next step.')}</div>`;
-    data.package.standards.forEach((s,i) => el(`standard-${i}`).onchange = () => {
-      const create = el(`standard-${i}`).value === 'create';
-      el(`profile-${i}`).hidden = !create; el(`profile-${i}`).disabled = !create; updateCount();
+    data.package.standards.forEach((s,i) => {
+      const mode = el(`standard-${i}`);
+      let picker = null;
+      mode.onchange = () => {
+        const create = mode.value === 'create', search = mode.value === 'search';
+        el(`profile-${i}`).hidden = !create; el(`profile-${i}`).disabled = !create;
+        el(`search-${i}`).hidden = !search;
+        if (search && !picker) {
+          // 在全部标准中搜索匹配：推荐候选置顶，输入编号或名称即搜索其余标准。
+          picker = Fields.standard(el(`search-select-${i}`), {
+            recommended: data.standards[i].candidates.filter(c => !c.archived_at),
+            quickCreate: false, onChange: updateCount,
+            placeholder: t('输入标准编号或名称搜索…', 'Type a standard number or name…'),
+          });
+        }
+        if (search) picker.focus();
+        updateCount();
+      };
+      el('standard-choices').querySelector(`[data-search="${i}"]`).onclick = () => { mode.value = 'search'; mode.onchange(); };
     });
     updateCount();
   }
   function choices() {
     return Object.fromEntries(data.package.standards.map((s,i)=>{
       const v = el(`standard-${i}`).value;
-      return [s.key, v==='create' ? {mode:'create',profile:{name_cn:el(`name-${i}`).value.trim(),std_no:el(`number-${i}`).value.trim()}} : v==='skip' ? {mode:'skip'} : v ? {mode:'existing',id:Number(v)} : {mode:''}];
+      const found = v === 'search' && el(`search-select-${i}`).value;
+      return [s.key, v==='create' ? {mode:'create',profile:{name_cn:el(`name-${i}`).value.trim(),std_no:el(`number-${i}`).value.trim()}} : v==='skip' ? {mode:'skip'} : v==='search' ? (found ? {mode:'existing',id:Number(found)} : {mode:''}) : v ? {mode:'existing',id:Number(v)} : {mode:''}];
     }));
   }
   function updateCount() {
@@ -96,6 +115,10 @@ App.ready(() => {
     e.preventDefault(); if (busy || !el('standards-step').reportValidity()) return;
     const invalid = data.package.standards.findIndex((s,i)=>el(`standard-${i}`).value==='create' && !el(`name-${i}`).value.trim());
     if(invalid>=0) {el(`name-${invalid}`).focus(); App.fail(t('请补全标准名称', 'Enter the standard name')); return;}
+    const unsearched = data.package.standards.findIndex((s,i)=>el(`standard-${i}`).value==='search' && !el(`search-select-${i}`).value);
+    if(unsearched>=0) {el(`search-select-${unsearched}`).tomselect.focus(); App.fail(t('请搜索并选择要匹配的已有标准', 'Search for and select the existing standard to match')); return;}
+    const picked = Object.values(choices()).filter(v=>v.mode==='existing').map(v=>v.id);
+    if(new Set(picked).size !== picked.length) {App.fail(t('多项纪要匹配到了同一标准，请合并纪要或调整匹配', 'Several minutes match the same standard. Merge them or change the match')); return;}
     busy=true; const button=el('standards-step').querySelector('button[type=submit]'); button.disabled=true;
     try {await renderReview(); showStep(3);} catch(err) {App.fail(err.message);}
     finally {busy=false; button.disabled=false;}
@@ -142,7 +165,7 @@ App.ready(() => {
       document.querySelectorAll('[data-step]').forEach(p=>p.hidden=true); el('import-success').hidden=false;
       el('import-success').firstElementChild.innerHTML=t(`<h2 class="h5">会议纪要已导入</h2><p>新建 ${r.created_standards} 项标准主档；${r.skipped_standards} 项不追踪标准及纪要未入库。主档阶段已按最新会议与手动记录校准（推进 ${r.advanced_standards} 项）。</p><p>新增 ${r.created_actions} 条事项，删除 ${r.deleted_actions} 条已有事项；${r.omitted_actions} 条新事项未导入，${r.excluded_actions} 条不追踪标准事项已排除。</p>`,
         `<h2 class="h5">Meeting minutes imported</h2><p>${r.created_standards} standard profile(s) created; ${r.skipped_standards} untracked standard(s) and their minutes skipped. Stages were aligned with the latest meeting and manual records (${r.advanced_standards} advanced).</p><p>${r.created_actions} action(s) added and ${r.deleted_actions} removed; ${r.omitted_actions} new action(s) not imported and ${r.excluded_actions} excluded for untracked standards.</p>`)
-        + `<a class="btn btn-primary" href="/meetings?id=${r.meeting_id}">${window.App.uiText('查看会议', 'View meeting')}</a>`;
+        + `<a class="btn btn-primary" href="/meetings?records=meeting:${r.meeting_id}">${window.App.uiText('查看会议', 'View meeting')}</a>`;
       window.scrollTo({top:0,behavior:'smooth'});
     } catch(err) {el('commit-error').textContent=err.message;}
     finally {busy=false; el('review-step').querySelectorAll('button').forEach(b=>b.disabled=false);}

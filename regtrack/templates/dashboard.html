@@ -2,7 +2,7 @@
 {% block title %}{{ t('总览', 'Dashboard') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
 {% block eyebrow %}{{ U('Dashboard', 'Overview') }}{% endblock %}
 {% block heading %}{{ U('总览', 'Dashboard') }}{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v='v20-fix2.13-zoom') }}">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v=app_version) }}">{% endblock %}
 {% block heading_nav %}
 <ul class="nav dash-tabs" role="tablist">
   <li class="nav-item" role="presentation">
@@ -43,6 +43,7 @@
       </div>
       <div class="panel-body tight table-wrap">
         <table class="table">
+          <colgroup><col style="width:11%"><col style="width:12%"><col style="width:21%"><col style="width:19%"><col style="width:12%"><col style="width:9%"><col style="width:16%"></colgroup>
           <thead><tr>
             <th>{{ L('Action No.', '事项号') }}</th><th>{{ L('Type', '类型') }}</th><th>{{ L('Title', '标题') }}</th><th>{{ L('Related Standard', '关联标准') }}</th>
             <th>{{ L('Status', '状态') }}</th><th>{{ L('Priority', '优先级') }}</th><th>{{ L('Due Date', '截止') }}</th>
@@ -68,6 +69,7 @@
       </div>
       <div class="panel-body tight table-wrap">
         <table class="table">
+          <colgroup><col style="width:12%"><col style="width:30%"><col style="width:9%"><col style="width:9%"><col style="width:18%"><col style="width:13%"><col style="width:9%"></colgroup>
           <thead><tr>
             <th>{{ L('Meeting No.', '会议号') }}</th><th>{{ L('Meeting Title', '会议名称') }}</th><th>{{ L('Date', '日期') }}</th><th>{{ L('Type', '类型') }}</th>
             <th>{{ L('Organizer', '组织方') }}</th><th>{{ L('Related Standards', '涉及标准') }}</th><th>{{ L('Recorded By', '登记人') }}</th>
@@ -102,7 +104,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/charts.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/lifecycle.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/dashboard.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/pages/lifecycle.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/pages/dashboard.js', v=app_version) }}"></script>
 {% endblock %}

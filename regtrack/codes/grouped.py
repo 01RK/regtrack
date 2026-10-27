@@ -5,14 +5,17 @@
 
 from flask import jsonify, request
 
-import db
+
+def _newest_first(row: dict) -> tuple:
+    return row["created_at"], row["id"]
 
 
-def response(item_sql: str, params: list, enrich=None, max_group_size=50):
-    """把已经筛选过的明细查询按标准分组，并以标准组为分页单位。
+def response(rows: list[dict], enrich=None, max_group_size=50):
+    """把已经筛选过的明细按标准分组，并以标准组为分页单位。
 
-    item_sql 必须返回 group_key、standard_id、std_no、name_cn、id、created_at。
-    组间按各组最新登记时间及记录 id 降序；组内同样按登记时间、id 降序。
+    每行必须带 standard_id、std_no、name_cn、id、created_at；standard_id 为空的行归入 0 组。
+    组间按各组最新登记时间及记录 id 降序，再按标准号（不区分大小写）升序；
+    组内按登记时间、id 降序。enrich(page_rows) 可选：为当前页明细批量补充关联数据。
     """
     try:
         page = max(1, int(request.args.get("page", 1)))
@@ -21,68 +24,37 @@ def response(item_sql: str, params: list, enrich=None, max_group_size=50):
         page, group_size = 1, 10
     offset = (page - 1) * group_size
 
-    total = db.query_one(
-        f"SELECT COUNT(*) AS c FROM ({item_sql}) AS matched", params
-    )["c"]
-    group_total = db.query_one(
-        f"SELECT COUNT(DISTINCT group_key) AS c FROM ({item_sql}) AS matched", params
-    )["c"]
-
-    groups = db.query(
-        f"""
-        WITH ranked AS (
-            SELECT matched.*,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY group_key
-                       ORDER BY created_at DESC, id DESC
-                   ) AS group_rank
-              FROM ({item_sql}) AS matched
-        )
-        SELECT group_key,
-               MAX(standard_id) AS standard_id,
-               MAX(std_no) AS std_no,
-               MAX(name_cn) AS name_cn,
-               COUNT(*) AS item_count,
-               MAX(CASE WHEN group_rank = 1 THEN created_at END) AS latest_created_at,
-               MAX(CASE WHEN group_rank = 1 THEN id END) AS latest_id
-          FROM ranked
-         GROUP BY group_key
-         ORDER BY latest_created_at DESC,
-                  latest_id DESC,
-                  std_no COLLATE NOCASE ASC,
-                  group_key ASC
-         LIMIT ? OFFSET ?
-        """,
-        params + [group_size, offset],
-    )
-
-    keys = [g["group_key"] for g in groups]
-    rows = []
-    if keys:
-        marks = ", ".join("?" for _ in keys)
-        rows = db.query(
-            f"""SELECT * FROM ({item_sql}) AS matched
-                  WHERE group_key IN ({marks})
-                  ORDER BY created_at DESC, id DESC""",
-            params + keys,
-        )
-
-    grouped_items = {key: [] for key in keys}
+    by_key: dict = {}
     for row in rows:
-        key = row.pop("group_key")
-        if enrich:
-            enrich(row)
-        grouped_items[key].append(row)
+        by_key.setdefault(row["standard_id"] or 0, []).append(row)
+    for items in by_key.values():
+        items.sort(key=_newest_first, reverse=True)
 
-    flattened = []
-    for group in groups:
-        group.pop("latest_id", None)
-        group["items"] = grouped_items[group["group_key"]]
-        flattened.extend(group["items"])
+    keys = sorted(by_key, key=lambda key: (by_key[key][0]["std_no"] is not None,
+                                           (by_key[key][0]["std_no"] or "").casefold(), key))
+    keys.sort(key=lambda key: _newest_first(by_key[key][0]), reverse=True)
+
+    groups, flattened = [], []
+    for key in keys[offset:offset + group_size]:
+        items = by_key[key]
+        first = items[0]
+        groups.append({
+            "group_key": key,
+            "standard_id": first["standard_id"],
+            "std_no": first["std_no"],
+            "name_cn": first["name_cn"],
+            "item_count": len(items),
+            "latest_created_at": first["created_at"],
+            "items": items,
+        })
+        flattened.extend(items)
+    if enrich:
+        # 只补当前页的明细，由调用方一次批量查询
+        enrich(flattened)
 
     return jsonify(
-        total=total,
-        group_total=group_total,
+        total=len(rows),
+        group_total=len(by_key),
         page=page,
         page_size=group_size,
         groups=groups,

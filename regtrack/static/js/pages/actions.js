@@ -45,12 +45,11 @@ App.ready(async () => {
       page: state.page, page_size: state.size,
     });
     if (data.groups.length) {
-      groupView.render(data.groups, 7, (a, groupAttrs) => `
+      groupView.render(data.groups, 6, (a, groupAttrs) => `
         <tr class="row-click" data-id="${a.id}" ${groupAttrs}>
           <td class="num">${esc(a.item_no)}</td>
           <td>${esc(a.item_type)}</td>
-          <td class="cell-main">${esc(a.title)}</td>
-          <td>${statusTag(a.current_status)}</td>
+          <td class="cell-main">${esc(a.title)} <span class="action-title-status">${statusTag(a.current_status)}</span></td>
           <td>${tag(a.priority)}</td>
           <td class="num">${a.due_date
             ? (overdue(a.due_date) && !["Completed", "Closed", "Cancelled"].includes(a.current_status)
@@ -60,7 +59,7 @@ App.ready(async () => {
             ? `${a.responded_count}/${a.recipient_count}` : "—"}</td>
         </tr>`);
     } else {
-      body.innerHTML = emptyRow(7, ["没有匹配的事项", "No matching actions"], ["点右上角新建，或在会议里用标准行的按钮派生", "Create one at the top right, or derive it from a meeting"]);
+      body.innerHTML = emptyRow(6, ["没有匹配的事项", "No matching actions"], ["点右上角新建，或在会议里用标准行的按钮派生", "Create one at the top right, or derive it from a meeting"]);
     }
     body.querySelectorAll("tr[data-id]").forEach((tr) => {
       tr.onclick = () => openDetail(Number(tr.dataset.id));
@@ -94,5 +93,5 @@ App.ready(async () => {
   const params = new URLSearchParams(location.search);
   if (params.get("open") === "1") document.getElementById("f-open").value = "1";
   await load();
-  if (params.get("id")) openDetail(Number(params.get("id")));
+  await Records.restore(ctx);
 });

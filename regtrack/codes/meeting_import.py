@@ -119,7 +119,6 @@ def commit_import(package, decision):
     if decision.get('confirmed') is not True:
         raise ApiError('请核对预览并确认写入')
     try:
-        db.execute('BEGIN IMMEDIATE')
         available = preview(package)
         if meeting_id != 'new' and not any(type(meeting_id) is int and m['id']==meeting_id for m in available['meetings']):
             raise ApiError('会议选择已失效，请重新预览并选择推荐会议')
@@ -142,10 +141,10 @@ def commit_import(package, decision):
                 data['organizer'] = meeting['organizer']
             db.update('meeting', meeting_id, stamp_update(data))
         lookups_service.ensure_values('organization', [meeting['organizer']])
-        confirmed_meeting = db.query_one('SELECT * FROM meeting WHERE id=?', (meeting_id,))
+        confirmed_meeting = db.query_one('SELECT * FROM meeting WHERE id=%s', (meeting_id,))
         mapped, used = {}, set()
         counts = {'created_standards': 0, 'advanced_standards': 0, 'skipped_standards': 0, 'created_actions': 0, 'deleted_actions': 0, 'omitted_actions': 0, 'excluded_actions': 0}
-        for source, match in zip(package['standards'], available['standards']):
+        for source in package['standards']:
             choice = choices[source['key']]
             if not isinstance(choice, dict):
                 raise ApiError('标准确认格式不正确')
@@ -153,15 +152,17 @@ def commit_import(package, decision):
             sid = None
             stage_code = MEETING_STAGE_CODES[source['current_stage']]
             if mode == 'existing':
+                # 可匹配推荐候选，也可匹配用户搜索到的任一已有标准。
                 sid = choice.get('id')
-                selected = next((s for s in match['candidates'] if type(sid) is int and s['id'] == sid), None)
+                selected = type(sid) is int and db.query_one(
+                    'SELECT id, stage_code, archived_at FROM standard WHERE id = %s', (sid,))
                 if not selected:
-                    raise ApiError(f'「{source["name_cn"]}」的标准选择已失效，请重新预览')
+                    raise ApiError(f'「{source["name_cn"]}」所选标准不存在，请重新选择')
                 if selected['archived_at']:
                     raise ApiError('该标准已归档，请先在标准主档恢复后再导入')
             elif mode == 'create':
                 fields = texts(choice.get('profile'), ('name_cn', 'std_no'), ('name_cn',), '新标准')
-                if fields['std_no'] and 'XXXX' not in fields['std_no'].upper() and db.query_one('SELECT id FROM standard WHERE std_no = ?', (fields['std_no'],)):
+                if fields['std_no'] and 'XXXX' not in fields['std_no'].upper() and db.query_one('SELECT id FROM standard WHERE std_no = %s', (fields['std_no'],)):
                     raise ApiError(f'标准号 {fields["std_no"]} 已存在，请核对名称和匹配选择')
                 fields['std_no'] = fields['std_no'] or None
                 sid = db.insert('standard', stamp_update(stamp_create(dict(fields, stage_code=stage_code))))
@@ -174,11 +175,14 @@ def commit_import(package, decision):
                     raise ApiError('多个数据包标准匹配到同一主档，请先合并对应纪要')
                 used.add(sid)
                 before_stage = selected['stage_code'] if mode == 'existing' else stage_code
-                old = db.query_one('SELECT note FROM meeting_standard WHERE meeting_id=? AND standard_id=?', (meeting_id, sid))
+                old = db.query_one('SELECT note FROM meeting_standard WHERE meeting_id=%s AND standard_id=%s', (meeting_id, sid))
                 note = merge_text(old['note'] if old else '', source['note'])
-                db.execute('INSERT INTO meeting_standard(meeting_id,standard_id,note,imported_stage_code) VALUES(?,?,?,?) '
-                           'ON CONFLICT(meeting_id,standard_id) DO UPDATE SET note=excluded.note, '
-                           'imported_stage_code=excluded.imported_stage_code', (meeting_id, sid, note, stage_code))
+                if old:
+                    db.execute('UPDATE meeting_standard SET note=%s, imported_stage_code=%s '
+                               'WHERE meeting_id=%s AND standard_id=%s', (note, stage_code, meeting_id, sid))
+                else:
+                    db.insert('meeting_standard', dict(meeting_id=meeting_id, standard_id=sid, note=note,
+                                                       imported_stage_code=stage_code))
                 after_stage = stages.record_from_meeting(sid, stage_code, confirmed_meeting)
                 if mode == 'existing' and STAGE_ORDER[after_stage] > STAGE_ORDER[before_stage]:
                     counts['advanced_standards'] += 1

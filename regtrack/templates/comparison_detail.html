@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ t('比对结果', 'Comparison Result') }} · {{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}
+{% block eyebrow %}{% endblock %}
+{% block heading %}<span class="draft-heading-inline"><a class="draft-back" href="/drafts#compare" aria-label="{{ t('返回标准比对', 'Back to comparison') }}">← {{ t('返回', 'Back') }}</a><span id="cmp-heading">{{ U('比对结果', 'Comparison Result') }}</span></span>{% endblock %}
+{% block actions %}
+<a class="btn btn-outline-primary btn-sm" href="/api/comparisons/{{ comparison_id }}/export" download>{{ U('导出结果', 'Export result') }}</a>
+<button class="btn btn-outline-danger btn-sm" id="cmp-delete" type="button">{{ U('删除比对', 'Delete comparison') }}</button>
+{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='vendor/katex/katex.min.css', v=app_version) }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/draft-reader.css', v=app_version) }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/comparison-detail.css', v=app_version) }}">{% endblock %}
+{% block content %}
+<div id="cmp-page" class="cmp-page" data-id="{{ comparison_id }}">
+  <div class="draft-context cmp-context" id="cmp-context"></div>
+  <div class="draft-view-tabs" id="cmp-classes" role="tablist" aria-label="{{ t('按修订性质浏览', 'Browse by revision class') }}"></div>
+  <div id="cmp-error" class="text-danger" role="alert"></div>
+
+  <div class="cmp-workspace">
+    <aside class="reader-column cmp-directory" aria-label="{{ t('比对目录', 'Comparison contents') }}">
+      <header>
+        <div class="cmp-directory-head">
+          <h2>{{ U('比对目录', 'Contents') }}</h2>
+          <div class="cmp-seg" role="group" aria-label="{{ t('目录依据', 'Contents follow') }}">
+            <button type="button" data-toc="before">{{ U('前版', 'Before') }}</button><button type="button" data-toc="after">{{ U('后版', 'After') }}</button>
+          </div>
+        </div>
+        <input class="form-control form-control-sm" id="cmp-search" type="search" placeholder="{{ t('搜索编号、标题或内容', 'Search clauses or text') }}" aria-label="{{ t('搜索比对目录', 'Search contents') }}">
+      </header>
+      <nav id="cmp-toc" class="reader-scroll cmp-toc" aria-label="{{ t('比对目录', 'Comparison contents') }}"></nav>
+    </aside>
+
+    <article class="reader-column cmp-paper">
+      <div class="cmp-paper-bar">
+        <div class="cmp-pager">
+          <button type="button" data-step="-1" aria-label="{{ t('上一条', 'Previous') }}">‹</button>
+          <span id="cmp-position"></span>
+          <button type="button" data-step="1" aria-label="{{ t('下一条', 'Next') }}">›</button>
+        </div>
+        <span class="cmp-legend"><del class="rev-del">{{ t('删除', 'Removed') }}</del><mark class="rev-ins">{{ t('新增', 'Inserted') }}</mark></span>
+        <div class="reader-language" role="group" aria-label="{{ t('内容语言', 'Content language') }}">
+          <button type="button" data-language="cn">简体中文</button><button type="button" data-language="en">English</button>
+        </div>
+      </div>
+      <div class="reader-scroll cmp-paper-body" id="cmp-paper"></div>
+    </article>
+  </div>
+</div>
+<dialog id="illustration-viewer" class="illustration-viewer" aria-label="{{ t('查看附图', 'View illustration') }}"><button type="button" id="close-illustration" aria-label="{{ t('关闭附图', 'Close illustration') }}">×</button><img id="illustration-large" alt=""><p id="illustration-caption"></p></dialog>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='vendor/marked.umd.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='vendor/purify.min.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='vendor/katex/katex.min.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='vendor/diff.min.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='js/rich-text.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='js/revision-diff.js', v=app_version) }}"></script><script src="{{ url_for('static', filename='js/pages/comparison-detail.js', v=app_version) }}"></script>{% endblock %}

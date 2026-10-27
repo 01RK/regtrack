@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html lang="{{ 'en' if lang == 'en' else 'zh-CN' }}">
+<html lang="{{ 'en' if lang == 'en' else 'zh-CN' }}" data-version="{{ app_version }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ t('法规跟踪系统', 'Regulation Tracking') }}{% endblock %}</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.bootstrap5.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='v20-fix2.13-zoom') }}">
-<script src="{{ url_for('static', filename='js/shell.js', v='v20-fix2.13-zoom') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css', v=app_version) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.bootstrap5.min.css', v=app_version) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v=app_version) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notifications.css', v=app_version) }}">
+<script src="{{ url_for('static', filename='js/shell.js', v=app_version) }}"></script>
 {% block styles %}{% endblock %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css', v='v20-fix2.13-zoom') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css', v=app_version) }}">
 </head>
 <body data-page="{{ active }}">
 <div class="shell">
@@ -34,6 +35,7 @@
       <label for="current-user">{{ L('Operator', '当前操作人') }}</label>
       <div id="current-user" class="current-user-display">{{ t('未署名', 'Unsigned') }}</div>
       <div style="margin-top:8px">{{ t('如需切换，请进入「设置」→「切换操作人」。', 'To switch, go to Settings → Switch Operator.') }}</div>
+      <div class="app-version" title="{{ t('数据库', 'Database') }}: {{ database_path }}&#10;{{ t('附件文件夹', 'Attachments') }}: {{ files_path }}">RegTrack</div>
     </div>
   </nav>
   <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="{{ t('收起导航', 'Collapse navigation') }}" title="{{ t('收起导航', 'Collapse navigation') }}" aria-controls="main-navigation" aria-expanded="true">
@@ -47,28 +49,38 @@
         <h1>{% block heading %}{% endblock %}</h1>
       </div>
       {% block heading_nav %}{% endblock %}
-      <div class="ms-auto btn-row">{% block actions %}{% endblock %}</div>
+      <div class="ms-auto btn-row topbar-actions">{% block actions %}{% endblock %}</div>
+        <a href="/notifications" id="notification-badge" class="notification-trigger" aria-label="{{ t('消息中心', 'Notifications') }}" title="{{ t('消息中心', 'Notifications') }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+          <span class="notification-count" data-count hidden aria-hidden="true"></span>
+        </a>
     </header>
     <main class="content">{% block content %}{% endblock %}</main>
   </div>
 </div>
 
+<div class="app-activity" id="app-activity" role="status" aria-live="polite">
+  <div class="app-activity-bar"></div>
+  <div class="app-activity-pill"><span class="app-spinner" aria-hidden="true"></span><span class="app-activity-text"></span></div>
+</div>
 <div class="toast-stack" id="toast-stack"></div>
 <div id="modal-host"></div>
 
-<script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/core.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/responsive.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/meeting-standards.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/grouped-list.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/fields.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/forms.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/action-form.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/stage-manager.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/comment-view.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/opinion-history.js', v='v20-fix2.13-zoom') }}"></script>
-<script src="{{ url_for('static', filename='js/records.js', v='v20-fix2.13-zoom') }}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/core.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/responsive.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/meeting-standards.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/grouped-list.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/fields.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/forms.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/inline-edit.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/action-form.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/stage-manager.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/comment-view.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/opinion-history.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/records.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/notifications.js', v=app_version) }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

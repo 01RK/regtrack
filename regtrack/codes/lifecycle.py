@@ -5,6 +5,7 @@ import re
 
 from flask import Blueprint, jsonify, render_template, send_file
 
+import comment_model
 import db
 import stages
 import status
@@ -52,13 +53,13 @@ def _lifecycle_stages(standard: dict) -> list[dict]:
             "updated_at": None, "updated_by": None, "modified": False,
         })
     timeline += [
-        {"code": code, "name": stages.label(code), "state": "future",
+        {"code": code, "name": stages.label(code), "state": "current" if rank == current_rank else "future",
          "start": None, "end": None, "note": None,
          "record_type": None, "record_type_label": None,
          "created_at": None, "created_by": None,
          "updated_at": None, "updated_by": None, "modified": False}
         for code, rank in STAGE_ORDER.items()
-        if rank > current_rank and code not in recorded and code != TERMINAL_STAGE
+        if rank >= current_rank and code not in recorded and code != TERMINAL_STAGE
     ]
     for stage in timeline:
         stage.update(meetings=[], drafts=[], comments=[], actions=[])
@@ -71,6 +72,8 @@ def _stage_for(timeline: list[dict], day: str, preferred: str | None = None) -> 
     for stage in reached:
         if stage["code"] == preferred:
             return stage
+    if not reached:
+        return next(stage for stage in timeline if stage["state"] == "current")
     hit = reached[0]  # 早于第一条阶段记录的日期归入第一个阶段
     for stage in reached:
         if stage["start"] is not None and stage["start"] <= day:
@@ -85,15 +88,15 @@ def payload(standard_id: int, full: bool) -> dict:
 
     meetings = db.query(
         """SELECT m.*, ms.note AS standard_note
-             FROM meeting m JOIN meeting_standard ms ON ms.meeting_id = m.id
-            WHERE ms.standard_id = ? ORDER BY m.meeting_date, m.id""", (standard_id,))
+             FROM meeting m INNER JOIN meeting_standard ms ON ms.meeting_id = m.id
+            WHERE ms.standard_id = %s ORDER BY m.meeting_date, m.id""", (standard_id,))
     for meeting in meetings:
         _stage_for(timeline, meeting["meeting_date"])["meetings"].append(meeting)
 
     drafts = db.query(
-        """SELECT d.*, (SELECT COUNT(*) FROM v_current_draft_chapter ce WHERE ce.draft_id = d.id)
+        """SELECT d.*, (SELECT COUNT(*) FROM draft_chapter ce WHERE ce.draft_id = d.id)
                   AS clause_count
-             FROM draft d WHERE d.standard_id = ?
+             FROM draft d WHERE d.standard_id = %s
             ORDER BY d.draft_date, d.id""", (standard_id,))
     draft_stage = {}
     for draft in drafts:
@@ -101,7 +104,7 @@ def payload(standard_id: int, full: bool) -> dict:
         draft_stage[draft["id"]] = stage
         if full:
             draft["clauses"] = db.query(
-                "SELECT * FROM v_current_draft_chapter WHERE draft_id = ? ORDER BY sequence",
+                "SELECT * FROM draft_chapter WHERE draft_id = %s ORDER BY sequence",
                 (draft["id"],))
             draft["annotations"] = []
             chapters = {chapter["id"]: chapter for chapter in draft["clauses"]}
@@ -115,14 +118,15 @@ def payload(standard_id: int, full: bool) -> dict:
         stage["drafts"].append(draft)
 
     comments = db.query(
-        """SELECT c.*, d.version_name, d.sub_version_no,
+        f"""SELECT c.*, {comment_model.SUBMISSION_CHANNEL}, d.version_name, d.sub_version_no,
              bd.version_name AS before_version_name, bd.sub_version_no AS before_sub_version_no,
              ad.version_name AS after_version_name, ad.sub_version_no AS after_sub_version_no
-             FROM comment c LEFT JOIN draft d ON d.id = c.draft_id
-             LEFT JOIN draft bd ON bd.id=c.before_draft_id LEFT JOIN draft ad ON ad.id=c.after_draft_id
-            WHERE c.standard_id = ?
-            ORDER BY COALESCE(c.submission_date, substr(c.created_at, 1, 10)), c.id""",
+             FROM ((comment c LEFT JOIN draft d ON d.id = c.draft_id)
+                   LEFT JOIN draft bd ON bd.id = c.before_draft_id)
+                   LEFT JOIN draft ad ON ad.id = c.after_draft_id
+            WHERE c.standard_id = %s""",
         (standard_id,))
+    comments.sort(key=lambda c: (c["submission_date"] or c["created_at"][:10], c["id"]))
     for comment in comments:
         day = comment["submission_date"] or comment["created_at"][:10]
         stage = draft_stage.get(comment["after_draft_id"] if comment["source_kind"] == "comparison" else comment["draft_id"]) or _stage_for(timeline, day)
@@ -136,7 +140,7 @@ def payload(standard_id: int, full: bool) -> dict:
             for meeting in stage["meetings"]:
                 meeting_stage[meeting["id"]] = stage
         rows = db.query(
-            actions_api._SELECT + " WHERE a.standard_id = ? ORDER BY a.created_at, a.id",
+            actions_api._SELECT + " WHERE a.standard_id = %s ORDER BY a.created_at, a.id",
             (standard_id,))
         for action in rows:
             stage = (draft_stage.get(action["draft_id"])

@@ -30,6 +30,8 @@ ASSETS = {
         "https://cdn.jsdelivr.net/npm/marked@15.0.12/lib/marked.umd.js",
     "purify.min.js":
         "https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js",
+    "diff.min.js":
+        "https://cdn.jsdelivr.net/npm/diff@4.0.4/dist/diff.min.js",
     "katex/katex.min.css":
         "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css",
     "katex/katex.min.js":

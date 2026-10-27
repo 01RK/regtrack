@@ -19,18 +19,21 @@ bp = Blueprint("comments", __name__, url_prefix="/api/comments")
 FIELDS = ["standard_id", "source_kind", "comment_type", "draft_id", "clause_no",
           "before_draft_id", "before_clause_no", "after_draft_id", "after_clause_no",
           "comment_text", "needs_follow_up", "status", "submitted_by", "submission_date",
-          "source_recipient_id", "source_annotation_id"]
+          "source_annotation_id"]
 
-_SELECT = """
-SELECT c.*, s.std_no, s.name_cn, s.stage_code,
+_SELECT = f"""
+SELECT c.*, {comment_model.SUBMISSION_CHANNEL}, s.std_no, s.name_cn, s.stage_code,
+       cc.comparison_id, co.change_id AS comparison_change_id,
        d.version_name, d.sub_version_no,
        bd.version_name AS before_version_name, bd.sub_version_no AS before_sub_version_no,
        ad.version_name AS after_version_name, ad.sub_version_no AS after_sub_version_no
-  FROM comment c
-  JOIN standard s ON s.id = c.standard_id
-  LEFT JOIN draft d ON d.id = c.draft_id
-  LEFT JOIN draft bd ON bd.id = c.before_draft_id
-  LEFT JOIN draft ad ON ad.id = c.after_draft_id
+  FROM (((((comment c
+  INNER JOIN standard s ON s.id = c.standard_id)
+  LEFT JOIN draft d ON d.id = c.draft_id)
+  LEFT JOIN draft bd ON bd.id = c.before_draft_id)
+  LEFT JOIN draft ad ON ad.id = c.after_draft_id)
+  LEFT JOIN comparison_opinion co ON co.comment_id = c.id)
+  LEFT JOIN comparison_change cc ON cc.id = co.change_id
 """
 
 
@@ -44,7 +47,7 @@ def _payload(payload):
 
 
 def _get(comment_id: int) -> dict:
-    row = db.query_one(_SELECT + " WHERE c.id = ?", (comment_id,))
+    row = db.query_one(_SELECT + " WHERE c.id = %s", (comment_id,))
     if not row:
         raise ApiError("意见不存在", 404)
     return row
@@ -57,27 +60,30 @@ def list_comments():
     where, params = ["s.archived_at IS NULL"], []
     standard_q = (request.args.get("standard_q") or "").strip()
     if standard_q:
-        where.append("(s.std_no LIKE ? OR s.name_cn LIKE ?)")
-        params += [f"%{standard_q}%"] * 2
+        where.append("(s.std_no ILIKE %s OR s.name_cn ILIKE %s)")
+        params += [db.contains(standard_q)] * 2
     content_q = (request.args.get("content_q") or "").strip()
     if content_q:
-        where.append("""(c.comment_text LIKE ? OR EXISTS (
+        where.append("""(c.comment_text ILIKE %s OR EXISTS (
             SELECT 1 FROM comment_status_history h WHERE h.comment_id=c.id
-            AND (h.response LIKE ? OR h.follow_up LIKE ?)))""")
-        params += [f"%{content_q}%"] * 3
-    for field, arg in (("c.status", "status"), ("c.standard_id", "standard_id"),
-                       ("c.source_kind", "source_kind"), ("c.comment_type", "comment_type"), ("c.submitted_by", "submitted_by")):
+            AND (h.response ILIKE %s OR h.follow_up ILIKE %s)))""")
+        params += [db.contains(content_q)] * 3
+    for field, arg in (("c.status", "status"), ("c.source_kind", "source_kind"),
+                       ("c.comment_type", "comment_type"), ("c.submitted_by", "submitted_by")):
         val = (request.args.get(arg) or "").strip()
         if val:
-            where.append(f"{field} = ?")
+            where.append(f"{field} = %s")
             params.append(val)
+    standard_id = request.args.get("standard_id", type=int)
+    if standard_id:
+        where.append("c.standard_id = %s")
+        params.append(standard_id)
 
-    draft_id = request.args.get("draft_id")
+    draft_id = request.args.get("draft_id", type=int)
     if draft_id:
-        where.append("(c.draft_id=? OR c.before_draft_id=? OR c.after_draft_id=?)")
+        where.append("(c.draft_id=%s OR c.before_draft_id=%s OR c.after_draft_id=%s)")
         params += [draft_id] * 3
-    clause = " WHERE " + " AND ".join(where)
-    return grouped.response(_SELECT.replace("SELECT c.*", "SELECT c.standard_id AS group_key, c.*") + clause, params)
+    return grouped.response(db.query(_SELECT + " WHERE " + " AND ".join(where), params))
 
 
 @bp.get("/<int:comment_id>")
@@ -119,6 +125,11 @@ def update(comment_id):
         comment_model.bind_annotation(bound)
         data.update({k: bound[k] for k in ("source_kind", "standard_id", "draft_id", "clause_no",
                     "before_draft_id", "before_clause_no", "after_draft_id", "after_clause_no")})
+    if db.query_one('SELECT id FROM comparison_opinion WHERE comment_id=%s', (comment_id,)):
+        binding = ('standard_id', 'source_kind', 'before_draft_id', 'after_draft_id',
+                   'before_clause_no', 'after_clause_no', 'draft_id', 'clause_no', 'source_annotation_id')
+        if any(key in data and data[key] != previous.get(key) for key in binding):
+            raise ApiError('Comparison opinion source cannot be changed / 比对批注的来源绑定不可修改')
     comment_model.validate({**previous, **data})
     opinion_service.record_change(previous, data)
     db.update("comment", comment_id, stamp_update(data))
@@ -157,3 +168,5 @@ def detail_payload(comment_id: int) -> dict:
 def status_history(comment_id):
     _get(comment_id)
     return jsonify(status.history("comment", comment_id, "status"))
+
+

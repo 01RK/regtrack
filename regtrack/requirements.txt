@@ -1,6 +1,13 @@
-# 法规跟踪系统 —— Python 依赖
-# 数据库用标准库 sqlite3，无需额外安装。
-Flask>=3.0,<4.0
-
-openpyxl>=3.1,<4.0
+# Python 3.11+ (deployment target: Python 3.12 x64). PostgreSQL and MinIO servers are installed separately.
+Flask>=3.1,<4
+psycopg[binary,pool]>=3.2,<4
+minio>=7.2.15,<8
+waitress>=3.0.2,<4
+openpyxl>=3.1,<4
 Pillow>=10,<12
+requests>=2.32.3,<3
+beautifulsoup4>=4.12,<5
+APScheduler>=3.11,<4
+truststore>=0.10.4,<0.11
+urllib3>=2.2,<3
+MarkupSafe>=2.1,<4

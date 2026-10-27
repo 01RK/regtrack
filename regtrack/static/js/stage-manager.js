@@ -104,7 +104,7 @@
       ? cfg.preselect
       : selectable[0].value;
 
-    Forms.formModal({
+    Forms.inlineForm({
       title: `${t("推进 / 补录阶段", "Advance / Backfill Stage")} · ${cfg.title}`,
       subtitle: t("Standard Stage · 阶段管理", "Standard Stage"),
       size: "lg",
@@ -207,7 +207,7 @@
 
   function openEdit(cfg, record) {
     const isBackfill = record.record_type === MODE.BACKFILL.key;
-    Forms.formModal({
+    Forms.inlineForm({
       title: `${t("修改阶段信息", "Edit stage")} · ${stageLabel(record.stage_code)}`,
       subtitle: `Standard Stage · ${modeLabel(record.record_type)}`,
       size: "lg",

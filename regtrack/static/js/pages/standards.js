@@ -3,6 +3,7 @@ App.ready(async () => {
   const M = App.meta;
 
   const state = { page: 1, size: 25, total: 0, archived: false };
+  const RISK = { High: "high", Medium: "medium", Low: "low" };
 
   /* --------------------------------------------------------- 过滤条 */
   function fillSelect(id, values, label) {
@@ -54,19 +55,17 @@ App.ready(async () => {
     body.innerHTML = data.items.length
       ? data.items.map((s) => `
         <tr class="row-click" data-id="${s.id}">
-          <td data-label="${t("标准", "Standard")}"><div class="standard-identity"><span class="cell-main">${esc(s.std_no)}</span>${s.std_type ? `<span class="tag standard-type">${esc(s.std_type)}</span>` : ""}</div>
+          <td data-label="${t("标准", "Standard")}"><div class="standard-identity"><span class="cell-main">${esc(s.std_no || s.plan_no || "—")}</span>${s.std_type ? `<span class="tag standard-type">${esc(s.std_type)}</span>` : ""}${s.risk_level ? `<span class="tag ${RISK[s.risk_level]}" title="${t("风险等级", "Risk level")}">${esc(s.risk_level)}</span>` : ""}</div>
               <div class="cell-sub">${esc(s.name_cn)}</div></td>
           <td data-label="${t("当前阶段", "Current Stage")}"><div class="standard-stage">${stageMini(s.stage_code)}<span class="tag info">${esc(stageLabel(s.stage_code))}</span></div></td>
-          <td data-label="${t("归口", "TC / WG")}">${dash(s.tc_wg)}</td>
-          <td data-label="${t("风险", "Risk")}">${tag(s.risk_level)}</td>
           <td data-label="${t("负责人", "MB Owner")}">${dash(s.mb_owner)}</td>
           <td data-label="${t("影响领域", "Impact Area")}" class="cell-sub">${dash(s.impact_areas)}</td>
           <td data-label="${t("草案", "Drafts")}" class="num">${s.draft_count}</td>
           <td data-label="${t("意见", "Opinions")}" class="num">${s.comment_count}</td>
-          <td data-label="${t("在办", "Open Actions")}" class="num"><span class="${s.open_action_count ? "count-alert" : ""}">${s.open_action_count}</span></td>
+          <td data-label="${t("待办", "Todo")}" class="num"><span class="${s.todo_count ? "count-alert" : ""}">${s.todo_count}</span></td>
           <td data-label="${t("实施日期", "Effective Date")}" class="num">${dash(s.effective_date)}</td>
         </tr>`).join("")
-      : emptyRow(10, state.archived ? ["归档里没有匹配的标准", "No matching archived standards"] : ["没有匹配的标准", "No matching standards"],
+      : emptyRow(8, state.archived ? ["归档里没有匹配的标准", "No matching archived standards"] : ["没有匹配的标准", "No matching standards"],
                  state.archived ? ["取消勾选即可回到正常列表", "Untick the box to return to the normal list"] : ["换个搜索词，或点右上角「新建标准」建档", "Try another search, or create one with New Standard"]);
 
     body.querySelectorAll("tr[data-id]").forEach((tr) => {
@@ -89,7 +88,7 @@ App.ready(async () => {
   const ctx = { onChanged: load };
   const openDetail = (id) => Records.open("standard", id, ctx);
 
-  document.getElementById("btn-new").onclick = () => Records.standardForm(null, ctx);
+  document.getElementById("btn-new").onclick = () => Records.standardForm(ctx);
   document.getElementById("f-archived").onchange = (ev) => {
     state.archived = ev.target.checked;
     state.page = 1;
@@ -97,6 +96,7 @@ App.ready(async () => {
   };
 
   await load();
-  const deep = new URLSearchParams(location.search).get("id");
-  if (deep) openDetail(Number(deep));
+  const linked = new URLSearchParams(location.search).get("id");
+  if (linked) await openDetail(Number(linked));
+  else await Records.restore(ctx);
 });
